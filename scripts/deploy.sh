@@ -40,11 +40,19 @@ fi
 # 2. Grant only roles/aiplanet.user to the service account.
 # ------------------------------------------------------------------
 echo "Granting roles/aiplatform.user to ${SA_EMAIL}..."
-gcloud projects add-iam-policy-binding "${PROJECT_ID}" \
-  --member="serviceAccount:${SA_EMAIL}" \
-  --role="roles/aiplatform.user" \
-  --condition=None \
-  --quiet >/dev/null
+# A new service account takes a little while to become visible to IAM; retry the binding.
+for attempt in $(seq 1 10); do
+  if gcloud projects add-iam-policy-binding "${PROJECT_ID}" \
+       --member="serviceAccount:${SA_EMAIL}" \
+       --role="roles/aiplatform.user" \
+       --condition=None \
+       --quiet >/dev/null 2>&1; then
+    break
+  fi
+  if [ "${attempt}" = "10" ]; then echo "Could not grant roles/aiplatform.user to ${SA_EMAIL}." >&2; exit 1; fi
+  echo "  service account not visible to IAM yet; retrying in 10s (${attempt}/10)"
+  sleep 10
+done
 
 # ------------------------------------------------------------------
 # 3. Deploy to Cloud Run (builds from source via the Dockerfile).
