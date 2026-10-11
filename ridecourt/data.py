@@ -180,6 +180,7 @@ class Facts(BaseModel):
     distance_optimal_km: float = 0.0
     duration_actual_min: float = 0.0
     duration_optimal_min: float = 0.0
+    extra_min: float = 0.0  # duration_actual - duration_optimal
     deviation_pct: float = 0.0
     detour_segment: dict | None = None  # {start_ts, end_ts}
     unexpected_stops: list[dict] = Field(default_factory=list)  # {start_ts, end_ts, duration_min}

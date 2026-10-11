@@ -35,7 +35,7 @@ from .events import EventLog, monotonic_ms
 from .guard import Problem, check as guard_check
 from .llm import CaseBudget, LLMError, set_case_budget
 from .policy import evaluate
-from .tools import build_evidence_pack, facts_from_evidence_pack
+from .tools import build_evidence_pack, facts_from_evidence_pack, policy_evidence_item
 
 
 # ---------------------------------------------------------------------------
@@ -169,6 +169,13 @@ class Orchestrator:
         )
         latency = monotonic_ms(t0)
 
+        # Append the policy computation as a citable evidence item so agents
+        # can cite E# instead of doing arithmetic on derived quantities.
+        next_id = len(pack.items) + 1
+        pack.items.append(
+            policy_evidence_item(policy_result, facts, next_id)
+        )
+
         policy_ids = list(policy_result.applicable_clauses)
 
         log.emit(
@@ -288,43 +295,37 @@ class Orchestrator:
                 log, "REBUTTAL", "rider_advocate", "judge",
                 rider_rebuttal, rider_reb_meta, rider_reb_problems,
             )
+        else:
+            # Rebuttal guard failed after re-ask — drop it and continue.
+            log.emit(
+                "GUARD_REJECTED",
+                from_agent="guard",
+                content={
+                    "agent": "rider_advocate",
+                    "stage": "rebuttal",
+                    "problems": [p.__dict__ for p in rider_reb_problems],
+                },
+            )
         if driver_rebuttal is not None:
             self._emit_advocate_event(
                 log, "REBUTTAL", "driver_advocate", "judge",
                 driver_rebuttal, driver_reb_meta, driver_reb_problems,
             )
-
-        # If rebuttal guard failed, escalate.
-        if rider_rebuttal is None or driver_rebuttal is None:
-            reason = "guard_failure_rebuttal"
+        else:
+            # Rebuttal guard failed after re-ask — drop it and continue.
             log.emit(
-                "ESCALATION",
+                "GUARD_REJECTED",
                 from_agent="guard",
                 content={
-                    "reason": reason,
-                    "rider_problems": [p.__dict__ for p in rider_reb_problems],
-                    "driver_problems": [p.__dict__ for p in driver_reb_problems],
+                    "agent": "driver_advocate",
+                    "stage": "rebuttal",
+                    "problems": [p.__dict__ for p in driver_reb_problems],
                 },
             )
-            cf = CaseFile(
-                dispute_id=dispute.dispute_id,
-                dispute=dispute,
-                evidence_pack=pack,
-                rider_case=rider_case,
-                driver_case=driver_case,
-                rider_rebuttal=rider_rebuttal,
-                driver_rebuttal=driver_rebuttal,
-                policy_result=policy_result,
-                escalated=True,
-                escalation_reason=reason,
-                guard_problems=self._problem_dicts(
-                    rider_reb_problems, driver_reb_problems
-                ),
-                events=log,
-                total_tokens=budget.spent,
-                total_latency_ms=log.total_latency_ms(),
-            )
-            return cf
+
+        # Rebuttals are optional: a failed rebuttal is dropped (above) and
+        # the Judge proceeds with the original claims. Escalation happens
+        # only on initial-claim guard failure or Judge ruling guard failure.
 
         # --- 6. Judge ----------------------------------------------------
         t0 = time.monotonic()

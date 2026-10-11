@@ -321,7 +321,7 @@ def evaluate(
         # Deviation is significant — compute refund
         refund = _route_deviation_refund(facts, fare_params)
         extra_km = facts.distance_actual_km - facts.distance_optimal_km
-        extra_min = facts.duration_actual_min - facts.duration_optimal_min
+        extra_min = facts.extra_min
         per_km = fare_params.per_km
         per_min = fare_params.per_min
         surge = fare_params.surge_multiplier

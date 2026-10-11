@@ -61,8 +61,11 @@ def _system_prompt(side: Side) -> str:
         "Rules:\n"
         "1. Every argument must cite at least one evidence ID (E#) and/or "
         "policy clause ID (P-..) that exists in the provided context.\n"
-        "2. Numbers in your text must come from the cited evidence — never "
-        "make up amounts, distances, or times.\n"
+        "2. Copy numbers exactly as shown in the evidence. Never compute, "
+        "round, or estimate new numbers. If you need a difference (e.g. "
+        "extra minutes, fare difference), cite the evidence item that "
+        "already states it — the evidence pack includes derived quantities "
+        "and a policy computation item for this purpose.\n"
         "3. Briefly acknowledge evidence that cuts against your side. "
         "Judges reward candour.\n"
         f"4. Your position and requested_outcome should favour {target}.\n"
@@ -83,9 +86,17 @@ def _user_prompt(
     lines.append(f"Dispute claim: {claim_text}\n")
     lines.append("Evidence pack:")
     for item in pack.items:
-        lines.append(
-            f"  {item.id} [{item.kind}]: {item.summary}"
-        )
+        lines.append(f"  {item.id} [{item.kind}]: {item.summary}")
+        # Show key numeric data values so the agent can copy them exactly.
+        data = getattr(item, "data", {})
+        if data:
+            num_vals = {
+                k: v for k, v in data.items()
+                if isinstance(v, (int, float)) and not isinstance(v, bool)
+            }
+            if num_vals:
+                pairs = ", ".join(f"{k}={v}" for k, v in num_vals.items())
+                lines.append(f"    values: {pairs}")
     lines.append("")
 
     # Policy result
@@ -158,6 +169,8 @@ class Advocate:
             "Provide a short rebuttal: identify the weakest point in the "
             "opponent's argument and reinforce your side's position. "
             "Cite E# and P-.. IDs. Be brief (2-3 arguments max). "
+            "Copy numbers exactly as shown in the evidence — never compute, "
+            "round, or estimate new numbers. "
             "Return JSON matching the provided schema."
         )
         lines: list[str] = []
@@ -165,6 +178,15 @@ class Advocate:
         lines.append("Evidence pack:")
         for item in pack.items:
             lines.append(f"  {item.id} [{item.kind}]: {item.summary}")
+            data = getattr(item, "data", {})
+            if data:
+                num_vals = {
+                    k: v for k, v in data.items()
+                    if isinstance(v, (int, float)) and not isinstance(v, bool)
+                }
+                if num_vals:
+                    pairs = ", ".join(f"{k}={v}" for k, v in num_vals.items())
+                    lines.append(f"    values: {pairs}")
         lines.append("")
         lines.append(f"Opponent ({opp}) case:")
         lines.append(f"  position: {opponent_output.position}")

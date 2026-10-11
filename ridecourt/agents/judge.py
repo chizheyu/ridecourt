@@ -64,7 +64,9 @@ def _system_prompt() -> str:
         "optional risk/precedent information. Your job is to issue a ruling.\n\n"
         "Judge rules:\n"
         "1. The amount must equal the policy engine's amount. Never invent "
-        "numbers.\n"
+        "numbers. Copy numbers exactly as shown in the evidence or policy "
+        "computation — never compute, round, or estimate new numbers. If "
+        "you need a value, cite the evidence item that already states it.\n"
         "2. The outcome comes from the policy engine. If you disagree with "
         "the policy engine, you must escalate — never override.\n"
         "3. Confidence below 0.7 means escalate.\n"
@@ -90,6 +92,15 @@ def _user_prompt(
     lines.append("Evidence pack:")
     for item in pack.items:
         lines.append(f"  {item.id} [{item.kind}]: {item.summary}")
+        data = getattr(item, "data", {})
+        if data:
+            num_vals = {
+                k: v for k, v in data.items()
+                if isinstance(v, (int, float)) and not isinstance(v, bool)
+            }
+            if num_vals:
+                pairs = ", ".join(f"{k}={v}" for k, v in num_vals.items())
+                lines.append(f"    values: {pairs}")
     lines.append("")
 
     lines.append("Rider Advocate case:")

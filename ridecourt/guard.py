@@ -324,7 +324,7 @@ def _cited_eids(texts: list[tuple[str, str]], cite_fields: list[tuple[str, list[
 # Helpers: valid numbers from cited evidence + policy result
 # ---------------------------------------------------------------------------
 
-_TOLERANCE = 0.01  # 1 cent / 0.01 unit
+_TOLERANCE = 0.01  # kept for backwards compatibility — unused by precision match
 
 
 def _valid_numbers(
@@ -431,12 +431,45 @@ def _extract_numbers(text: str, field_name: str) -> list[ExtractedNumber]:
     return result
 
 
+def _decimal_places(num_str: str) -> int:
+    """Count the digits after the decimal point in a number string.
+
+    ``"2.9"`` → 1, ``"3"`` → 0, ``"3.00"`` → 2, ``"3.1415"`` → 4.
+    """
+    if "." not in num_str:
+        return 0
+    # Strip non-digit suffixes (e.g., "min", "km") — just the decimal part.
+    raw = num_str.strip()
+    dot_idx = raw.rfind(".")
+    if dot_idx < 0:
+        return 0
+    frac = raw[dot_idx + 1:]
+    # Count trailing digits until a non-digit.
+    count = 0
+    for ch in frac:
+        if ch.isdigit():
+            count += 1
+        else:
+            break
+    return count
+
+
 def _number_verified(num: ExtractedNumber, valid: list[tuple[float, str]]) -> bool:
-    """Check whether *num* matches some valid (value, unit) pair within
-    tolerance and with the same unit."""
+    """Check whether *num* matches some valid (value, unit) pair.
+
+    A number written with *k* decimal places matches an evidence value *v*
+    of the same unit when ``round(v, k) == num.value``::
+
+        2.9 min  matches 2.93 min  (round(2.93, 1) = 2.9)
+        3 min    matches 2.93 min  (round(2.93, 0) = 3)
+        3.1 min  does not match 2.93 min  (round(2.93, 1) = 2.9 ≠ 3.1)
+
+    Units must match exactly — money never backs kilometres.
+    """
+    k = _decimal_places(num.raw)
     for value, unit in valid:
         if unit != num.unit:
             continue
-        if abs(value - num.value) <= _TOLERANCE:
+        if round(value, k) == num.value:
             return True
     return False

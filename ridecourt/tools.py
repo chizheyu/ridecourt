@@ -427,6 +427,7 @@ def gps_analysis(trip: Trip) -> list[dict]:
     actual_min = trip.fare.duration_min
     optimal_min = trip.optimal_route.duration_min
     extra_km = round(actual_km - optimal_km, 4)
+    extra_min = round(actual_min - optimal_min, 1)
     pct = (
         round(extra_km / optimal_km * 100, 2)
         if optimal_km > 0
@@ -442,7 +443,9 @@ def gps_analysis(trip: Trip) -> list[dict]:
         "summary": (
             f"Actual distance {actual_km:.2f} km vs optimal "
             f"{optimal_km:.2f} km; deviation {pct:.1f}% "
-            f"({extra_km:.2f} km extra)."
+            f"({extra_km:.2f} km extra). "
+            f"Actual duration {actual_min:.1f} min vs optimal "
+            f"{optimal_min:.1f} min ({extra_min:.1f} min extra)."
         ),
         "data": {
             "distance_actual_km": round(actual_km, 4),
@@ -450,6 +453,7 @@ def gps_analysis(trip: Trip) -> list[dict]:
             "duration_actual_min": round(actual_min, 2),
             "duration_optimal_min": round(optimal_min, 2),
             "extra_km": extra_km,
+            "extra_min": extra_min,
             "deviation_pct": pct,
         },
         "source": "gps_analysis",
@@ -797,6 +801,38 @@ def build_evidence_pack(
     return EvidencePack(items=evidence_items)
 
 
+def policy_evidence_item(
+    policy_result: PolicyResult,
+    facts: Facts,
+    next_id: int,
+) -> EvidenceItem:
+    """Build an evidence item from the policy engine's computation so agents
+    can cite it instead of doing arithmetic.
+
+    Carries the outcome, amount, computation string, applicable clauses, and
+    the derived quantities (extra_km, extra_min) with display precision.
+    """
+    extra_km = facts.distance_actual_km - facts.distance_optimal_km
+    extra_min = facts.extra_min
+    return EvidenceItem(
+        id=f"E{next_id}",
+        kind="policy_computation",
+        summary=(
+            f"Policy: {policy_result.outcome}, S${policy_result.amount:.2f}. "
+            f"{policy_result.computation}"
+        ),
+        data={
+            "outcome": policy_result.outcome,
+            "amount": round(policy_result.amount, 2),
+            "computation": policy_result.computation,
+            "applicable_clauses": list(policy_result.applicable_clauses),
+            "extra_km": round(extra_km, 2),
+            "extra_min": round(extra_min, 1),
+        },
+        source="policy_engine",
+    )
+
+
 # ---------------------------------------------------------------------------
 # Facts extraction from the evidence pack (single source of truth)
 # ---------------------------------------------------------------------------
@@ -831,6 +867,7 @@ def facts_from_evidence_pack(pack: EvidencePack) -> Facts:
         distance_optimal_km=gps.get("distance_optimal_km", 0.0),
         duration_actual_min=gps.get("duration_actual_min", 0.0),
         duration_optimal_min=gps.get("duration_optimal_min", 0.0),
+        extra_min=gps.get("extra_min", 0.0),
         deviation_pct=gps.get("deviation_pct", 0.0),
         detour_segment=gps.get("detour_segment"),
         unexpected_stops=gps.get("unexpected_stops", []),

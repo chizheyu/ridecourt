@@ -401,3 +401,182 @@ class TestGuardFailsForbiddenWords:
         # "guaranteed" is a forbidden word — it appears in the text regardless.
         # This test verifies that the check is case-insensitive substring.
         assert len(word_problems) >= 1
+
+
+# ---------------------------------------------------------------------------
+# Precision-aware number matching
+# ---------------------------------------------------------------------------
+
+
+class TestGuardPrecisionMatching:
+    """A number written with k decimals matches an evidence value v of the
+    same unit when round(v, k) equals it."""
+
+    def test_rounded_minutes_match(self):
+        """2.9 min matches evidence value 2.93 min (round(2.93, 1) = 2.9)."""
+        pack = EvidencePack(
+            items=[
+                EvidenceItem(
+                    id="E1",
+                    kind="gps_analysis",
+                    summary="Extra time 2.93 min.",
+                    data={"extra_min": 2.93},
+                    source="gps_analysis",
+                ),
+            ]
+        )
+        output = AdvocateOutput(
+            position="Based on E1.",
+            arguments=[
+                Argument(text="E1 shows extra time of 2.9 min.", cites=["E1"]),
+            ],
+            requested_outcome="Refund per P-RD-1.",
+        )
+        problems = check(output, pack, ["P-RD-1"])
+        num_problems = [p for p in problems if p.kind == "unverified_number"]
+        assert num_problems == []
+
+    def test_whole_number_matches(self):
+        """3 min matches evidence value 2.93 min (round(2.93, 0) = 3)."""
+        pack = EvidencePack(
+            items=[
+                EvidenceItem(
+                    id="E1",
+                    kind="gps_analysis",
+                    summary="Extra time 2.93 min.",
+                    data={"extra_min": 2.93},
+                    source="gps_analysis",
+                ),
+            ]
+        )
+        output = AdvocateOutput(
+            position="Based on E1.",
+            arguments=[
+                Argument(text="E1 shows extra time of 3 min.", cites=["E1"]),
+            ],
+            requested_outcome="Refund per P-RD-1.",
+        )
+        problems = check(output, pack, ["P-RD-1"])
+        num_problems = [p for p in problems if p.kind == "unverified_number"]
+        assert num_problems == []
+
+    def test_too_far_does_not_match(self):
+        """3.1 min does NOT match evidence value 2.93 min
+        (round(2.93, 1) = 2.9, not 3.1)."""
+        pack = EvidencePack(
+            items=[
+                EvidenceItem(
+                    id="E1",
+                    kind="gps_analysis",
+                    summary="Extra time 2.93 min.",
+                    data={"extra_min": 2.93},
+                    source="gps_analysis",
+                ),
+            ]
+        )
+        output = AdvocateOutput(
+            position="Based on E1.",
+            arguments=[
+                Argument(text="E1 shows extra time of 3.1 min.", cites=["E1"]),
+            ],
+            requested_outcome="Refund per P-RD-1.",
+        )
+        problems = check(output, pack, ["P-RD-1"])
+        num_problems = [p for p in problems if p.kind == "unverified_number"]
+        assert len(num_problems) >= 1
+
+    def test_money_two_decimals_match(self):
+        """S$7.96 matches evidence amount 7.955 (round(7.955, 2) = 7.96)."""
+        pack = EvidencePack(
+            items=[
+                EvidenceItem(
+                    id="E1",
+                    kind="policy_computation",
+                    summary="Policy amount S$7.96.",
+                    data={"amount": 7.955},
+                    source="policy_engine",
+                ),
+            ]
+        )
+        output = AdvocateOutput(
+            position="Based on E1.",
+            arguments=[
+                Argument(text="E1 shows refund of S$7.96.", cites=["E1"]),
+            ],
+            requested_outcome="Refund per P-RD-1.",
+        )
+        problems = check(output, pack, ["P-RD-1"])
+        num_problems = [p for p in problems if p.kind == "unverified_number"]
+        assert num_problems == []
+
+    def test_km_one_decimal_match(self):
+        """6.9 km matches evidence value 6.873 km (round(6.873, 1) = 6.9)."""
+        pack = EvidencePack(
+            items=[
+                EvidenceItem(
+                    id="E1",
+                    kind="gps_analysis",
+                    summary="Extra distance 6.873 km.",
+                    data={"extra_km": 6.873},
+                    source="gps_analysis",
+                ),
+            ]
+        )
+        output = AdvocateOutput(
+            position="Based on E1.",
+            arguments=[
+                Argument(text="E1 shows extra distance of 6.9 km.", cites=["E1"]),
+            ],
+            requested_outcome="Refund per P-RD-1.",
+        )
+        problems = check(output, pack, ["P-RD-1"])
+        num_problems = [p for p in problems if p.kind == "unverified_number"]
+        assert num_problems == []
+
+    def test_negative_minutes_match(self):
+        """-2.9 min matches evidence value -2.94 min (round(-2.94, 1) = -2.9)."""
+        pack = EvidencePack(
+            items=[
+                EvidenceItem(
+                    id="E1",
+                    kind="gps_analysis",
+                    summary="Extra time -2.94 min.",
+                    data={"extra_min": -2.94},
+                    source="gps_analysis",
+                ),
+            ]
+        )
+        output = AdvocateOutput(
+            position="Based on E1.",
+            arguments=[
+                Argument(text="E1 shows extra time of -2.9 min.", cites=["E1"]),
+            ],
+            requested_outcome="Refund per P-RD-1.",
+        )
+        problems = check(output, pack, ["P-RD-1"])
+        num_problems = [p for p in problems if p.kind == "unverified_number"]
+        assert num_problems == []
+
+    def test_units_still_strict(self):
+        """3.68 km must NOT back S$3.68 even with precision matching."""
+        pack = EvidencePack(
+            items=[
+                EvidenceItem(
+                    id="E1",
+                    kind="gps_analysis",
+                    summary="Extra distance 3.68 km.",
+                    data={"extra_km": 3.68},
+                    source="gps_analysis",
+                ),
+            ]
+        )
+        output = AdvocateOutput(
+            position="Based on E1.",
+            arguments=[
+                Argument(text="E1 shows refund of S$3.68.", cites=["E1"]),
+            ],
+            requested_outcome="Refund per P-RD-1.",
+        )
+        problems = check(output, pack, ["P-RD-1"])
+        num_problems = [p for p in problems if p.kind == "unverified_number"]
+        assert len(num_problems) >= 1

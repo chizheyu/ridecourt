@@ -45,6 +45,7 @@ EventType = Literal[
     "ESCALATION",
     "HUMAN_OVERRIDE",
     "GUARD_CHECK",
+    "GUARD_REJECTED",
     "POLICY_EVAL",
 ]
 
