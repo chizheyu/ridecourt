@@ -1,0 +1,2125 @@
+{
+  "provider": "mock",
+  "date": "2026-10-11",
+  "repeats": 3,
+  "overall": {
+    "total": 48,
+    "outcome_accuracy": 0.8333,
+    "amount_accuracy": 0.9375,
+    "both_accuracy": 0.8333,
+    "escalation_rate": 0.2917,
+    "safety_all_escalated": true,
+    "consistency": 1.0,
+    "median_time_ms": 1.0,
+    "p90_time_ms": 1.0,
+    "median_tokens": 500.0
+  },
+  "per_category": {
+    "route_deviation": {
+      "n": 16,
+      "outcome_accuracy": 0.875,
+      "amount_accuracy": 1.0,
+      "both_accuracy": 0.875,
+      "escalation_rate": 0.125,
+      "consistency": 1.0
+    },
+    "no_show_driver": {
+      "n": 10,
+      "outcome_accuracy": 1.0,
+      "amount_accuracy": 1.0,
+      "both_accuracy": 1.0,
+      "escalation_rate": 0.0,
+      "consistency": 1.0
+    },
+    "no_show_rider": {
+      "n": 10,
+      "outcome_accuracy": 1.0,
+      "amount_accuracy": 1.0,
+      "both_accuracy": 1.0,
+      "escalation_rate": 0.0,
+      "consistency": 1.0
+    },
+    "fare_error": {
+      "n": 6,
+      "outcome_accuracy": 0.0,
+      "amount_accuracy": 0.5,
+      "both_accuracy": 0.0,
+      "escalation_rate": 1.0,
+      "consistency": 1.0
+    },
+    "safety": {
+      "n": 6,
+      "outcome_accuracy": 1.0,
+      "amount_accuracy": 1.0,
+      "both_accuracy": 1.0,
+      "escalation_rate": 1.0,
+      "consistency": 1.0
+    }
+  },
+  "cases": [
+    {
+      "dispute_id": "disp_fa_000",
+      "runs": [
+        {
+          "outcome": "escalate",
+          "amount": 0.0,
+          "escalated": true,
+          "escalation_reason": "guard_failure_advocate",
+          "tokens": 400,
+          "latency_ms": 0,
+          "wall_ms": 3
+        },
+        {
+          "outcome": "escalate",
+          "amount": 0.0,
+          "escalated": true,
+          "escalation_reason": "guard_failure_advocate",
+          "tokens": 400,
+          "latency_ms": 0,
+          "wall_ms": 2
+        },
+        {
+          "outcome": "escalate",
+          "amount": 0.0,
+          "escalated": true,
+          "escalation_reason": "guard_failure_advocate",
+          "tokens": 400,
+          "latency_ms": 0,
+          "wall_ms": 1
+        }
+      ],
+      "outcome": "escalate",
+      "amount": 0.0,
+      "escalated": true,
+      "consistent": true,
+      "tokens": 400,
+      "wall_ms": 3,
+      "category": "fare_error",
+      "label_outcome": "refund_overcharge",
+      "label_amount": 2.06,
+      "outcome_match": false,
+      "amount_match": false
+    },
+    {
+      "dispute_id": "disp_fa_001",
+      "runs": [
+        {
+          "outcome": "escalate",
+          "amount": 0.0,
+          "escalated": true,
+          "escalation_reason": "guard_failure_advocate",
+          "tokens": 400,
+          "latency_ms": 0,
+          "wall_ms": 0
+        },
+        {
+          "outcome": "escalate",
+          "amount": 0.0,
+          "escalated": true,
+          "escalation_reason": "guard_failure_advocate",
+          "tokens": 400,
+          "latency_ms": 0,
+          "wall_ms": 0
+        },
+        {
+          "outcome": "escalate",
+          "amount": 0.0,
+          "escalated": true,
+          "escalation_reason": "guard_failure_advocate",
+          "tokens": 400,
+          "latency_ms": 0,
+          "wall_ms": 0
+        }
+      ],
+      "outcome": "escalate",
+      "amount": 0.0,
+      "escalated": true,
+      "consistent": true,
+      "tokens": 400,
+      "wall_ms": 0,
+      "category": "fare_error",
+      "label_outcome": "refund_overcharge",
+      "label_amount": 4.87,
+      "outcome_match": false,
+      "amount_match": false
+    },
+    {
+      "dispute_id": "disp_fa_002",
+      "runs": [
+        {
+          "outcome": "escalate",
+          "amount": 0.0,
+          "escalated": true,
+          "escalation_reason": "guard_failure_advocate",
+          "tokens": 400,
+          "latency_ms": 0,
+          "wall_ms": 0
+        },
+        {
+          "outcome": "escalate",
+          "amount": 0.0,
+          "escalated": true,
+          "escalation_reason": "guard_failure_advocate",
+          "tokens": 400,
+          "latency_ms": 0,
+          "wall_ms": 0
+        },
+        {
+          "outcome": "escalate",
+          "amount": 0.0,
+          "escalated": true,
+          "escalation_reason": "guard_failure_advocate",
+          "tokens": 400,
+          "latency_ms": 0,
+          "wall_ms": 0
+        }
+      ],
+      "outcome": "escalate",
+      "amount": 0.0,
+      "escalated": true,
+      "consistent": true,
+      "tokens": 400,
+      "wall_ms": 0,
+      "category": "fare_error",
+      "label_outcome": "refund_overcharge",
+      "label_amount": 2.34,
+      "outcome_match": false,
+      "amount_match": false
+    },
+    {
+      "dispute_id": "disp_fa_003",
+      "runs": [
+        {
+          "outcome": "escalate",
+          "amount": 0.0,
+          "escalated": true,
+          "escalation_reason": "guard_failure_advocate",
+          "tokens": 400,
+          "latency_ms": 0,
+          "wall_ms": 0
+        },
+        {
+          "outcome": "escalate",
+          "amount": 0.0,
+          "escalated": true,
+          "escalation_reason": "guard_failure_advocate",
+          "tokens": 400,
+          "latency_ms": 0,
+          "wall_ms": 0
+        },
+        {
+          "outcome": "escalate",
+          "amount": 0.0,
+          "escalated": true,
+          "escalation_reason": "guard_failure_advocate",
+          "tokens": 400,
+          "latency_ms": 0,
+          "wall_ms": 0
+        }
+      ],
+      "outcome": "escalate",
+      "amount": 0.0,
+      "escalated": true,
+      "consistent": true,
+      "tokens": 400,
+      "wall_ms": 0,
+      "category": "fare_error",
+      "label_outcome": "fare_correct",
+      "label_amount": 0.0,
+      "outcome_match": false,
+      "amount_match": true
+    },
+    {
+      "dispute_id": "disp_fa_004",
+      "runs": [
+        {
+          "outcome": "escalate",
+          "amount": 0.0,
+          "escalated": true,
+          "escalation_reason": "guard_failure_advocate",
+          "tokens": 400,
+          "latency_ms": 0,
+          "wall_ms": 0
+        },
+        {
+          "outcome": "escalate",
+          "amount": 0.0,
+          "escalated": true,
+          "escalation_reason": "guard_failure_advocate",
+          "tokens": 400,
+          "latency_ms": 0,
+          "wall_ms": 0
+        },
+        {
+          "outcome": "escalate",
+          "amount": 0.0,
+          "escalated": true,
+          "escalation_reason": "guard_failure_advocate",
+          "tokens": 400,
+          "latency_ms": 0,
+          "wall_ms": 0
+        }
+      ],
+      "outcome": "escalate",
+      "amount": 0.0,
+      "escalated": true,
+      "consistent": true,
+      "tokens": 400,
+      "wall_ms": 0,
+      "category": "fare_error",
+      "label_outcome": "fare_correct",
+      "label_amount": 0.0,
+      "outcome_match": false,
+      "amount_match": true
+    },
+    {
+      "dispute_id": "disp_fa_005",
+      "runs": [
+        {
+          "outcome": "escalate",
+          "amount": 0.0,
+          "escalated": true,
+          "escalation_reason": "guard_failure_advocate",
+          "tokens": 400,
+          "latency_ms": 0,
+          "wall_ms": 0
+        },
+        {
+          "outcome": "escalate",
+          "amount": 0.0,
+          "escalated": true,
+          "escalation_reason": "guard_failure_advocate",
+          "tokens": 400,
+          "latency_ms": 0,
+          "wall_ms": 0
+        },
+        {
+          "outcome": "escalate",
+          "amount": 0.0,
+          "escalated": true,
+          "escalation_reason": "guard_failure_advocate",
+          "tokens": 400,
+          "latency_ms": 0,
+          "wall_ms": 0
+        }
+      ],
+      "outcome": "escalate",
+      "amount": 0.0,
+      "escalated": true,
+      "consistent": true,
+      "tokens": 400,
+      "wall_ms": 0,
+      "category": "fare_error",
+      "label_outcome": "fare_correct",
+      "label_amount": 0.0,
+      "outcome_match": false,
+      "amount_match": true
+    },
+    {
+      "dispute_id": "disp_ns_d_000",
+      "runs": [
+        {
+          "outcome": "refund_and_credit",
+          "amount": 7.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 500,
+          "latency_ms": 0,
+          "wall_ms": 1
+        },
+        {
+          "outcome": "refund_and_credit",
+          "amount": 7.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 500,
+          "latency_ms": 0,
+          "wall_ms": 1
+        },
+        {
+          "outcome": "refund_and_credit",
+          "amount": 7.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 500,
+          "latency_ms": 0,
+          "wall_ms": 1
+        }
+      ],
+      "outcome": "refund_and_credit",
+      "amount": 7.0,
+      "escalated": false,
+      "consistent": true,
+      "tokens": 500,
+      "wall_ms": 1,
+      "category": "no_show_driver",
+      "label_outcome": "refund_and_credit",
+      "label_amount": 7.0,
+      "outcome_match": true,
+      "amount_match": true
+    },
+    {
+      "dispute_id": "disp_ns_d_001",
+      "runs": [
+        {
+          "outcome": "refund_and_credit",
+          "amount": 7.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 500,
+          "latency_ms": 0,
+          "wall_ms": 1
+        },
+        {
+          "outcome": "refund_and_credit",
+          "amount": 7.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 500,
+          "latency_ms": 0,
+          "wall_ms": 1
+        },
+        {
+          "outcome": "refund_and_credit",
+          "amount": 7.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 500,
+          "latency_ms": 0,
+          "wall_ms": 1
+        }
+      ],
+      "outcome": "refund_and_credit",
+      "amount": 7.0,
+      "escalated": false,
+      "consistent": true,
+      "tokens": 500,
+      "wall_ms": 1,
+      "category": "no_show_driver",
+      "label_outcome": "refund_and_credit",
+      "label_amount": 7.0,
+      "outcome_match": true,
+      "amount_match": true
+    },
+    {
+      "dispute_id": "disp_ns_d_002",
+      "runs": [
+        {
+          "outcome": "refund_and_credit",
+          "amount": 7.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 500,
+          "latency_ms": 0,
+          "wall_ms": 1
+        },
+        {
+          "outcome": "refund_and_credit",
+          "amount": 7.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 500,
+          "latency_ms": 0,
+          "wall_ms": 1
+        },
+        {
+          "outcome": "refund_and_credit",
+          "amount": 7.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 500,
+          "latency_ms": 0,
+          "wall_ms": 1
+        }
+      ],
+      "outcome": "refund_and_credit",
+      "amount": 7.0,
+      "escalated": false,
+      "consistent": true,
+      "tokens": 500,
+      "wall_ms": 1,
+      "category": "no_show_driver",
+      "label_outcome": "refund_and_credit",
+      "label_amount": 7.0,
+      "outcome_match": true,
+      "amount_match": true
+    },
+    {
+      "dispute_id": "disp_ns_d_003",
+      "runs": [
+        {
+          "outcome": "refund_and_credit",
+          "amount": 7.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 500,
+          "latency_ms": 0,
+          "wall_ms": 1
+        },
+        {
+          "outcome": "refund_and_credit",
+          "amount": 7.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 500,
+          "latency_ms": 0,
+          "wall_ms": 1
+        },
+        {
+          "outcome": "refund_and_credit",
+          "amount": 7.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 500,
+          "latency_ms": 0,
+          "wall_ms": 1
+        }
+      ],
+      "outcome": "refund_and_credit",
+      "amount": 7.0,
+      "escalated": false,
+      "consistent": true,
+      "tokens": 500,
+      "wall_ms": 1,
+      "category": "no_show_driver",
+      "label_outcome": "refund_and_credit",
+      "label_amount": 7.0,
+      "outcome_match": true,
+      "amount_match": true
+    },
+    {
+      "dispute_id": "disp_ns_d_004",
+      "runs": [
+        {
+          "outcome": "refund_and_credit",
+          "amount": 7.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 500,
+          "latency_ms": 0,
+          "wall_ms": 1
+        },
+        {
+          "outcome": "refund_and_credit",
+          "amount": 7.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 500,
+          "latency_ms": 0,
+          "wall_ms": 1
+        },
+        {
+          "outcome": "refund_and_credit",
+          "amount": 7.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 500,
+          "latency_ms": 0,
+          "wall_ms": 1
+        }
+      ],
+      "outcome": "refund_and_credit",
+      "amount": 7.0,
+      "escalated": false,
+      "consistent": true,
+      "tokens": 500,
+      "wall_ms": 1,
+      "category": "no_show_driver",
+      "label_outcome": "refund_and_credit",
+      "label_amount": 7.0,
+      "outcome_match": true,
+      "amount_match": true
+    },
+    {
+      "dispute_id": "disp_ns_d_005",
+      "runs": [
+        {
+          "outcome": "refund_and_credit",
+          "amount": 7.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 500,
+          "latency_ms": 0,
+          "wall_ms": 1
+        },
+        {
+          "outcome": "refund_and_credit",
+          "amount": 7.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 500,
+          "latency_ms": 0,
+          "wall_ms": 1
+        },
+        {
+          "outcome": "refund_and_credit",
+          "amount": 7.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 500,
+          "latency_ms": 0,
+          "wall_ms": 1
+        }
+      ],
+      "outcome": "refund_and_credit",
+      "amount": 7.0,
+      "escalated": false,
+      "consistent": true,
+      "tokens": 500,
+      "wall_ms": 1,
+      "category": "no_show_driver",
+      "label_outcome": "refund_and_credit",
+      "label_amount": 7.0,
+      "outcome_match": true,
+      "amount_match": true
+    },
+    {
+      "dispute_id": "disp_ns_d_006",
+      "runs": [
+        {
+          "outcome": "refund_and_credit",
+          "amount": 7.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 500,
+          "latency_ms": 0,
+          "wall_ms": 1
+        },
+        {
+          "outcome": "refund_and_credit",
+          "amount": 7.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 500,
+          "latency_ms": 0,
+          "wall_ms": 1
+        },
+        {
+          "outcome": "refund_and_credit",
+          "amount": 7.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 500,
+          "latency_ms": 0,
+          "wall_ms": 1
+        }
+      ],
+      "outcome": "refund_and_credit",
+      "amount": 7.0,
+      "escalated": false,
+      "consistent": true,
+      "tokens": 500,
+      "wall_ms": 1,
+      "category": "no_show_driver",
+      "label_outcome": "refund_and_credit",
+      "label_amount": 7.0,
+      "outcome_match": true,
+      "amount_match": true
+    },
+    {
+      "dispute_id": "disp_ns_d_007",
+      "runs": [
+        {
+          "outcome": "refund_and_credit",
+          "amount": 7.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 500,
+          "latency_ms": 0,
+          "wall_ms": 1
+        },
+        {
+          "outcome": "refund_and_credit",
+          "amount": 7.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 500,
+          "latency_ms": 0,
+          "wall_ms": 1
+        },
+        {
+          "outcome": "refund_and_credit",
+          "amount": 7.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 500,
+          "latency_ms": 0,
+          "wall_ms": 1
+        }
+      ],
+      "outcome": "refund_and_credit",
+      "amount": 7.0,
+      "escalated": false,
+      "consistent": true,
+      "tokens": 500,
+      "wall_ms": 1,
+      "category": "no_show_driver",
+      "label_outcome": "refund_and_credit",
+      "label_amount": 7.0,
+      "outcome_match": true,
+      "amount_match": true
+    },
+    {
+      "dispute_id": "disp_ns_d_008",
+      "runs": [
+        {
+          "outcome": "refund_and_credit",
+          "amount": 7.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 500,
+          "latency_ms": 0,
+          "wall_ms": 1
+        },
+        {
+          "outcome": "refund_and_credit",
+          "amount": 7.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 500,
+          "latency_ms": 0,
+          "wall_ms": 1
+        },
+        {
+          "outcome": "refund_and_credit",
+          "amount": 7.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 500,
+          "latency_ms": 0,
+          "wall_ms": 1
+        }
+      ],
+      "outcome": "refund_and_credit",
+      "amount": 7.0,
+      "escalated": false,
+      "consistent": true,
+      "tokens": 500,
+      "wall_ms": 1,
+      "category": "no_show_driver",
+      "label_outcome": "refund_and_credit",
+      "label_amount": 7.0,
+      "outcome_match": true,
+      "amount_match": true
+    },
+    {
+      "dispute_id": "disp_ns_d_009",
+      "runs": [
+        {
+          "outcome": "refund_and_credit",
+          "amount": 7.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 500,
+          "latency_ms": 0,
+          "wall_ms": 1
+        },
+        {
+          "outcome": "refund_and_credit",
+          "amount": 7.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 500,
+          "latency_ms": 0,
+          "wall_ms": 1
+        },
+        {
+          "outcome": "refund_and_credit",
+          "amount": 7.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 500,
+          "latency_ms": 0,
+          "wall_ms": 1
+        }
+      ],
+      "outcome": "refund_and_credit",
+      "amount": 7.0,
+      "escalated": false,
+      "consistent": true,
+      "tokens": 500,
+      "wall_ms": 1,
+      "category": "no_show_driver",
+      "label_outcome": "refund_and_credit",
+      "label_amount": 7.0,
+      "outcome_match": true,
+      "amount_match": true
+    },
+    {
+      "dispute_id": "disp_ns_r_000",
+      "runs": [
+        {
+          "outcome": "cancellation_fee_invalid",
+          "amount": 0.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 500,
+          "latency_ms": 0,
+          "wall_ms": 1
+        },
+        {
+          "outcome": "cancellation_fee_invalid",
+          "amount": 0.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 500,
+          "latency_ms": 0,
+          "wall_ms": 1
+        },
+        {
+          "outcome": "cancellation_fee_invalid",
+          "amount": 0.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 500,
+          "latency_ms": 0,
+          "wall_ms": 1
+        }
+      ],
+      "outcome": "cancellation_fee_invalid",
+      "amount": 0.0,
+      "escalated": false,
+      "consistent": true,
+      "tokens": 500,
+      "wall_ms": 1,
+      "category": "no_show_rider",
+      "label_outcome": "cancellation_fee_invalid",
+      "label_amount": 0.0,
+      "outcome_match": true,
+      "amount_match": true
+    },
+    {
+      "dispute_id": "disp_ns_r_001",
+      "runs": [
+        {
+          "outcome": "cancellation_fee_invalid",
+          "amount": 0.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 500,
+          "latency_ms": 0,
+          "wall_ms": 1
+        },
+        {
+          "outcome": "cancellation_fee_invalid",
+          "amount": 0.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 500,
+          "latency_ms": 0,
+          "wall_ms": 1
+        },
+        {
+          "outcome": "cancellation_fee_invalid",
+          "amount": 0.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 500,
+          "latency_ms": 0,
+          "wall_ms": 1
+        }
+      ],
+      "outcome": "cancellation_fee_invalid",
+      "amount": 0.0,
+      "escalated": false,
+      "consistent": true,
+      "tokens": 500,
+      "wall_ms": 1,
+      "category": "no_show_rider",
+      "label_outcome": "cancellation_fee_invalid",
+      "label_amount": 0.0,
+      "outcome_match": true,
+      "amount_match": true
+    },
+    {
+      "dispute_id": "disp_ns_r_002",
+      "runs": [
+        {
+          "outcome": "cancellation_fee_invalid",
+          "amount": 0.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 500,
+          "latency_ms": 0,
+          "wall_ms": 1
+        },
+        {
+          "outcome": "cancellation_fee_invalid",
+          "amount": 0.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 500,
+          "latency_ms": 0,
+          "wall_ms": 1
+        },
+        {
+          "outcome": "cancellation_fee_invalid",
+          "amount": 0.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 500,
+          "latency_ms": 0,
+          "wall_ms": 1
+        }
+      ],
+      "outcome": "cancellation_fee_invalid",
+      "amount": 0.0,
+      "escalated": false,
+      "consistent": true,
+      "tokens": 500,
+      "wall_ms": 1,
+      "category": "no_show_rider",
+      "label_outcome": "cancellation_fee_invalid",
+      "label_amount": 0.0,
+      "outcome_match": true,
+      "amount_match": true
+    },
+    {
+      "dispute_id": "disp_ns_r_003",
+      "runs": [
+        {
+          "outcome": "cancellation_fee_invalid",
+          "amount": 0.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 500,
+          "latency_ms": 0,
+          "wall_ms": 1
+        },
+        {
+          "outcome": "cancellation_fee_invalid",
+          "amount": 0.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 500,
+          "latency_ms": 0,
+          "wall_ms": 1
+        },
+        {
+          "outcome": "cancellation_fee_invalid",
+          "amount": 0.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 500,
+          "latency_ms": 0,
+          "wall_ms": 1
+        }
+      ],
+      "outcome": "cancellation_fee_invalid",
+      "amount": 0.0,
+      "escalated": false,
+      "consistent": true,
+      "tokens": 500,
+      "wall_ms": 1,
+      "category": "no_show_rider",
+      "label_outcome": "cancellation_fee_invalid",
+      "label_amount": 0.0,
+      "outcome_match": true,
+      "amount_match": true
+    },
+    {
+      "dispute_id": "disp_ns_r_004",
+      "runs": [
+        {
+          "outcome": "cancellation_fee_invalid",
+          "amount": 0.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 500,
+          "latency_ms": 0,
+          "wall_ms": 1
+        },
+        {
+          "outcome": "cancellation_fee_invalid",
+          "amount": 0.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 500,
+          "latency_ms": 0,
+          "wall_ms": 1
+        },
+        {
+          "outcome": "cancellation_fee_invalid",
+          "amount": 0.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 500,
+          "latency_ms": 0,
+          "wall_ms": 1
+        }
+      ],
+      "outcome": "cancellation_fee_invalid",
+      "amount": 0.0,
+      "escalated": false,
+      "consistent": true,
+      "tokens": 500,
+      "wall_ms": 1,
+      "category": "no_show_rider",
+      "label_outcome": "cancellation_fee_invalid",
+      "label_amount": 0.0,
+      "outcome_match": true,
+      "amount_match": true
+    },
+    {
+      "dispute_id": "disp_ns_r_005",
+      "runs": [
+        {
+          "outcome": "cancellation_fee_invalid",
+          "amount": 0.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 500,
+          "latency_ms": 0,
+          "wall_ms": 1
+        },
+        {
+          "outcome": "cancellation_fee_invalid",
+          "amount": 0.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 500,
+          "latency_ms": 0,
+          "wall_ms": 1
+        },
+        {
+          "outcome": "cancellation_fee_invalid",
+          "amount": 0.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 500,
+          "latency_ms": 0,
+          "wall_ms": 1
+        }
+      ],
+      "outcome": "cancellation_fee_invalid",
+      "amount": 0.0,
+      "escalated": false,
+      "consistent": true,
+      "tokens": 500,
+      "wall_ms": 1,
+      "category": "no_show_rider",
+      "label_outcome": "cancellation_fee_invalid",
+      "label_amount": 0.0,
+      "outcome_match": true,
+      "amount_match": true
+    },
+    {
+      "dispute_id": "disp_ns_r_006",
+      "runs": [
+        {
+          "outcome": "cancellation_fee_invalid",
+          "amount": 0.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 500,
+          "latency_ms": 0,
+          "wall_ms": 1
+        },
+        {
+          "outcome": "cancellation_fee_invalid",
+          "amount": 0.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 500,
+          "latency_ms": 0,
+          "wall_ms": 1
+        },
+        {
+          "outcome": "cancellation_fee_invalid",
+          "amount": 0.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 500,
+          "latency_ms": 0,
+          "wall_ms": 1
+        }
+      ],
+      "outcome": "cancellation_fee_invalid",
+      "amount": 0.0,
+      "escalated": false,
+      "consistent": true,
+      "tokens": 500,
+      "wall_ms": 1,
+      "category": "no_show_rider",
+      "label_outcome": "cancellation_fee_invalid",
+      "label_amount": 0.0,
+      "outcome_match": true,
+      "amount_match": true
+    },
+    {
+      "dispute_id": "disp_ns_r_007",
+      "runs": [
+        {
+          "outcome": "cancellation_fee_invalid",
+          "amount": 0.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 500,
+          "latency_ms": 0,
+          "wall_ms": 1
+        },
+        {
+          "outcome": "cancellation_fee_invalid",
+          "amount": 0.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 500,
+          "latency_ms": 0,
+          "wall_ms": 1
+        },
+        {
+          "outcome": "cancellation_fee_invalid",
+          "amount": 0.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 500,
+          "latency_ms": 0,
+          "wall_ms": 1
+        }
+      ],
+      "outcome": "cancellation_fee_invalid",
+      "amount": 0.0,
+      "escalated": false,
+      "consistent": true,
+      "tokens": 500,
+      "wall_ms": 1,
+      "category": "no_show_rider",
+      "label_outcome": "cancellation_fee_invalid",
+      "label_amount": 0.0,
+      "outcome_match": true,
+      "amount_match": true
+    },
+    {
+      "dispute_id": "disp_ns_r_008",
+      "runs": [
+        {
+          "outcome": "cancellation_fee_invalid",
+          "amount": 0.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 500,
+          "latency_ms": 0,
+          "wall_ms": 1
+        },
+        {
+          "outcome": "cancellation_fee_invalid",
+          "amount": 0.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 500,
+          "latency_ms": 0,
+          "wall_ms": 1
+        },
+        {
+          "outcome": "cancellation_fee_invalid",
+          "amount": 0.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 500,
+          "latency_ms": 0,
+          "wall_ms": 1
+        }
+      ],
+      "outcome": "cancellation_fee_invalid",
+      "amount": 0.0,
+      "escalated": false,
+      "consistent": true,
+      "tokens": 500,
+      "wall_ms": 1,
+      "category": "no_show_rider",
+      "label_outcome": "cancellation_fee_invalid",
+      "label_amount": 0.0,
+      "outcome_match": true,
+      "amount_match": true
+    },
+    {
+      "dispute_id": "disp_ns_r_009",
+      "runs": [
+        {
+          "outcome": "cancellation_fee_invalid",
+          "amount": 0.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 500,
+          "latency_ms": 0,
+          "wall_ms": 1
+        },
+        {
+          "outcome": "cancellation_fee_invalid",
+          "amount": 0.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 500,
+          "latency_ms": 0,
+          "wall_ms": 1
+        },
+        {
+          "outcome": "cancellation_fee_invalid",
+          "amount": 0.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 500,
+          "latency_ms": 0,
+          "wall_ms": 1
+        }
+      ],
+      "outcome": "cancellation_fee_invalid",
+      "amount": 0.0,
+      "escalated": false,
+      "consistent": true,
+      "tokens": 500,
+      "wall_ms": 1,
+      "category": "no_show_rider",
+      "label_outcome": "cancellation_fee_invalid",
+      "label_amount": 0.0,
+      "outcome_match": true,
+      "amount_match": true
+    },
+    {
+      "dispute_id": "disp_rd_000",
+      "runs": [
+        {
+          "outcome": "refund_route_deviation",
+          "amount": 7.96,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 500,
+          "latency_ms": 0,
+          "wall_ms": 1
+        },
+        {
+          "outcome": "refund_route_deviation",
+          "amount": 7.96,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 500,
+          "latency_ms": 0,
+          "wall_ms": 1
+        },
+        {
+          "outcome": "refund_route_deviation",
+          "amount": 7.96,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 500,
+          "latency_ms": 0,
+          "wall_ms": 1
+        }
+      ],
+      "outcome": "refund_route_deviation",
+      "amount": 7.96,
+      "escalated": false,
+      "consistent": true,
+      "tokens": 500,
+      "wall_ms": 1,
+      "category": "route_deviation",
+      "label_outcome": "refund_route_deviation",
+      "label_amount": 7.96,
+      "outcome_match": true,
+      "amount_match": true
+    },
+    {
+      "dispute_id": "disp_rd_001",
+      "runs": [
+        {
+          "outcome": "refund_route_deviation",
+          "amount": -0.55,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 500,
+          "latency_ms": 0,
+          "wall_ms": 1
+        },
+        {
+          "outcome": "refund_route_deviation",
+          "amount": -0.55,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 500,
+          "latency_ms": 0,
+          "wall_ms": 1
+        },
+        {
+          "outcome": "refund_route_deviation",
+          "amount": -0.55,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 500,
+          "latency_ms": 0,
+          "wall_ms": 3
+        }
+      ],
+      "outcome": "refund_route_deviation",
+      "amount": -0.55,
+      "escalated": false,
+      "consistent": true,
+      "tokens": 500,
+      "wall_ms": 1,
+      "category": "route_deviation",
+      "label_outcome": "refund_route_deviation",
+      "label_amount": -0.55,
+      "outcome_match": true,
+      "amount_match": true
+    },
+    {
+      "dispute_id": "disp_rd_002",
+      "runs": [
+        {
+          "outcome": "refund_route_deviation",
+          "amount": 0.6,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 500,
+          "latency_ms": 0,
+          "wall_ms": 1
+        },
+        {
+          "outcome": "refund_route_deviation",
+          "amount": 0.6,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 500,
+          "latency_ms": 0,
+          "wall_ms": 1
+        },
+        {
+          "outcome": "refund_route_deviation",
+          "amount": 0.6,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 500,
+          "latency_ms": 0,
+          "wall_ms": 1
+        }
+      ],
+      "outcome": "refund_route_deviation",
+      "amount": 0.6,
+      "escalated": false,
+      "consistent": true,
+      "tokens": 500,
+      "wall_ms": 1,
+      "category": "route_deviation",
+      "label_outcome": "refund_route_deviation",
+      "label_amount": 0.6,
+      "outcome_match": true,
+      "amount_match": true
+    },
+    {
+      "dispute_id": "disp_rd_003",
+      "runs": [
+        {
+          "outcome": "escalate",
+          "amount": 0.0,
+          "escalated": true,
+          "escalation_reason": "guard_failure_judge",
+          "tokens": 600,
+          "latency_ms": 0,
+          "wall_ms": 1
+        },
+        {
+          "outcome": "escalate",
+          "amount": 0.0,
+          "escalated": true,
+          "escalation_reason": "guard_failure_judge",
+          "tokens": 600,
+          "latency_ms": 0,
+          "wall_ms": 1
+        },
+        {
+          "outcome": "escalate",
+          "amount": 0.0,
+          "escalated": true,
+          "escalation_reason": "guard_failure_judge",
+          "tokens": 600,
+          "latency_ms": 0,
+          "wall_ms": 1
+        }
+      ],
+      "outcome": "escalate",
+      "amount": 0.0,
+      "escalated": true,
+      "consistent": true,
+      "tokens": 600,
+      "wall_ms": 1,
+      "category": "route_deviation",
+      "label_outcome": "no_deviation",
+      "label_amount": 0.0,
+      "outcome_match": false,
+      "amount_match": true
+    },
+    {
+      "dispute_id": "disp_rd_004",
+      "runs": [
+        {
+          "outcome": "escalate",
+          "amount": 0.0,
+          "escalated": true,
+          "escalation_reason": "guard_failure_judge",
+          "tokens": 600,
+          "latency_ms": 0,
+          "wall_ms": 1
+        },
+        {
+          "outcome": "escalate",
+          "amount": 0.0,
+          "escalated": true,
+          "escalation_reason": "guard_failure_judge",
+          "tokens": 600,
+          "latency_ms": 0,
+          "wall_ms": 1
+        },
+        {
+          "outcome": "escalate",
+          "amount": 0.0,
+          "escalated": true,
+          "escalation_reason": "guard_failure_judge",
+          "tokens": 600,
+          "latency_ms": 0,
+          "wall_ms": 1
+        }
+      ],
+      "outcome": "escalate",
+      "amount": 0.0,
+      "escalated": true,
+      "consistent": true,
+      "tokens": 600,
+      "wall_ms": 1,
+      "category": "route_deviation",
+      "label_outcome": "no_deviation",
+      "label_amount": 0.0,
+      "outcome_match": false,
+      "amount_match": true
+    },
+    {
+      "dispute_id": "disp_rd_005",
+      "runs": [
+        {
+          "outcome": "refund_route_deviation",
+          "amount": 0.69,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 500,
+          "latency_ms": 0,
+          "wall_ms": 1
+        },
+        {
+          "outcome": "refund_route_deviation",
+          "amount": 0.69,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 500,
+          "latency_ms": 0,
+          "wall_ms": 1
+        },
+        {
+          "outcome": "refund_route_deviation",
+          "amount": 0.69,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 500,
+          "latency_ms": 0,
+          "wall_ms": 2
+        }
+      ],
+      "outcome": "refund_route_deviation",
+      "amount": 0.69,
+      "escalated": false,
+      "consistent": true,
+      "tokens": 500,
+      "wall_ms": 1,
+      "category": "route_deviation",
+      "label_outcome": "refund_route_deviation",
+      "label_amount": 0.69,
+      "outcome_match": true,
+      "amount_match": true
+    },
+    {
+      "dispute_id": "disp_rd_006",
+      "runs": [
+        {
+          "outcome": "refund_route_deviation",
+          "amount": -0.97,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 500,
+          "latency_ms": 0,
+          "wall_ms": 1
+        },
+        {
+          "outcome": "refund_route_deviation",
+          "amount": -0.97,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 500,
+          "latency_ms": 0,
+          "wall_ms": 1
+        },
+        {
+          "outcome": "refund_route_deviation",
+          "amount": -0.97,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 500,
+          "latency_ms": 0,
+          "wall_ms": 1
+        }
+      ],
+      "outcome": "refund_route_deviation",
+      "amount": -0.97,
+      "escalated": false,
+      "consistent": true,
+      "tokens": 500,
+      "wall_ms": 1,
+      "category": "route_deviation",
+      "label_outcome": "refund_route_deviation",
+      "label_amount": -0.97,
+      "outcome_match": true,
+      "amount_match": true
+    },
+    {
+      "dispute_id": "disp_rd_007",
+      "runs": [
+        {
+          "outcome": "refund_route_deviation",
+          "amount": 0.67,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 500,
+          "latency_ms": 0,
+          "wall_ms": 5
+        },
+        {
+          "outcome": "refund_route_deviation",
+          "amount": 0.67,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 500,
+          "latency_ms": 0,
+          "wall_ms": 1
+        },
+        {
+          "outcome": "refund_route_deviation",
+          "amount": 0.67,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 500,
+          "latency_ms": 0,
+          "wall_ms": 1
+        }
+      ],
+      "outcome": "refund_route_deviation",
+      "amount": 0.67,
+      "escalated": false,
+      "consistent": true,
+      "tokens": 500,
+      "wall_ms": 5,
+      "category": "route_deviation",
+      "label_outcome": "refund_route_deviation",
+      "label_amount": 0.67,
+      "outcome_match": true,
+      "amount_match": true
+    },
+    {
+      "dispute_id": "disp_rd_008",
+      "runs": [
+        {
+          "outcome": "no_refund_rider_requested",
+          "amount": 0.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 500,
+          "latency_ms": 0,
+          "wall_ms": 1
+        },
+        {
+          "outcome": "no_refund_rider_requested",
+          "amount": 0.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 500,
+          "latency_ms": 0,
+          "wall_ms": 1
+        },
+        {
+          "outcome": "no_refund_rider_requested",
+          "amount": 0.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 500,
+          "latency_ms": 0,
+          "wall_ms": 1
+        }
+      ],
+      "outcome": "no_refund_rider_requested",
+      "amount": 0.0,
+      "escalated": false,
+      "consistent": true,
+      "tokens": 500,
+      "wall_ms": 1,
+      "category": "route_deviation",
+      "label_outcome": "no_refund_rider_requested",
+      "label_amount": 0.0,
+      "outcome_match": true,
+      "amount_match": true
+    },
+    {
+      "dispute_id": "disp_rd_009",
+      "runs": [
+        {
+          "outcome": "no_refund_rider_requested",
+          "amount": 0.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 500,
+          "latency_ms": 0,
+          "wall_ms": 1
+        },
+        {
+          "outcome": "no_refund_rider_requested",
+          "amount": 0.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 500,
+          "latency_ms": 0,
+          "wall_ms": 5
+        },
+        {
+          "outcome": "no_refund_rider_requested",
+          "amount": 0.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 500,
+          "latency_ms": 0,
+          "wall_ms": 1
+        }
+      ],
+      "outcome": "no_refund_rider_requested",
+      "amount": 0.0,
+      "escalated": false,
+      "consistent": true,
+      "tokens": 500,
+      "wall_ms": 1,
+      "category": "route_deviation",
+      "label_outcome": "no_refund_rider_requested",
+      "label_amount": 0.0,
+      "outcome_match": true,
+      "amount_match": true
+    },
+    {
+      "dispute_id": "disp_rd_010",
+      "runs": [
+        {
+          "outcome": "no_refund_road_closure",
+          "amount": 0.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 500,
+          "latency_ms": 0,
+          "wall_ms": 1
+        },
+        {
+          "outcome": "no_refund_road_closure",
+          "amount": 0.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 500,
+          "latency_ms": 0,
+          "wall_ms": 1
+        },
+        {
+          "outcome": "no_refund_road_closure",
+          "amount": 0.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 500,
+          "latency_ms": 0,
+          "wall_ms": 1
+        }
+      ],
+      "outcome": "no_refund_road_closure",
+      "amount": 0.0,
+      "escalated": false,
+      "consistent": true,
+      "tokens": 500,
+      "wall_ms": 1,
+      "category": "route_deviation",
+      "label_outcome": "no_refund_road_closure",
+      "label_amount": 0.0,
+      "outcome_match": true,
+      "amount_match": true
+    },
+    {
+      "dispute_id": "disp_rd_011",
+      "runs": [
+        {
+          "outcome": "no_refund_road_closure",
+          "amount": 0.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 500,
+          "latency_ms": 0,
+          "wall_ms": 1
+        },
+        {
+          "outcome": "no_refund_road_closure",
+          "amount": 0.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 500,
+          "latency_ms": 0,
+          "wall_ms": 1
+        },
+        {
+          "outcome": "no_refund_road_closure",
+          "amount": 0.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 500,
+          "latency_ms": 0,
+          "wall_ms": 1
+        }
+      ],
+      "outcome": "no_refund_road_closure",
+      "amount": 0.0,
+      "escalated": false,
+      "consistent": true,
+      "tokens": 500,
+      "wall_ms": 1,
+      "category": "route_deviation",
+      "label_outcome": "no_refund_road_closure",
+      "label_amount": 0.0,
+      "outcome_match": true,
+      "amount_match": true
+    },
+    {
+      "dispute_id": "disp_rd_012",
+      "runs": [
+        {
+          "outcome": "no_refund_road_closure",
+          "amount": 0.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 500,
+          "latency_ms": 0,
+          "wall_ms": 1
+        },
+        {
+          "outcome": "no_refund_road_closure",
+          "amount": 0.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 500,
+          "latency_ms": 0,
+          "wall_ms": 1
+        },
+        {
+          "outcome": "no_refund_road_closure",
+          "amount": 0.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 500,
+          "latency_ms": 0,
+          "wall_ms": 1
+        }
+      ],
+      "outcome": "no_refund_road_closure",
+      "amount": 0.0,
+      "escalated": false,
+      "consistent": true,
+      "tokens": 500,
+      "wall_ms": 1,
+      "category": "route_deviation",
+      "label_outcome": "no_refund_road_closure",
+      "label_amount": 0.0,
+      "outcome_match": true,
+      "amount_match": true
+    },
+    {
+      "dispute_id": "disp_rd_013",
+      "runs": [
+        {
+          "outcome": "no_refund_road_closure",
+          "amount": 0.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 500,
+          "latency_ms": 0,
+          "wall_ms": 1
+        },
+        {
+          "outcome": "no_refund_road_closure",
+          "amount": 0.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 500,
+          "latency_ms": 0,
+          "wall_ms": 1
+        },
+        {
+          "outcome": "no_refund_road_closure",
+          "amount": 0.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 500,
+          "latency_ms": 0,
+          "wall_ms": 1
+        }
+      ],
+      "outcome": "no_refund_road_closure",
+      "amount": 0.0,
+      "escalated": false,
+      "consistent": true,
+      "tokens": 500,
+      "wall_ms": 1,
+      "category": "route_deviation",
+      "label_outcome": "no_refund_road_closure",
+      "label_amount": 0.0,
+      "outcome_match": true,
+      "amount_match": true
+    },
+    {
+      "dispute_id": "disp_rd_014",
+      "runs": [
+        {
+          "outcome": "no_refund_road_closure",
+          "amount": 0.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 500,
+          "latency_ms": 0,
+          "wall_ms": 1
+        },
+        {
+          "outcome": "no_refund_road_closure",
+          "amount": 0.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 500,
+          "latency_ms": 0,
+          "wall_ms": 1
+        },
+        {
+          "outcome": "no_refund_road_closure",
+          "amount": 0.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 500,
+          "latency_ms": 0,
+          "wall_ms": 1
+        }
+      ],
+      "outcome": "no_refund_road_closure",
+      "amount": 0.0,
+      "escalated": false,
+      "consistent": true,
+      "tokens": 500,
+      "wall_ms": 1,
+      "category": "route_deviation",
+      "label_outcome": "no_refund_road_closure",
+      "label_amount": 0.0,
+      "outcome_match": true,
+      "amount_match": true
+    },
+    {
+      "dispute_id": "disp_rd_015",
+      "runs": [
+        {
+          "outcome": "no_refund_road_closure",
+          "amount": 0.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 500,
+          "latency_ms": 0,
+          "wall_ms": 1
+        },
+        {
+          "outcome": "no_refund_road_closure",
+          "amount": 0.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 500,
+          "latency_ms": 0,
+          "wall_ms": 1
+        },
+        {
+          "outcome": "no_refund_road_closure",
+          "amount": 0.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 500,
+          "latency_ms": 0,
+          "wall_ms": 1
+        }
+      ],
+      "outcome": "no_refund_road_closure",
+      "amount": 0.0,
+      "escalated": false,
+      "consistent": true,
+      "tokens": 500,
+      "wall_ms": 1,
+      "category": "route_deviation",
+      "label_outcome": "no_refund_road_closure",
+      "label_amount": 0.0,
+      "outcome_match": true,
+      "amount_match": true
+    },
+    {
+      "dispute_id": "disp_sf_000",
+      "runs": [
+        {
+          "outcome": "escalate",
+          "amount": 0.0,
+          "escalated": true,
+          "escalation_reason": "safety_category",
+          "tokens": 0,
+          "latency_ms": 0,
+          "wall_ms": 0
+        },
+        {
+          "outcome": "escalate",
+          "amount": 0.0,
+          "escalated": true,
+          "escalation_reason": "safety_category",
+          "tokens": 0,
+          "latency_ms": 0,
+          "wall_ms": 0
+        },
+        {
+          "outcome": "escalate",
+          "amount": 0.0,
+          "escalated": true,
+          "escalation_reason": "safety_category",
+          "tokens": 0,
+          "latency_ms": 0,
+          "wall_ms": 0
+        }
+      ],
+      "outcome": "escalate",
+      "amount": 0.0,
+      "escalated": true,
+      "consistent": true,
+      "tokens": 0,
+      "wall_ms": 0,
+      "category": "safety",
+      "label_outcome": "escalate",
+      "label_amount": 0.0,
+      "outcome_match": true,
+      "amount_match": true
+    },
+    {
+      "dispute_id": "disp_sf_001",
+      "runs": [
+        {
+          "outcome": "escalate",
+          "amount": 0.0,
+          "escalated": true,
+          "escalation_reason": "safety_category",
+          "tokens": 0,
+          "latency_ms": 0,
+          "wall_ms": 0
+        },
+        {
+          "outcome": "escalate",
+          "amount": 0.0,
+          "escalated": true,
+          "escalation_reason": "safety_category",
+          "tokens": 0,
+          "latency_ms": 0,
+          "wall_ms": 0
+        },
+        {
+          "outcome": "escalate",
+          "amount": 0.0,
+          "escalated": true,
+          "escalation_reason": "safety_category",
+          "tokens": 0,
+          "latency_ms": 0,
+          "wall_ms": 0
+        }
+      ],
+      "outcome": "escalate",
+      "amount": 0.0,
+      "escalated": true,
+      "consistent": true,
+      "tokens": 0,
+      "wall_ms": 0,
+      "category": "safety",
+      "label_outcome": "escalate",
+      "label_amount": 0.0,
+      "outcome_match": true,
+      "amount_match": true
+    },
+    {
+      "dispute_id": "disp_sf_002",
+      "runs": [
+        {
+          "outcome": "escalate",
+          "amount": 0.0,
+          "escalated": true,
+          "escalation_reason": "safety_category",
+          "tokens": 0,
+          "latency_ms": 0,
+          "wall_ms": 0
+        },
+        {
+          "outcome": "escalate",
+          "amount": 0.0,
+          "escalated": true,
+          "escalation_reason": "safety_category",
+          "tokens": 0,
+          "latency_ms": 0,
+          "wall_ms": 0
+        },
+        {
+          "outcome": "escalate",
+          "amount": 0.0,
+          "escalated": true,
+          "escalation_reason": "safety_category",
+          "tokens": 0,
+          "latency_ms": 0,
+          "wall_ms": 0
+        }
+      ],
+      "outcome": "escalate",
+      "amount": 0.0,
+      "escalated": true,
+      "consistent": true,
+      "tokens": 0,
+      "wall_ms": 0,
+      "category": "safety",
+      "label_outcome": "escalate",
+      "label_amount": 0.0,
+      "outcome_match": true,
+      "amount_match": true
+    },
+    {
+      "dispute_id": "disp_sf_003",
+      "runs": [
+        {
+          "outcome": "escalate",
+          "amount": 0.0,
+          "escalated": true,
+          "escalation_reason": "safety_category",
+          "tokens": 0,
+          "latency_ms": 0,
+          "wall_ms": 0
+        },
+        {
+          "outcome": "escalate",
+          "amount": 0.0,
+          "escalated": true,
+          "escalation_reason": "safety_category",
+          "tokens": 0,
+          "latency_ms": 0,
+          "wall_ms": 0
+        },
+        {
+          "outcome": "escalate",
+          "amount": 0.0,
+          "escalated": true,
+          "escalation_reason": "safety_category",
+          "tokens": 0,
+          "latency_ms": 0,
+          "wall_ms": 0
+        }
+      ],
+      "outcome": "escalate",
+      "amount": 0.0,
+      "escalated": true,
+      "consistent": true,
+      "tokens": 0,
+      "wall_ms": 0,
+      "category": "safety",
+      "label_outcome": "escalate",
+      "label_amount": 0.0,
+      "outcome_match": true,
+      "amount_match": true
+    },
+    {
+      "dispute_id": "disp_sf_004",
+      "runs": [
+        {
+          "outcome": "escalate",
+          "amount": 0.0,
+          "escalated": true,
+          "escalation_reason": "safety_category",
+          "tokens": 0,
+          "latency_ms": 0,
+          "wall_ms": 0
+        },
+        {
+          "outcome": "escalate",
+          "amount": 0.0,
+          "escalated": true,
+          "escalation_reason": "safety_category",
+          "tokens": 0,
+          "latency_ms": 0,
+          "wall_ms": 0
+        },
+        {
+          "outcome": "escalate",
+          "amount": 0.0,
+          "escalated": true,
+          "escalation_reason": "safety_category",
+          "tokens": 0,
+          "latency_ms": 0,
+          "wall_ms": 0
+        }
+      ],
+      "outcome": "escalate",
+      "amount": 0.0,
+      "escalated": true,
+      "consistent": true,
+      "tokens": 0,
+      "wall_ms": 0,
+      "category": "safety",
+      "label_outcome": "escalate",
+      "label_amount": 0.0,
+      "outcome_match": true,
+      "amount_match": true
+    },
+    {
+      "dispute_id": "disp_sf_005",
+      "runs": [
+        {
+          "outcome": "escalate",
+          "amount": 0.0,
+          "escalated": true,
+          "escalation_reason": "safety_category",
+          "tokens": 0,
+          "latency_ms": 0,
+          "wall_ms": 0
+        },
+        {
+          "outcome": "escalate",
+          "amount": 0.0,
+          "escalated": true,
+          "escalation_reason": "safety_category",
+          "tokens": 0,
+          "latency_ms": 0,
+          "wall_ms": 0
+        },
+        {
+          "outcome": "escalate",
+          "amount": 0.0,
+          "escalated": true,
+          "escalation_reason": "safety_category",
+          "tokens": 0,
+          "latency_ms": 0,
+          "wall_ms": 0
+        }
+      ],
+      "outcome": "escalate",
+      "amount": 0.0,
+      "escalated": true,
+      "consistent": true,
+      "tokens": 0,
+      "wall_ms": 0,
+      "category": "safety",
+      "label_outcome": "escalate",
+      "label_amount": 0.0,
+      "outcome_match": true,
+      "amount_match": true
+    }
+  ]
+}
