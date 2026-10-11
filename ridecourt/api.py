@@ -12,7 +12,9 @@ Endpoints:
 * ``GET  /healthz``                  — health check
 
 Static files from ``web/`` are served at ``/``.
-A simple per-IP rate limit (20 resolves/hour) protects the model budget.
+A per-IP rate limit (20 resolves/hour) and a global daily resolve cap
+(``DAILY_RESOLVE_CAP``, default 300, resets at UTC midnight) protect the
+model budget. The cap is exposed in ``GET /api/metrics``.
 """
 
 from __future__ import annotations
@@ -23,7 +25,7 @@ import os
 import threading
 import time
 from collections import defaultdict, deque
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -123,6 +125,71 @@ class RateLimiter:
 
 
 _rate_limiter = RateLimiter(max_requests=20, window_seconds=3600)
+
+
+# ---------------------------------------------------------------------------
+# Global daily cap on resolves (cost guard for the public demo)
+# ---------------------------------------------------------------------------
+
+
+class DailyCap:
+    """Global, persistent across-requests counter that resets at UTC midnight.
+
+    Each successful ``record()`` increments the count. ``remaining()`` returns
+    how many resolves are left today. When the count reaches the cap, the
+    ``is_exhausted()`` check returns True and the API responds with 429.
+    """
+
+    def __init__(self, cap: int | None = None):
+        # Read from env at construction time so tests can override.
+        env_cap = os.getenv("DAILY_RESOLVE_CAP")
+        if cap is None:
+            cap = int(env_cap) if env_cap else 300
+        self.cap = cap
+        self._lock = threading.Lock()
+        self._day: date | None = None
+        self._count: int = 0
+
+    def _maybe_rollover(self, today: date) -> None:
+        if self._day != today:
+            self._day = today
+            self._count = 0
+
+    def is_exhausted(self) -> bool:
+        today = datetime.now(timezone.utc).date()
+        with self._lock:
+            self._maybe_rollover(today)
+            return self._count >= self.cap
+
+    def remaining(self) -> int:
+        today = datetime.now(timezone.utc).date()
+        with self._lock:
+            self._maybe_rollover(today)
+            return max(0, self.cap - self._count)
+
+    def record(self) -> int:
+        """Increment the counter; returns the new count for the day."""
+        today = datetime.now(timezone.utc).date()
+        with self._lock:
+            self._maybe_rollover(today)
+            self._count += 1
+            return self._count
+
+    def snapshot(self) -> dict[str, Any]:
+        today = datetime.now(timezone.utc).date()
+        with self._lock:
+            self._maybe_rollover(today)
+            return {
+                "daily_resolve_cap": self.cap,
+                "resolves_today": self._count,
+                "remaining_resolves_today": max(0, self.cap - self._count),
+                "reset_at_utc": datetime(
+                    today.year, today.month, today.day, tzinfo=timezone.utc
+                ).isoformat(),
+            }
+
+
+_daily_cap = DailyCap()
 
 
 # ---------------------------------------------------------------------------
@@ -315,6 +382,19 @@ def create_app() -> FastAPI:
         if dispute_id not in ds.disputes:
             raise HTTPException(status_code=404, detail="Dispute not found")
 
+        # Global daily cap (cost guard) — checked before the per-IP limit so
+        # the cap dominates when exhausted.
+        cap_snapshot = _daily_cap.snapshot()
+        if cap_snapshot["remaining_resolves_today"] <= 0:
+            raise HTTPException(
+                status_code=429,
+                detail=(
+                    f"Daily resolve limit reached "
+                    f"({cap_snapshot['resolves_today']}/{cap_snapshot['daily_resolve_cap']}). "
+                    f"The cap resets at {cap_snapshot['reset_at_utc']} (UTC midnight)."
+                ),
+            )
+
         # Rate limit per IP.
         client_ip = request.client.host if request.client else "unknown"
         if not _rate_limiter.check(client_ip):
@@ -338,6 +418,11 @@ def create_app() -> FastAPI:
                 "status": _case_status.get(dispute_id, "done"),
                 "message": "Already resolved. Fetch /api/disputes/{id} for the case file.",
             }
+
+        # Count this resolve against the daily cap. We only record here so
+        # that 404s, rate-limit rejects, "already resolving", and "already
+        # resolved" responses don't consume budget.
+        _daily_cap.record()
 
         # Remove any stale log from a previous run.
         _case_logs.pop(dispute_id, None)
@@ -669,6 +754,7 @@ def create_app() -> FastAPI:
             "total_latency_ms": total_latency,
             "median_latency_ms": median_latency,
             "by_category": by_category,
+            **_daily_cap.snapshot(),
         }
 
     # ------------------------------------------------------------------

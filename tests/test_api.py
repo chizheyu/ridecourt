@@ -23,6 +23,7 @@ from ridecourt.api import (
     _case_files,
     _case_logs,
     _case_status,
+    _daily_cap,
     _overrides,
     _rate_limiter,
 )
@@ -42,6 +43,11 @@ def client():
     _overrides.clear()
     # Reset rate limiter.
     _rate_limiter._hits.clear()
+    # Reset daily cap counter (so prior tests don't leak budget into this one).
+    _daily_cap._day = None
+    _daily_cap._count = 0
+    # Pin the cap to a small value for deterministic behavior in cap tests.
+    _daily_cap.cap = 300
 
     app = create_app()
     with TestClient(app) as c:
@@ -356,6 +362,89 @@ class TestMetrics:
             time.sleep(0.5)
 
         assert data["resolved"] >= 1
+
+    def test_metrics_exposes_daily_cap_fields(self, client):
+        """/api/metrics must expose the daily resolve cap and remaining count."""
+        res = client.get("/api/metrics")
+        assert res.status_code == 200
+        data = res.json()
+        assert data["daily_resolve_cap"] == 300
+        assert data["resolves_today"] == 0
+        assert data["remaining_resolves_today"] == 300
+        # reset_at_utc must be an ISO timestamp string ending with +00:00.
+        assert isinstance(data["reset_at_utc"], str)
+        assert data["reset_at_utc"].endswith("+00:00")
+
+
+# ---------------------------------------------------------------------------
+# Daily resolve cap (cost guard)
+# ---------------------------------------------------------------------------
+
+
+class TestDailyResolveCap:
+    def test_cap_blocks_resolve_once_exhausted(self, client, first_dispute_id):
+        """Setting the cap to 1 lets the first resolve through and blocks the
+        second distinct dispute with 429."""
+        _daily_cap.cap = 1
+
+        # First resolve on one dispute — should start.
+        res1 = client.post(f"/api/disputes/{first_dispute_id}/resolve")
+        assert res1.status_code == 200
+        assert res1.json()["status"] == "resolving"
+
+        # Pick a different dispute so we don't hit the "already resolving"
+        # short-circuit.
+        list_res = client.get("/api/disputes")
+        other_id = None
+        for d in list_res.json()["disputes"]:
+            if d["dispute_id"] != first_dispute_id:
+                other_id = d["dispute_id"]
+                break
+        assert other_id is not None
+
+        # Second resolve — should now be blocked by the daily cap.
+        res2 = client.post(f"/api/disputes/{other_id}/resolve")
+        assert res2.status_code == 429
+        detail = res2.json().get("detail", "")
+        assert "Daily resolve limit" in detail
+        assert "1/1" in detail
+
+    def test_cap_429_message_mentions_reset(self, client, first_dispute_id):
+        """The 429 message must tell the user when the cap resets (UTC midnight)."""
+        _daily_cap.cap = 0
+        res = client.post(f"/api/disputes/{first_dispute_id}/resolve")
+        assert res.status_code == 429
+        detail = res.json()["detail"]
+        assert "UTC midnight" in detail
+
+    def test_cap_does_not_count_404_or_already_resolving(self, client, first_dispute_id):
+        """404 and 'already resolving' responses must not consume budget."""
+        _daily_cap.cap = 2
+
+        # 404 doesn't count.
+        r404 = client.post("/api/disputes/nonexistent/resolve")
+        assert r404.status_code == 404
+
+        # First real resolve — should succeed.
+        r1 = client.post(f"/api/disputes/{first_dispute_id}/resolve")
+        assert r1.status_code == 200
+        # Second resolve on the same dispute — should hit "already resolving"
+        # (not a new budget consumption).
+        r2 = client.post(f"/api/disputes/{first_dispute_id}/resolve")
+        assert r2.status_code == 200
+        assert r2.json()["status"] == "resolving"
+
+        # Budget was consumed once.
+        snap = _daily_cap.snapshot()
+        assert snap["resolves_today"] == 1
+        assert snap["remaining_resolves_today"] == 1
+
+    def test_metrics_reflects_cap_after_resolve(self, client, first_dispute_id):
+        """After a resolve, /api/metrics shows one resolve consumed."""
+        client.post(f"/api/disputes/{first_dispute_id}/resolve")
+        data = client.get("/api/metrics").json()
+        assert data["resolves_today"] == 1
+        assert data["remaining_resolves_today"] == 299
 
 
 # ---------------------------------------------------------------------------

@@ -145,6 +145,8 @@ uvicorn ridecourt.api:app --reload
 
 ```bash
 export PROJECT_ID=your-project-id
+# Optional: override the global daily resolve cap (default 300).
+export DAILY_RESOLVE_CAP=300
 ./scripts/deploy.sh
 ```
 
@@ -153,6 +155,16 @@ The deploy script creates a dedicated service account with only
 sets the Gemini env vars, caps at 2 max instances, and waits for IAM
 propagation with a retry loop. See `Dockerfile` for the container image
 (python:3.12-slim, non-root user, uvicorn on `$PORT`).
+
+#### Cost guard for the public demo
+
+To keep the live demo within budget, every `/api/disputes/{id}/resolve` call
+is counted against a global daily cap (`DAILY_RESOLVE_CAP`, default **300**).
+Once the cap is reached the API returns `429 Too Many Requests` with a clear
+message saying the limit is exhausted and when it resets (UTC midnight). The
+remaining budget is exposed in `GET /api/metrics` as
+`daily_resolve_cap`, `resolves_today`, and `remaining_resolves_today`. The
+per-IP limit (20/hour) still applies — the daily cap is the outer one.
 
 See `.env.example` for all configuration options.
 
