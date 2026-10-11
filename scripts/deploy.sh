@@ -12,7 +12,9 @@ set -euo pipefail
 REGION="asia-southeast1"
 SERVICE="ridecourt"
 SA="${SERVICE}-sa"
-MAX_INSTANCES=2
+# One instance: case state and the live event stream are kept in memory, so a resolve and its
+# event stream must reach the same instance.
+MAX_INSTANCES="${MAX_INSTANCES:-1}"
 SA_EMAIL="${SA}@${PROJECT_ID}.iam.gserviceaccount.com"
 
 echo "=== RideCourt Cloud Run deployment ==="
