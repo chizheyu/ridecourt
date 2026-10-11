@@ -4,3 +4,5 @@ Read CODEBUDDY.md. Polish the two images in docs/ (reviewed by eye at full size)
 2. `docs/cover.png` and `docs/cover-380x216.png`: the gavel overlaps the "DISPUTE RESOLUTION SYSTEM" label. Rebalance the composition: courthouse columns and gavel above, then the label, title and tagline, with no overlaps and less empty space; make sure the 380x216 version is still readable (title large enough).
 
 View both PNGs after rendering and fix anything that is cut, overlapping or unreadable. Commit and summarize.
+
+3. Cost guard for the public demo: besides the per-IP limit, add a global daily cap on resolves (env `DAILY_RESOLVE_CAP`, default 300) that returns a clear 429 message when reached; show remaining resolves in `/api/metrics`. Add a test. Mention it in the README's deploy section.
