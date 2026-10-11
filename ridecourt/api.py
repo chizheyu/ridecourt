@@ -41,7 +41,7 @@ from fastapi.responses import (
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from .data import Dataset, Dispute, load_dataset
+from .data import Dataset, Dispute, Precedent, load_dataset
 from .events import Event, EventLog, RUNS_DIR
 from .orchestrator import CaseFile, Orchestrator
 
@@ -146,18 +146,52 @@ _STATUS_PRIORITY = {
 
 
 def _sla_priority(dispute_id: str) -> int:
-    """Lower number = higher priority. Safety first, then by value and age."""
+    """Priority score: lower = higher priority.
+
+    Formula: safety_first * 1000 + amount_at_stake * 10 + age_hours
+    Safety cases always at the top (priority 0).
+    Then higher amount at stake and older cases get higher priority.
+    """
     ds = _ds()
     disp = ds.dispute(dispute_id)
     if disp is None:
         return 99
-    cat_pri = _CATEGORY_PRIORITY.get(disp.category, 9)
-    status = _case_status.get(dispute_id, "new")
-    status_pri = _STATUS_PRIORITY.get(status, 9)
+
     # Safety cases always at the top.
     if disp.category == "safety":
         return 0
-    return cat_pri * 10 + status_pri
+
+    cat_pri = _CATEGORY_PRIORITY.get(disp.category, 9) * 1000
+
+    # Amount at stake: from ruling/policy if resolved, else trip fare.
+    amount = 0.0
+    trip = ds.trip(disp.trip_id)
+    if dispute_id in _case_files:
+        cf = _case_files[dispute_id]
+        if cf.ruling:
+            amount = cf.ruling.amount
+        elif cf.policy_result:
+            amount = cf.policy_result.amount
+    elif trip:
+        amount = trip.fare.total_charged
+
+    # Age in hours (older = more priority).
+    age_hours = 0.0
+    try:
+        from datetime import datetime, timezone
+        filed = datetime.fromisoformat(disp.filed_at)
+        if filed.tzinfo is None:
+            filed = filed.replace(tzinfo=timezone.utc)
+        now = datetime.now(timezone.utc)
+        age_hours = (now - filed).total_seconds() / 3600.0
+    except Exception:
+        age_hours = 0.0
+
+    # Lower score = higher priority. Safety=0, then category tier * 1000
+    # minus (amount * 10 + age_hours) so higher amount and age push to
+    # the front. We return max(1, ...) so safety stays at 0.
+    score = cat_pri - int(amount * 10 + age_hours)
+    return max(1, min(score, 9999))
 
 
 # ---------------------------------------------------------------------------
@@ -459,6 +493,37 @@ def create_app() -> FastAPI:
             result["escalation_reason"] = cf.escalation_reason
             result["total_tokens"] = cf.total_tokens
             result["total_latency_ms"] = cf.total_latency_ms
+            # Stretch: risk + precedents
+            result["risk_output"] = (
+                cf.risk_output.model_dump() if cf.risk_output else None
+            )
+            result["risk_assessment"] = (
+                {
+                    "risk": cf.risk_assessment.risk,
+                    "claimant_id": cf.risk_assessment.claimant_id,
+                    "signals": [
+                        {"text": s.text, "cites": s.cites, "feature": s.feature}
+                        for s in cf.risk_assessment.signals
+                    ],
+                }
+                if cf.risk_assessment else None
+            )
+            result["precedent_matches"] = [
+                {
+                    "case_id": m.case_id,
+                    "category": m.category,
+                    "summary": m.summary,
+                    "outcome": m.outcome,
+                    "amount": m.amount,
+                    "similarity": m.similarity,
+                    "reason": m.reason,
+                    "source": m.source,
+                }
+                for m in cf.precedent_matches
+            ] if cf.precedent_matches else []
+            result["escalation"] = (
+                cf.escalation.to_dict() if cf.escalation else None
+            )
 
         # Include events if available — from the in-memory log or the JSONL file.
         log = _case_logs.get(dispute_id)
@@ -507,20 +572,55 @@ def create_app() -> FastAPI:
         _overrides.append(override_record)
         _case_status[dispute_id] = "overridden"
 
+        # Learning feedback loop: store the override as a new precedent
+        # so it can be retrieved for similar future cases.
+        new_precedent = Precedent(
+            case_id=f"override-{dispute_id}",
+            category=disp.category,  # type: ignore[arg-type]
+            summary=disp.claim_text,
+            outcome=req.outcome,
+            amount=req.amount,
+            source="override",
+            reason=req.reason,
+        )
+        ds.precedents.append(new_precedent)
+
+        # Also persist to the overrides list for the escalation queue.
+        # Resolve the escalation if one exists.
+        orc = _orc()
+        orc.escalation_queue.resolve(
+            dispute_id,
+            reviewer="human_reviewer",
+            resolution=req.reason,
+        )
+
         # Emit a HUMAN_OVERRIDE event if the case log exists.
         log = _case_logs.get(dispute_id)
         if log:
             log.emit(
                 "HUMAN_OVERRIDE",
                 from_agent="human_reviewer",
-                content=override_record,
+                content={**override_record, "source": "override"},
             )
 
         return {
             "dispute_id": dispute_id,
             "status": "overridden",
             "precedent": override_record,
-            "message": "Override stored as a precedent.",
+            "message": "Override stored as a precedent for future cases.",
+        }
+
+    # ------------------------------------------------------------------
+    # Escalation queue
+    # ------------------------------------------------------------------
+    @app.get("/api/escalations")
+    async def escalations():
+        orc = _orc()
+        q = orc.escalation_queue
+        return {
+            "escalations": [e.to_dict() for e in q.all()],
+            "total": len(q),
+            "open": len(q.open()),
         }
 
     # ------------------------------------------------------------------

@@ -20,13 +20,32 @@ agent makes must cite evidence IDs (`E#`) and policy clause IDs (`P-..`).
    profile).
 2. **Rider Advocate & Driver Advocate** — run in parallel, each argues for
    its side citing evidence and policy.
-3. **Policy Engine** — pure functions compute the outcome and amount per
+3. **Fraud & Bad-Faith Agent** (stretch) — runs in parallel with the
+   advocates; computes deterministic fraud signals (dispute rate, upheld
+   rate per P-BF-1, GPS contradiction, prior flags) and outputs a risk
+   level with cited signals. The LLM only explains the signals.
+4. **Precedent Agent** (stretch) — retrieves the 3 most similar past
+   rulings from `precedents.json` using TF-IDF keyword similarity over
+   category, facts and claim text (no external vector DB).
+5. **Policy Engine** — pure functions compute the outcome and amount per
    the policy clauses.
-4. **Judge** — weighs both cases, applies the policy engine result, and
-   issues a ruling (or escalates if confidence is low or the outcome
-   disagrees with policy).
-5. **Safety incidents** always escalate to a human reviewer with a neutral
+6. **Judge** — weighs both cases, applies the policy engine result,
+   considers risk signals and precedents, and issues a ruling (or
+   escalates if confidence is low or the outcome disagrees with policy).
+   The Judge states whether the ruling is consistent with the precedents
+   and mentions high-risk bad-faith signals explicitly (P-BF-1).
+7. **Safety incidents** always escalate to a human reviewer with a neutral
    case summary.
+8. **Escalation Protocol** (stretch) — confidence below 0.7, guard failure
+   after one retry, outcome mismatch, or safety category creates an
+   escalation record with a neutral case summary in a queue visible via
+   `GET /api/escalations`.
+9. **Learning Feedback Loop** (stretch) — a human override is stored as a
+   new precedent with `source="override"` and the reviewer's reason; it is
+   retrieved for later similar cases and the timeline shows "learned from
+   override" when such a precedent is used.
+10. **SLA & Routing** (stretch) — priority score: safety first, then
+    amount at stake and age; the dispute queue sorts by it.
 
 ## How to run
 
@@ -86,18 +105,36 @@ and the guard passes.
 
 ## Architecture
 
-- **Pipeline:** Evidence Collection → Rider/Driver Advocates (parallel) →
-  Policy Engine → Judge → Ruling or Escalation
+- **Pipeline:** Evidence Collection → Precedent Retrieval →
+  Rider/Driver Advocates + Fraud Agent (parallel) → Policy Engine →
+  Judge (with risk + precedents) → Ruling or Escalation
 - **Guard:** every agent output is validated against the evidence pack;
   unknown citation IDs or numbers not in the evidence cause a re-ask, then
   escalation.
 - **Event log:** every inter-agent message is a typed event
-  (`DISPUTE_FILED`, `EVIDENCE`, `CLAIM`, `REBUTTAL`, `RULING`,
-  `ESCALATION`, …) with tokens and latency, streamed live via SSE.
+  (`DISPUTE_FILED`, `EVIDENCE`, `CLAIM`, `REBUTTAL`, `RISK_SIGNAL`,
+  `PRECEDENT`, `RULING`, `ESCALATION`, `HUMAN_OVERRIDE`, …) with tokens
+  and latency, streamed live via SSE.
 - **LLM layer:** pluggable — `gemini`, `openai_compatible`, or `mock` for
   offline tests and demos.
+- **Fraud detection:** deterministic features (dispute rate, upheld rate,
+  GPS contradiction, prior flags) computed first; the LLM only explains.
+- **Precedent retrieval:** in-memory TF-IDF over category + keyword
+  similarity; human overrides become new precedents (learning loop).
+- **Escalation queue:** `GET /api/escalations` shows all open escalations
+  with neutral case summaries for human reviewers.
 
 See `docs/architecture.svg` for the diagram.
+
+## Stretch goals
+
+| Feature | Status | Description |
+|:--|:--|:--|
+| Fraud & Bad-Faith Agent | Done | Runs in parallel with advocates; deterministic features (dispute rate, upheld rate P-BF-1, GPS contradiction, prior flags); Judge mentions high-risk signals explicitly |
+| Policy & Precedent Agent | Done | TF-IDF keyword similarity over category, facts and claim text; top 3 past rulings; Judge states consistency |
+| Escalation Protocol | Done | Triggers: low confidence, guard failure, outcome mismatch, safety; neutral case summary; `GET /api/escalations` queue |
+| Learning Feedback Loop | Done | Override stored as precedent (`source="override"`); retrieved for similar cases; "learned from override" in timeline |
+| SLA & Routing | Done | Priority = safety first, then amount at stake and age; queue sorts by it |
 
 ## Limits
 
@@ -106,8 +143,6 @@ See `docs/architecture.svg` for the diagram.
   the organiser's real dataset.
 - The mock provider is deterministic but limited — it does not produce
   real natural-language arguments; its purpose is offline testing.
-- Stretch goals (Fraud & Bad-Faith Agent, Precedent Agent, feedback loop)
-  are not yet implemented.
 
 ## Licence
 

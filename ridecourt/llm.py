@@ -481,7 +481,7 @@ def _mock_payload(
     for name, field in fields.items():
         payload[name] = _mock_field(
             name, field, agent_name, cite_pool, eids, pids, numbers, amount,
-            evidence_pack, policy_result,
+            evidence_pack, policy_result, context,
         )
     return payload
 
@@ -497,8 +497,10 @@ def _mock_field(
     amount: float,
     evidence_pack: Any | None,
     policy_result: Any | None,
+    context: dict[str, Any] | None = None,
 ) -> Any:
     """Generate a deterministic value for one schema field."""
+    context = context or {}
     annotation = field.annotation
     origin = getattr(annotation, "__origin__", None)
     # Unwrap Optional / Union.
@@ -514,14 +516,14 @@ def _mock_field(
     if origin in (list, list):
         return _mock_list_field(
             name, agent_name, cite_pool, eids, pids, numbers, amount,
-            evidence_pack, policy_result,
+            evidence_pack, policy_result, context,
         )
 
     # String fields — dispatch by name heuristics.
     if annotation is str:
         return _mock_str_field(
             name, agent_name, cite_pool, numbers, amount,
-            policy_result=policy_result,
+            policy_result=policy_result, context=context,
         )
 
     # Numeric fields.
@@ -530,12 +532,15 @@ def _mock_field(
 
     # Boolean fields.
     if annotation is bool:
-        return _mock_bool_field(name, agent_name)
+        return _mock_bool_field(name, agent_name, context)
 
     # Literal fields.
     if hasattr(annotation, "__args__") and origin is not list:
         args = getattr(annotation, "__args__", ())
         if args:
+            # For fraud risk level, use the assessment from context.
+            if name == "risk" and "assessment" in context:
+                return getattr(context["assessment"], "risk", "low")
             return args[0]
 
     # Nested pydantic models.
@@ -545,7 +550,7 @@ def _mock_field(
             annotation,
             evidence_pack=evidence_pack,
             policy_result=policy_result,
-            context={},
+            context=context,
         )
 
     return None
@@ -561,26 +566,37 @@ def _mock_list_field(
     amount: float,
     evidence_pack: Any | None,
     policy_result: Any | None,
+    context: dict[str, Any] | None = None,
 ) -> list[Any]:
     """Build a deterministic list for fields like arguments or signals."""
-    # Arguments / signals — list of objects with text + cites.
-    if name in ("arguments", "signals", "cites"):
+    context = context or {}
+    # Arguments / signals / matches — list of objects with text + cites.
+    if name in ("arguments", "signals", "cites", "matches"):
         if name == "arguments":
             return [
                 {
                     "text": _mock_str_field(
-                        "argument_text", agent_name, cite_pool, numbers, amount
+                        "argument_text", agent_name, cite_pool, numbers, amount,
+                        context=context,
                     ),
                     "cites": cite_pool[:2],
                 },
                 {
                     "text": _mock_str_field(
-                        "argument_text_2", agent_name, cite_pool, numbers, amount
+                        "argument_text_2", agent_name, cite_pool, numbers, amount,
+                        context=context,
                     ),
                     "cites": [cite_pool[0]] if cite_pool else ["E1"],
                 },
             ]
         if name == "signals":
+            # Use the deterministic fraud assessment from context if available.
+            assessment = context.get("assessment")
+            if assessment is not None:
+                return [
+                    {"text": s.text, "cites": s.cites}
+                    for s in assessment.signals
+                ]
             return [
                 {
                     "text": "Prior upheld disputes detected in profile history.",
@@ -589,6 +605,22 @@ def _mock_list_field(
             ]
         if name == "cites":
             return cite_pool[:3]
+        if name == "matches":
+            # Precedent matches from context.
+            matches = context.get("matches", [])
+            return [
+                {
+                    "case_id": m.case_id,
+                    "category": m.category,
+                    "summary": m.summary,
+                    "outcome": m.outcome,
+                    "amount": m.amount,
+                    "similarity": m.similarity,
+                    "reason": m.reason,
+                    "source": m.source,
+                }
+                for m in matches
+            ]
 
     # Default: a single-element list of strings citing the first evidence.
     return [cite_pool[0]] if cite_pool else []
@@ -602,8 +634,10 @@ def _mock_str_field(
     amount: float,
     *,
     policy_result: Any | None = None,
+    context: dict[str, Any] | None = None,
 ) -> str:
     """Deterministic string content that cites real IDs and uses real numbers."""
+    context = context or {}
     cite_str = ", ".join(cite_pool[:3])
 
     if name in ("position", "requested_outcome"):
@@ -623,12 +657,30 @@ def _mock_str_field(
 
     if name in ("reasoning", "message_to_rider", "message_to_driver"):
         amt = amount if amount else numbers.get("charged_total", 0.0)
-        return (
+        parts = [
             f"Based on {cite_str}, the computed amount is S${amt:.2f}. "
             "The policy engine determines the refund."
-        )
+        ]
+        # If bad-faith signals are present, mention them (P-BF-1).
+        assessment = context.get("assessment")
+        if assessment is not None and getattr(assessment, "risk", "low") == "high":
+            parts.append(
+                " Bad-faith signals noted: high upheld dispute rate (P-BF-1) "
+                "lowers claimant credibility."
+            )
+        # If precedents were provided, mention consistency.
+        matches = context.get("matches")
+        if matches:
+            parts.append(" Ruling is consistent with retrieved precedents.")
+        return " ".join(parts)
 
     if name in ("text", "argument_text", "argument_text_2", "summary"):
+        # For the precedent agent's summary field, use matches context.
+        if agent_name == "precedent_agent" and "matches" in context:
+            matches = context["matches"]
+            if matches:
+                return f"Retrieved {len(matches)} similar precedents."
+            return "No similar precedents found."
         extra_km = numbers.get("extra_km", 0.0)
         return (
             f"Evidence {cite_str} shows the route deviation of "
@@ -636,11 +688,28 @@ def _mock_str_field(
         )
 
     if name in ("risk",):
+        # This is a str field on FraudOutput.
+        assessment = context.get("assessment")
+        if assessment is not None:
+            return getattr(assessment, "risk", "low")
         return "low"
 
     if name == "confidence":
         # This is a float field, not a string, handled elsewhere.
         return "0.8"
+
+    if name == "precedent_consistency":
+        matches = context.get("matches")
+        if matches:
+            return "consistent"
+        return "no_precedents"
+
+    if name == "reason":
+        # Precedent reason.
+        matches = context.get("matches", [])
+        if matches:
+            return matches[0].reason if matches else "keyword overlap"
+        return "no match"
 
     # Default — a neutral sentence that cites the first evidence ID.
     return f"Assessment based on {cite_str}."
@@ -658,7 +727,12 @@ def _mock_num_field(name: str, numbers: dict[str, float], amount: float) -> floa
     return 0.0
 
 
-def _mock_bool_field(name: str, agent_name: str) -> bool:
+def _mock_bool_field(name: str, agent_name: str, context: dict[str, Any] | None = None) -> bool:
+    context = context or {}
+    if name == "bad_faith_mentioned":
+        assessment = context.get("assessment")
+        if assessment is not None:
+            return getattr(assessment, "risk", "low") == "high"
     return False
 
 

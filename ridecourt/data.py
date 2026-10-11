@@ -136,6 +136,8 @@ class Precedent(BaseModel):
     summary: str
     outcome: str
     amount: float = 0.0
+    source: str = "seed"  # "seed" or "override" (learned from human override)
+    reason: str = ""  # reviewer's reason (for override-sourced precedents)
 
 
 class Label(BaseModel):
