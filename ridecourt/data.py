@@ -150,19 +150,70 @@ class Label(BaseModel):
 # ---------------------------------------------------------------------------
 
 
+# ---------------------------------------------------------------------------
+# Evidence pack (built by deterministic tools, consumed by agents + policy)
+# ---------------------------------------------------------------------------
+
+
+class EvidenceItem(BaseModel):
+    """A single piece of computed evidence, cited by agents as ``E#``."""
+
+    id: str  # E1, E2, ...
+    kind: str  # gps_analysis | arrival_check | chat_scan | fare_check | history_profile
+    summary: str  # one-line human-readable summary (numbers must match data)
+    data: dict  # structured values — single source of truth for numbers
+    source: str  # tool name that produced this item
+
+
+class EvidencePack(BaseModel):
+    items: list[EvidenceItem] = Field(default_factory=list)
+
+    def by_id(self, eid: str) -> EvidenceItem | None:
+        return next((i for i in self.items if i.id == eid), None)
+
+    def by_kind(self, kind: str) -> list[EvidenceItem]:
+        return [i for i in self.items if i.kind == kind]
+
+
 class Facts(BaseModel):
     distance_actual_km: float = 0.0
     distance_optimal_km: float = 0.0
     duration_actual_min: float = 0.0
     duration_optimal_min: float = 0.0
+    deviation_pct: float = 0.0
+    detour_segment: dict | None = None  # {start_ts, end_ts}
+    unexpected_stops: list[dict] = Field(default_factory=list)  # {start_ts, end_ts, duration_min}
     rider_requested_change: bool = False
+    rider_requested_change_quotes: list[str] = Field(default_factory=list)
     road_closure: bool = False
-    min_distance_to_pickup_m: float = float("inf")
-    wait_minutes_past_eta: float = 0.0
+    road_closure_quotes: list[str] = Field(default_factory=list)
+    agreements: list[str] = Field(default_factory=list)
+    disagreements: list[str] = Field(default_factory=list)
+    abusive_language: list[str] = Field(default_factory=list)
+    threatening_language: list[str] = Field(default_factory=list)
     contact_attempts: int = 0
+    min_distance_to_pickup_m: float = float("inf")
+    arrival_ts: str | None = None
+    arrival_vs_eta_min: float = 0.0  # negative = early, positive = late
+    wait_minutes_within_150m: float = 0.0
+    wait_minutes_past_eta: float = 0.0  # kept for policy engine no-show clauses
     recomputed_fare: float = 0.0
     charged_total: float = 0.0
+    fare_difference: float = 0.0  # charged - recomputed
+    promo_applied: bool = False
     promo_valid_at_booking: bool = True
+    rider_disputes_filed_90d: int = 0
+    rider_disputes_upheld_90d: int = 0
+    rider_upheld_rate: float = 0.0
+    rider_account_age_days: int = 0
+    rider_rating: float = 0.0
+    rider_prior_flags: list[str] = Field(default_factory=list)
+    driver_disputes_filed_90d: int = 0
+    driver_disputes_upheld_90d: int = 0
+    driver_upheld_rate: float = 0.0
+    driver_account_age_days: int = 0
+    driver_rating: float = 0.0
+    driver_prior_flags: list[str] = Field(default_factory=list)
 
 
 # ---------------------------------------------------------------------------
