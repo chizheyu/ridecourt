@@ -557,26 +557,167 @@ class TestGuardPrecisionMatching:
         num_problems = [p for p in problems if p.kind == "unverified_number"]
         assert num_problems == []
 
-    def test_units_still_strict(self):
-        """3.68 km must NOT back S$3.68 even with precision matching."""
-        pack = EvidencePack(
+
+# ---------------------------------------------------------------------------
+# Judge role — numbers from any evidence item, not just cited ones
+# ---------------------------------------------------------------------------
+
+class TestJudgeGuardRole:
+    """The Judge sees the whole evidence pack: a number in the Judge's text
+    should be accepted when it appears in any evidence item of the pack or in
+    the policy computation.  Advocates keep the stricter cited-evidence rule."""
+
+    def _judge_pack() -> EvidencePack:
+        """A pack with two evidence items: E1 has a distance, E2 has a fare."""
+        return EvidencePack(
             items=[
                 EvidenceItem(
                     id="E1",
                     kind="gps_analysis",
-                    summary="Extra distance 3.68 km.",
-                    data={"extra_km": 3.68},
+                    summary="Actual distance 13.68 km vs optimal 10.00 km.",
+                    data={
+                        "distance_actual_km": 13.68,
+                        "distance_optimal_km": 10.0,
+                        "extra_km": 3.68,
+                    },
                     source="gps_analysis",
+                ),
+                EvidenceItem(
+                    id="E2",
+                    kind="fare_check",
+                    summary="Recomputed fare S$28.00 vs charged S$18.50.",
+                    data={
+                        "recomputed_fare": 28.0,
+                        "charged_total": 18.5,
+                    },
+                    source="fare_check",
                 ),
             ]
         )
+
+    def test_judge_number_from_uncited_evidence_accepted(self):
+        """The Judge cites only E1 but mentions a number from E2 — accepted
+        because the Judge sees the whole pack."""
+        pack = TestJudgeGuardRole._judge_pack()
+        output = JudgeOutput(
+            outcome="refund_route_deviation",
+            amount=5.52,
+            confidence=0.85,
+            reasoning="The charged total was S$18.50 per E1.",
+            cites=["E1", "P-RD-1"],
+            message_to_rider="Refund S$5.52 per P-RD-1.",
+            message_to_driver="Refund S$5.52 per P-RD-1.",
+        )
+        problems = check(
+            output, pack, ["P-RD-1"],
+            policy_result=_policy_result(),
+            agent_role="judge",
+        )
+        num_problems = [p for p in problems if p.kind == "unverified_number"]
+        assert num_problems == []
+
+    def test_judge_number_from_any_evidence_accepted(self):
+        """The Judge mentions 13.68 km from E1 without citing E1 explicitly."""
+        pack = TestJudgeGuardRole._judge_pack()
+        output = JudgeOutput(
+            outcome="refund_route_deviation",
+            amount=5.52,
+            confidence=0.85,
+            reasoning="The actual distance was 13.68 km per P-RD-1.",
+            cites=["P-RD-1"],
+            message_to_rider="Refund S$5.52 per P-RD-1.",
+            message_to_driver="Refund S$5.52 per P-RD-1.",
+        )
+        problems = check(
+            output, pack, ["P-RD-1"],
+            policy_result=_policy_result(),
+            agent_role="judge",
+        )
+        num_problems = [p for p in problems if p.kind == "unverified_number"]
+        assert num_problems == []
+
+    def test_advocate_number_from_uncited_evidence_rejected(self):
+        """An advocate citing E1 cannot use S$18.50 from E2 — stricter rule."""
+        pack = TestJudgeGuardRole._judge_pack()
         output = AdvocateOutput(
             position="Based on E1.",
             arguments=[
-                Argument(text="E1 shows refund of S$3.68.", cites=["E1"]),
+                Argument(
+                    text="E1 shows overcharge of S$18.50.",
+                    cites=["E1"],
+                ),
             ],
-            requested_outcome="Refund per P-RD-1.",
+            requested_outcome="Refund S$5.52 per P-RD-1.",
         )
-        problems = check(output, pack, ["P-RD-1"])
+        problems = check(
+            output, pack, ["P-RD-1"],
+            policy_result=_policy_result(),
+            agent_role="advocate",
+        )
         num_problems = [p for p in problems if p.kind == "unverified_number"]
         assert len(num_problems) >= 1
+
+    def test_judge_citation_must_still_exist(self):
+        """Even with agent_role='judge', unknown citations are rejected."""
+        pack = TestJudgeGuardRole._judge_pack()
+        output = JudgeOutput(
+            outcome="refund_route_deviation",
+            amount=5.52,
+            confidence=0.85,
+            reasoning="Per E99 the refund is S$5.52.",
+            cites=["E99", "P-RD-1"],
+            message_to_rider="Refund S$5.52 per P-RD-1.",
+            message_to_driver="Refund S$5.52 per P-RD-1.",
+        )
+        problems = check(
+            output, pack, ["P-RD-1"],
+            policy_result=_policy_result(),
+            agent_role="judge",
+        )
+        cite_problems = [p for p in problems if p.kind == "unknown_cite"]
+        assert len(cite_problems) >= 1
+        assert any("E99" in p.detail or p.cite == "E99" for p in cite_problems)
+
+    def test_judge_invented_number_still_rejected(self):
+        """A number that is nowhere in the pack or policy is rejected even
+        for the Judge."""
+        pack = TestJudgeGuardRole._judge_pack()
+        output = JudgeOutput(
+            outcome="refund_route_deviation",
+            amount=5.52,
+            confidence=0.85,
+            reasoning="The overcharge was S$99.99 per P-RD-1.",
+            cites=["P-RD-1"],
+            message_to_rider="Refund S$5.52 per P-RD-1.",
+            message_to_driver="Refund S$5.52 per P-RD-1.",
+        )
+        problems = check(
+            output, pack, ["P-RD-1"],
+            policy_result=_policy_result(),
+            agent_role="judge",
+        )
+        num_problems = [p for p in problems if p.kind == "unverified_number"]
+        assert len(num_problems) >= 1
+        assert any("99.99" in p.detail for p in num_problems)
+
+    def test_default_role_is_advocate(self):
+        """Without agent_role, the default is advocate (cited-only)."""
+        pack = TestJudgeGuardRole._judge_pack()
+        output = JudgeOutput(
+            outcome="refund_route_deviation",
+            amount=5.52,
+            confidence=0.85,
+            reasoning="S$18.50 was charged per E1.",
+            cites=["E1", "P-RD-1"],
+            message_to_rider="Refund S$5.52 per P-RD-1.",
+            message_to_driver="Refund S$5.52 per P-RD-1.",
+        )
+        # Default agent_role → advocate → S$18.50 from E2 is NOT accepted
+        # because only E1 is cited.
+        problems = check(
+            output, pack, ["P-RD-1"],
+            policy_result=_policy_result(),
+        )
+        num_problems = [p for p in problems if p.kind == "unverified_number"]
+        # S$18.50 is money, E1 has no money values → unverified
+        assert any("18.50" in p.detail for p in num_problems)

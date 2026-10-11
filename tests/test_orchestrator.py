@@ -136,9 +136,23 @@ class TestNoShowDriverCase:
 
 
 class TestNoShowRiderCase:
-    def test_cancellation_fee_invalid(self, orc, ds):
+    def test_cancellation_fee_stands(self, orc, ds):
+        """disp_ns_r_000: driver waited 6 min within 150m, 3 contact
+        attempts → fee stands (P-NS-2 uses wait_minutes_within_150m)."""
         cf = orc.resolve("disp_ns_r_000")
         label = ds.label("disp_ns_r_000")
+
+        assert label.outcome == "cancellation_fee_stands"
+        assert not cf.escalated
+        assert cf.ruling is not None
+        assert cf.ruling.outcome == label.outcome
+        assert cf.ruling.amount == label.amount
+
+    def test_cancellation_fee_invalid(self, orc, ds):
+        """disp_ns_r_006: driver didn't wait long enough or no contact
+        → fee invalid."""
+        cf = orc.resolve("disp_ns_r_006")
+        label = ds.label("disp_ns_r_006")
 
         assert label.outcome == "cancellation_fee_invalid"
         assert not cf.escalated
@@ -198,7 +212,7 @@ class TestGuardFailure:
         # Patch the guard to always flag the forbidden word.
         original_check = orc_mod.guard_check
 
-        def always_fail(output, pack, policy_ids, policy_result=None):
+        def always_fail(output, pack, policy_ids, policy_result=None, **kwargs):
             return [Problem(
                 kind="forbidden_word",
                 detail="guaranteed found",
@@ -224,7 +238,7 @@ class TestGuardFailure:
 
         original_check = orc_mod.guard_check
 
-        def fail_once(output, pack, policy_ids, policy_result=None):
+        def fail_once(output, pack, policy_ids, policy_result=None, **kwargs):
             call_count["n"] += 1
             if call_count["n"] == 1:
                 return [Problem(
@@ -233,7 +247,7 @@ class TestGuardFailure:
                     cite="E99",
                     field="position",
                 )]
-            return original_check(output, pack, policy_ids, policy_result=policy_result)
+            return original_check(output, pack, policy_ids, policy_result=policy_result, **kwargs)
 
         monkeypatch.setattr(orc_mod, "guard_check", fail_once)
 
@@ -265,7 +279,7 @@ class TestRebuttalGuardRejection:
 
         call_state = {"n": 0}
 
-        def fail_rebuttals(output, pack, policy_ids, policy_result=None):
+        def fail_rebuttals(output, pack, policy_ids, policy_result=None, **kwargs):
             call_state["n"] += 1
             # Calls 1-2: rider + driver initial claims → pass.
             # Calls 3-4: rider + driver rebuttals (first try) → fail.
@@ -277,7 +291,7 @@ class TestRebuttalGuardRejection:
                     detail="guaranteed found in rebuttal",
                     field="position",
                 )]
-            return original_check(output, pack, policy_ids, policy_result=policy_result)
+            return original_check(output, pack, policy_ids, policy_result=policy_result, **kwargs)
 
         monkeypatch.setattr(orc_mod, "guard_check", fail_rebuttals)
 
@@ -314,7 +328,7 @@ class TestRebuttalGuardRejection:
 
         call_state = {"n": 0}
 
-        def fail_rebuttal_once(output, pack, policy_ids, policy_result=None):
+        def fail_rebuttal_once(output, pack, policy_ids, policy_result=None, **kwargs):
             call_state["n"] += 1
             # Calls 3 and 5: first rebuttal try → fail.
             # Calls 4 and 6: re-ask → pass.
@@ -325,7 +339,7 @@ class TestRebuttalGuardRejection:
                     cite="E99",
                     field="position",
                 )]
-            return original_check(output, pack, policy_ids, policy_result=policy_result)
+            return original_check(output, pack, policy_ids, policy_result=policy_result, **kwargs)
 
         monkeypatch.setattr(orc_mod, "guard_check", fail_rebuttal_once)
 
@@ -392,7 +406,7 @@ class TestRebuttalGuardRejection:
 
         call_state = {"n": 0}
 
-        def fail_claims_only(output, pack, policy_ids, policy_result=None):
+        def fail_claims_only(output, pack, policy_ids, policy_result=None, **kwargs):
             call_state["n"] += 1
             # Calls 1-2: initial claims → always fail (both tries).
             # Since both claims fail, the case escalates before rebuttals run.
@@ -402,7 +416,7 @@ class TestRebuttalGuardRejection:
                     detail="guaranteed found in claim",
                     field="position",
                 )]
-            return original_check(output, pack, policy_ids, policy_result=policy_result)
+            return original_check(output, pack, policy_ids, policy_result=policy_result, **kwargs)
 
         monkeypatch.setattr(orc_mod, "guard_check", fail_claims_only)
 
@@ -427,7 +441,7 @@ class TestRebuttalGuardRejection:
         # is #5; its re-ask is #6.
         call_state = {"n": 0}
 
-        def fail_judge_only(output, pack, policy_ids, policy_result=None):
+        def fail_judge_only(output, pack, policy_ids, policy_result=None, **kwargs):
             call_state["n"] += 1
             # Calls 1-4: advocates + rebuttals → pass.
             # Call 5+: judge output → always fail.
@@ -437,7 +451,7 @@ class TestRebuttalGuardRejection:
                     detail="guaranteed found in judge ruling",
                     field="reasoning",
                 )]
-            return original_check(output, pack, policy_ids, policy_result=policy_result)
+            return original_check(output, pack, policy_ids, policy_result=policy_result, **kwargs)
 
         monkeypatch.setattr(orc_mod, "guard_check", fail_judge_only)
 
@@ -447,6 +461,17 @@ class TestRebuttalGuardRejection:
         assert cf.escalated
         assert cf.escalation_reason == "guard_failure_judge"
         assert len(cf.guard_problems) > 0
+
+        # The ESCALATION event content must include the guard problems so
+        # a reviewer can see why the case was escalated.
+        esc_events = cf.events.by_type("ESCALATION")
+        assert len(esc_events) >= 1
+        content = esc_events[-1].content
+        assert content["reason"] == "guard_failure_judge"
+        assert "problems" in content
+        assert len(content["problems"]) > 0
+        assert "first_round_problems" in content
+        assert "judge_output" in content
 
 
 # ---------------------------------------------------------------------------

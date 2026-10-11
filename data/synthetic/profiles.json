@@ -23,276 +23,267 @@
     ]
   },
   "rider_001": {
-    "account_age_days": 361,
-    "rating": 4.9,
-    "trips_completed": 207,
-    "disputes_filed_90d": 0,
+    "account_age_days": 434,
+    "rating": 4.7,
+    "trips_completed": 42,
+    "disputes_filed_90d": 2,
     "disputes_upheld_90d": 0,
     "cancellations_30d": 0,
     "prior_flags": []
   },
   "rider_002": {
-    "account_age_days": 404,
-    "rating": 4.6,
-    "trips_completed": 264,
-    "disputes_filed_90d": 1,
-    "disputes_upheld_90d": 0,
+    "account_age_days": 89,
+    "rating": 4.9,
+    "trips_completed": 114,
+    "disputes_filed_90d": 2,
+    "disputes_upheld_90d": 2,
     "cancellations_30d": 0,
     "prior_flags": []
   },
   "rider_003": {
-    "account_age_days": 474,
-    "rating": 4.4,
-    "trips_completed": 128,
+    "account_age_days": 458,
+    "rating": 4.1,
+    "trips_completed": 51,
     "disputes_filed_90d": 0,
-    "disputes_upheld_90d": 2,
+    "disputes_upheld_90d": 0,
     "cancellations_30d": 3,
     "prior_flags": []
   },
   "rider_004": {
-    "account_age_days": 90,
-    "rating": 4.8,
-    "trips_completed": 68,
-    "disputes_filed_90d": 1,
-    "disputes_upheld_90d": 2,
-    "cancellations_30d": 0,
+    "account_age_days": 258,
+    "rating": 4.6,
+    "trips_completed": 36,
+    "disputes_filed_90d": 0,
+    "disputes_upheld_90d": 0,
+    "cancellations_30d": 3,
     "prior_flags": []
   },
   "rider_005": {
-    "account_age_days": 620,
+    "account_age_days": 77,
     "rating": 4.6,
-    "trips_completed": 30,
-    "disputes_filed_90d": 1,
+    "trips_completed": 73,
+    "disputes_filed_90d": 0,
+    "disputes_upheld_90d": 0,
+    "cancellations_30d": 2,
+    "prior_flags": []
+  },
+  "rider_006": {
+    "account_age_days": 583,
+    "rating": 4.1,
+    "trips_completed": 162,
+    "disputes_filed_90d": 3,
     "disputes_upheld_90d": 0,
     "cancellations_30d": 1,
     "prior_flags": []
   },
-  "rider_006": {
-    "account_age_days": 326,
-    "rating": 4.4,
-    "trips_completed": 281,
-    "disputes_filed_90d": 0,
-    "disputes_upheld_90d": 2,
-    "cancellations_30d": 2,
-    "prior_flags": []
-  },
   "rider_007": {
-    "account_age_days": 603,
-    "rating": 4.8,
-    "trips_completed": 97,
-    "disputes_filed_90d": 0,
-    "disputes_upheld_90d": 2,
-    "cancellations_30d": 1,
-    "prior_flags": []
-  },
-  "rider_008": {
     "account_age_days": 411,
     "rating": 4.1,
     "trips_completed": 37,
     "disputes_filed_90d": 0,
+    "disputes_upheld_90d": 0,
+    "cancellations_30d": 0,
+    "prior_flags": []
+  },
+  "rider_008": {
+    "account_age_days": 726,
+    "rating": 4.5,
+    "trips_completed": 165,
+    "disputes_filed_90d": 1,
+    "disputes_upheld_90d": 1,
+    "cancellations_30d": 3,
+    "prior_flags": []
+  },
+  "rider_009": {
+    "account_age_days": 336,
+    "rating": 4.2,
+    "trips_completed": 97,
+    "disputes_filed_90d": 3,
+    "disputes_upheld_90d": 1,
+    "cancellations_30d": 1,
+    "prior_flags": []
+  },
+  "rider_010": {
+    "account_age_days": 567,
+    "rating": 4.5,
+    "trips_completed": 180,
+    "disputes_filed_90d": 0,
+    "disputes_upheld_90d": 0,
+    "cancellations_30d": 3,
+    "prior_flags": []
+  },
+  "rider_011": {
+    "account_age_days": 104,
+    "rating": 4.1,
+    "trips_completed": 219,
+    "disputes_filed_90d": 2,
     "disputes_upheld_90d": 2,
     "cancellations_30d": 1,
     "prior_flags": []
   },
-  "rider_009": {
-    "account_age_days": 538,
-    "rating": 4.7,
-    "trips_completed": 223,
+  "rider_012": {
+    "account_age_days": 530,
+    "rating": 4.4,
+    "trips_completed": 44,
     "disputes_filed_90d": 2,
-    "disputes_upheld_90d": 1,
-    "cancellations_30d": 3,
-    "prior_flags": []
-  },
-  "rider_010": {
-    "account_age_days": 400,
-    "rating": 4.3,
-    "trips_completed": 97,
-    "disputes_filed_90d": 1,
     "disputes_upheld_90d": 0,
     "cancellations_30d": 2,
-    "prior_flags": []
-  },
-  "rider_011": {
-    "account_age_days": 567,
-    "rating": 4.5,
-    "trips_completed": 180,
-    "disputes_filed_90d": 3,
-    "disputes_upheld_90d": 1,
-    "cancellations_30d": 0,
-    "prior_flags": []
-  },
-  "rider_012": {
-    "account_age_days": 150,
-    "rating": 4.5,
-    "trips_completed": 89,
-    "disputes_filed_90d": 2,
-    "disputes_upheld_90d": 0,
-    "cancellations_30d": 3,
     "prior_flags": []
   },
   "rider_013": {
-    "account_age_days": 461,
-    "rating": 4.0,
-    "trips_completed": 44,
+    "account_age_days": 388,
+    "rating": 4.6,
+    "trips_completed": 238,
     "disputes_filed_90d": 2,
-    "disputes_upheld_90d": 1,
-    "cancellations_30d": 2,
+    "disputes_upheld_90d": 2,
+    "cancellations_30d": 0,
     "prior_flags": []
   },
   "rider_014": {
-    "account_age_days": 638,
-    "rating": 4.5,
-    "trips_completed": 238,
-    "disputes_filed_90d": 0,
-    "disputes_upheld_90d": 0,
-    "cancellations_30d": 2,
-    "prior_flags": []
-  },
-  "rider_015": {
     "account_age_days": 515,
     "rating": 4.7,
     "trips_completed": 38,
     "disputes_filed_90d": 0,
+    "disputes_upheld_90d": 0,
+    "cancellations_30d": 0,
+    "prior_flags": []
+  },
+  "rider_015": {
+    "account_age_days": 621,
+    "rating": 5.0,
+    "trips_completed": 233,
+    "disputes_filed_90d": 2,
     "disputes_upheld_90d": 2,
     "cancellations_30d": 2,
     "prior_flags": []
   },
   "rider_016": {
-    "account_age_days": 692,
-    "rating": 4.6,
-    "trips_completed": 233,
-    "disputes_filed_90d": 2,
+    "account_age_days": 385,
+    "rating": 4.0,
+    "trips_completed": 241,
+    "disputes_filed_90d": 3,
     "disputes_upheld_90d": 2,
-    "cancellations_30d": 3,
+    "cancellations_30d": 2,
     "prior_flags": []
   },
   "rider_017": {
-    "account_age_days": 714,
-    "rating": 4.3,
-    "trips_completed": 241,
-    "disputes_filed_90d": 2,
-    "disputes_upheld_90d": 0,
-    "cancellations_30d": 0,
-    "prior_flags": []
-  },
-  "rider_018": {
     "account_age_days": 535,
     "rating": 4.1,
     "trips_completed": 152,
     "disputes_filed_90d": 1,
-    "disputes_upheld_90d": 2,
+    "disputes_upheld_90d": 0,
     "cancellations_30d": 1,
     "prior_flags": []
   },
-  "rider_019": {
-    "account_age_days": 437,
-    "rating": 4.4,
+  "rider_018": {
+    "account_age_days": 430,
+    "rating": 4.9,
     "trips_completed": 259,
-    "disputes_filed_90d": 0,
-    "disputes_upheld_90d": 0,
+    "disputes_filed_90d": 1,
+    "disputes_upheld_90d": 1,
+    "cancellations_30d": 0,
+    "prior_flags": []
+  },
+  "rider_019": {
+    "account_age_days": 441,
+    "rating": 4.5,
+    "trips_completed": 75,
+    "disputes_filed_90d": 1,
+    "disputes_upheld_90d": 1,
     "cancellations_30d": 3,
     "prior_flags": []
   },
   "rider_020": {
-    "account_age_days": 441,
-    "rating": 4.5,
-    "trips_completed": 75,
-    "disputes_filed_90d": 3,
+    "account_age_days": 455,
+    "rating": 5.0,
+    "trips_completed": 199,
+    "disputes_filed_90d": 2,
     "disputes_upheld_90d": 2,
-    "cancellations_30d": 2,
-    "prior_flags": []
-  },
-  "rider_021": {
-    "account_age_days": 753,
-    "rating": 4.4,
-    "trips_completed": 188,
-    "disputes_filed_90d": 3,
-    "disputes_upheld_90d": 0,
     "cancellations_30d": 1,
     "prior_flags": []
   },
-  "rider_022": {
-    "account_age_days": 114,
+  "rider_021": {
+    "account_age_days": 210,
     "rating": 4.2,
-    "trips_completed": 123,
+    "trips_completed": 124,
     "disputes_filed_90d": 1,
     "disputes_upheld_90d": 0,
-    "cancellations_30d": 3,
+    "cancellations_30d": 0,
+    "prior_flags": []
+  },
+  "rider_022": {
+    "account_age_days": 216,
+    "rating": 4.3,
+    "trips_completed": 7,
+    "disputes_filed_90d": 3,
+    "disputes_upheld_90d": 2,
+    "cancellations_30d": 1,
     "prior_flags": []
   },
   "rider_023": {
-    "account_age_days": 633,
-    "rating": 4.2,
-    "trips_completed": 149,
-    "disputes_filed_90d": 0,
-    "disputes_upheld_90d": 0,
-    "cancellations_30d": 3,
+    "account_age_days": 408,
+    "rating": 4.6,
+    "trips_completed": 168,
+    "disputes_filed_90d": 3,
+    "disputes_upheld_90d": 2,
+    "cancellations_30d": 1,
     "prior_flags": []
   },
   "rider_024": {
-    "account_age_days": 577,
-    "rating": 4.4,
-    "trips_completed": 294,
-    "disputes_filed_90d": 2,
+    "account_age_days": 726,
+    "rating": 4.8,
+    "trips_completed": 205,
+    "disputes_filed_90d": 0,
     "disputes_upheld_90d": 0,
-    "cancellations_30d": 0,
-    "prior_flags": []
-  },
-  "rider_025": {
-    "account_age_days": 497,
-    "rating": 4.9,
-    "trips_completed": 291,
-    "disputes_filed_90d": 3,
-    "disputes_upheld_90d": 1,
     "cancellations_30d": 3,
     "prior_flags": []
   },
-  "rider_026": {
-    "account_age_days": 433,
-    "rating": 4.1,
+  "rider_025": {
+    "account_age_days": 136,
+    "rating": 4.5,
     "trips_completed": 210,
-    "disputes_filed_90d": 0,
-    "disputes_upheld_90d": 0,
+    "disputes_filed_90d": 3,
+    "disputes_upheld_90d": 1,
     "cancellations_30d": 0,
     "prior_flags": []
   },
-  "rider_027": {
+  "rider_026": {
     "account_age_days": 243,
     "rating": 4.4,
     "trips_completed": 61,
-    "disputes_filed_90d": 2,
-    "disputes_upheld_90d": 2,
+    "disputes_filed_90d": 1,
+    "disputes_upheld_90d": 0,
+    "cancellations_30d": 2,
+    "prior_flags": []
+  },
+  "rider_027": {
+    "account_age_days": 30,
+    "rating": 4.6,
+    "trips_completed": 279,
+    "disputes_filed_90d": 0,
+    "disputes_upheld_90d": 0,
     "cancellations_30d": 0,
     "prior_flags": []
   },
   "rider_028": {
-    "account_age_days": 134,
-    "rating": 4.0,
-    "trips_completed": 82,
-    "disputes_filed_90d": 0,
+    "account_age_days": 56,
+    "rating": 4.1,
+    "trips_completed": 111,
+    "disputes_filed_90d": 2,
+    "disputes_upheld_90d": 2,
+    "cancellations_30d": 3,
+    "prior_flags": []
+  },
+  "rider_029": {
+    "account_age_days": 385,
+    "rating": 4.6,
+    "trips_completed": 247,
+    "disputes_filed_90d": 1,
     "disputes_upheld_90d": 1,
     "cancellations_30d": 0,
     "prior_flags": []
   },
-  "rider_029": {
-    "account_age_days": 102,
-    "rating": 4.9,
-    "trips_completed": 197,
-    "disputes_filed_90d": 1,
-    "disputes_upheld_90d": 2,
-    "cancellations_30d": 2,
-    "prior_flags": []
-  },
   "driver_001": {
-    "account_age_days": 771,
-    "rating": 4.7,
-    "trips_completed": 1021,
-    "disputes_filed_90d": 0,
-    "disputes_upheld_90d": 0,
-    "cancellations_30d": 3,
-    "prior_flags": []
-  },
-  "driver_002": {
     "account_age_days": 1014,
     "rating": 4.6,
     "trips_completed": 688,
@@ -301,247 +292,256 @@
     "cancellations_30d": 0,
     "prior_flags": []
   },
-  "driver_003": {
+  "driver_002": {
     "account_age_days": 761,
     "rating": 4.8,
     "trips_completed": 1030,
-    "disputes_filed_90d": 2,
+    "disputes_filed_90d": 0,
     "disputes_upheld_90d": 0,
-    "cancellations_30d": 4,
+    "cancellations_30d": 5,
+    "prior_flags": []
+  },
+  "driver_003": {
+    "account_age_days": 480,
+    "rating": 5.0,
+    "trips_completed": 1131,
+    "disputes_filed_90d": 0,
+    "disputes_upheld_90d": 0,
+    "cancellations_30d": 2,
     "prior_flags": []
   },
   "driver_004": {
-    "account_age_days": 107,
+    "account_age_days": 1141,
     "rating": 4.4,
-    "trips_completed": 1999,
-    "disputes_filed_90d": 2,
-    "disputes_upheld_90d": 1,
-    "cancellations_30d": 1,
+    "trips_completed": 1366,
+    "disputes_filed_90d": 0,
+    "disputes_upheld_90d": 0,
+    "cancellations_30d": 0,
     "prior_flags": []
   },
   "driver_005": {
-    "account_age_days": 1172,
-    "rating": 4.9,
-    "trips_completed": 1602,
+    "account_age_days": 1121,
+    "rating": 4.5,
+    "trips_completed": 392,
     "disputes_filed_90d": 2,
     "disputes_upheld_90d": 1,
-    "cancellations_30d": 5,
+    "cancellations_30d": 2,
     "prior_flags": []
   },
   "driver_006": {
-    "account_age_days": 246,
-    "rating": 4.8,
-    "trips_completed": 584,
-    "disputes_filed_90d": 2,
-    "disputes_upheld_90d": 1,
-    "cancellations_30d": 1,
-    "prior_flags": []
-  },
-  "driver_007": {
-    "account_age_days": 788,
-    "rating": 4.8,
-    "trips_completed": 1140,
-    "disputes_filed_90d": 2,
-    "disputes_upheld_90d": 1,
-    "cancellations_30d": 5,
-    "prior_flags": []
-  },
-  "driver_008": {
     "account_age_days": 516,
     "rating": 4.7,
     "trips_completed": 1664,
     "disputes_filed_90d": 0,
     "disputes_upheld_90d": 0,
-    "cancellations_30d": 3,
+    "cancellations_30d": 1,
     "prior_flags": []
   },
-  "driver_009": {
+  "driver_007": {
     "account_age_days": 524,
     "rating": 4.4,
     "trips_completed": 1059,
-    "disputes_filed_90d": 1,
+    "disputes_filed_90d": 0,
     "disputes_upheld_90d": 0,
-    "cancellations_30d": 0,
+    "cancellations_30d": 2,
+    "prior_flags": []
+  },
+  "driver_008": {
+    "account_age_days": 117,
+    "rating": 4.8,
+    "trips_completed": 1017,
+    "disputes_filed_90d": 2,
+    "disputes_upheld_90d": 0,
+    "cancellations_30d": 2,
+    "prior_flags": []
+  },
+  "driver_009": {
+    "account_age_days": 975,
+    "rating": 4.8,
+    "trips_completed": 1530,
+    "disputes_filed_90d": 0,
+    "disputes_upheld_90d": 0,
+    "cancellations_30d": 2,
     "prior_flags": []
   },
   "driver_010": {
-    "account_age_days": 632,
-    "rating": 4.6,
-    "trips_completed": 446,
-    "disputes_filed_90d": 2,
-    "disputes_upheld_90d": 1,
-    "cancellations_30d": 3,
+    "account_age_days": 511,
+    "rating": 4.3,
+    "trips_completed": 1012,
+    "disputes_filed_90d": 1,
+    "disputes_upheld_90d": 0,
+    "cancellations_30d": 1,
     "prior_flags": []
   },
   "driver_011": {
-    "account_age_days": 775,
-    "rating": 5.0,
-    "trips_completed": 796,
-    "disputes_filed_90d": 0,
+    "account_age_days": 1048,
+    "rating": 4.7,
+    "trips_completed": 1893,
+    "disputes_filed_90d": 1,
     "disputes_upheld_90d": 0,
-    "cancellations_30d": 0,
-    "prior_flags": []
-  },
-  "driver_012": {
-    "account_age_days": 524,
-    "rating": 4.6,
-    "trips_completed": 741,
-    "disputes_filed_90d": 0,
-    "disputes_upheld_90d": 1,
     "cancellations_30d": 4,
     "prior_flags": []
   },
-  "driver_013": {
-    "account_age_days": 63,
-    "rating": 4.6,
-    "trips_completed": 1387,
-    "disputes_filed_90d": 1,
+  "driver_012": {
+    "account_age_days": 764,
+    "rating": 4.8,
+    "trips_completed": 223,
+    "disputes_filed_90d": 0,
     "disputes_upheld_90d": 0,
     "cancellations_30d": 5,
     "prior_flags": []
   },
-  "driver_014": {
-    "account_age_days": 305,
-    "rating": 4.9,
-    "trips_completed": 1652,
-    "disputes_filed_90d": 2,
+  "driver_013": {
+    "account_age_days": 468,
+    "rating": 4.6,
+    "trips_completed": 415,
+    "disputes_filed_90d": 0,
     "disputes_upheld_90d": 0,
+    "cancellations_30d": 3,
+    "prior_flags": []
+  },
+  "driver_014": {
+    "account_age_days": 237,
+    "rating": 4.8,
+    "trips_completed": 1528,
+    "disputes_filed_90d": 2,
+    "disputes_upheld_90d": 1,
     "cancellations_30d": 3,
     "prior_flags": []
   },
   "driver_015": {
-    "account_age_days": 425,
-    "rating": 4.5,
-    "trips_completed": 1352,
+    "account_age_days": 233,
+    "rating": 4.8,
+    "trips_completed": 398,
     "disputes_filed_90d": 1,
-    "disputes_upheld_90d": 0,
-    "cancellations_30d": 5,
+    "disputes_upheld_90d": 1,
+    "cancellations_30d": 1,
     "prior_flags": []
   },
   "driver_016": {
-    "account_age_days": 870,
+    "account_age_days": 1013,
+    "rating": 4.8,
+    "trips_completed": 349,
+    "disputes_filed_90d": 0,
+    "disputes_upheld_90d": 0,
+    "cancellations_30d": 4,
+    "prior_flags": []
+  },
+  "driver_017": {
+    "account_age_days": 777,
+    "rating": 4.3,
+    "trips_completed": 1172,
+    "disputes_filed_90d": 2,
+    "disputes_upheld_90d": 1,
+    "cancellations_30d": 1,
+    "prior_flags": []
+  },
+  "driver_018": {
+    "account_age_days": 270,
     "rating": 4.6,
-    "trips_completed": 1572,
+    "trips_completed": 1962,
     "disputes_filed_90d": 0,
     "disputes_upheld_90d": 0,
     "cancellations_30d": 1,
     "prior_flags": []
   },
-  "driver_017": {
-    "account_age_days": 320,
+  "driver_019": {
+    "account_age_days": 492,
     "rating": 4.2,
-    "trips_completed": 1259,
+    "trips_completed": 485,
     "disputes_filed_90d": 1,
     "disputes_upheld_90d": 0,
-    "cancellations_30d": 4,
-    "prior_flags": []
-  },
-  "driver_018": {
-    "account_age_days": 1031,
-    "rating": 4.7,
-    "trips_completed": 767,
-    "disputes_filed_90d": 0,
-    "disputes_upheld_90d": 0,
-    "cancellations_30d": 0,
-    "prior_flags": []
-  },
-  "driver_019": {
-    "account_age_days": 89,
-    "rating": 4.8,
-    "trips_completed": 1537,
-    "disputes_filed_90d": 2,
-    "disputes_upheld_90d": 0,
-    "cancellations_30d": 4,
-    "prior_flags": []
-  },
-  "driver_020": {
-    "account_age_days": 345,
-    "rating": 4.5,
-    "trips_completed": 1835,
-    "disputes_filed_90d": 0,
-    "disputes_upheld_90d": 0,
-    "cancellations_30d": 0,
-    "prior_flags": []
-  },
-  "driver_021": {
-    "account_age_days": 575,
-    "rating": 4.4,
-    "trips_completed": 1076,
-    "disputes_filed_90d": 0,
-    "disputes_upheld_90d": 1,
     "cancellations_30d": 2,
     "prior_flags": []
   },
-  "driver_022": {
-    "account_age_days": 1174,
-    "rating": 4.5,
-    "trips_completed": 318,
-    "disputes_filed_90d": 0,
-    "disputes_upheld_90d": 1,
-    "cancellations_30d": 3,
+  "driver_020": {
+    "account_age_days": 727,
+    "rating": 4.4,
+    "trips_completed": 908,
+    "disputes_filed_90d": 2,
+    "disputes_upheld_90d": 0,
+    "cancellations_30d": 1,
     "prior_flags": []
   },
-  "driver_023": {
-    "account_age_days": 1118,
-    "rating": 4.5,
-    "trips_completed": 1929,
-    "disputes_filed_90d": 2,
+  "driver_021": {
+    "account_age_days": 998,
+    "rating": 4.7,
+    "trips_completed": 1719,
+    "disputes_filed_90d": 0,
     "disputes_upheld_90d": 0,
     "cancellations_30d": 4,
     "prior_flags": []
   },
-  "driver_024": {
-    "account_age_days": 370,
-    "rating": 4.6,
-    "trips_completed": 88,
+  "driver_022": {
+    "account_age_days": 1149,
+    "rating": 4.3,
+    "trips_completed": 1095,
     "disputes_filed_90d": 1,
     "disputes_upheld_90d": 0,
-    "cancellations_30d": 4,
-    "prior_flags": []
-  },
-  "driver_025": {
-    "account_age_days": 68,
-    "rating": 4.8,
-    "trips_completed": 356,
-    "disputes_filed_90d": 0,
-    "disputes_upheld_90d": 0,
-    "cancellations_30d": 3,
-    "prior_flags": []
-  },
-  "driver_026": {
-    "account_age_days": 306,
-    "rating": 4.6,
-    "trips_completed": 717,
-    "disputes_filed_90d": 2,
-    "disputes_upheld_90d": 1,
     "cancellations_30d": 0,
     "prior_flags": []
   },
-  "driver_027": {
-    "account_age_days": 176,
-    "rating": 4.4,
-    "trips_completed": 617,
+  "driver_023": {
+    "account_age_days": 68,
+    "rating": 4.8,
+    "trips_completed": 356,
+    "disputes_filed_90d": 1,
+    "disputes_upheld_90d": 0,
+    "cancellations_30d": 1,
+    "prior_flags": []
+  },
+  "driver_024": {
+    "account_age_days": 306,
+    "rating": 4.6,
+    "trips_completed": 717,
     "disputes_filed_90d": 0,
+    "disputes_upheld_90d": 0,
+    "cancellations_30d": 5,
+    "prior_flags": []
+  },
+  "driver_025": {
+    "account_age_days": 277,
+    "rating": 4.9,
+    "trips_completed": 166,
+    "disputes_filed_90d": 2,
+    "disputes_upheld_90d": 1,
+    "cancellations_30d": 1,
+    "prior_flags": []
+  },
+  "driver_026": {
+    "account_age_days": 146,
+    "rating": 4.8,
+    "trips_completed": 1089,
+    "disputes_filed_90d": 0,
+    "disputes_upheld_90d": 0,
+    "cancellations_30d": 3,
+    "prior_flags": []
+  },
+  "driver_027": {
+    "account_age_days": 189,
+    "rating": 4.6,
+    "trips_completed": 1304,
+    "disputes_filed_90d": 2,
     "disputes_upheld_90d": 0,
     "cancellations_30d": 4,
     "prior_flags": []
   },
   "driver_028": {
-    "account_age_days": 986,
+    "account_age_days": 627,
     "rating": 4.6,
-    "trips_completed": 1606,
-    "disputes_filed_90d": 0,
-    "disputes_upheld_90d": 1,
-    "cancellations_30d": 2,
+    "trips_completed": 1142,
+    "disputes_filed_90d": 2,
+    "disputes_upheld_90d": 0,
+    "cancellations_30d": 3,
     "prior_flags": []
   },
   "driver_029": {
-    "account_age_days": 1095,
-    "rating": 4.7,
-    "trips_completed": 458,
+    "account_age_days": 1131,
+    "rating": 4.9,
+    "trips_completed": 1979,
     "disputes_filed_90d": 2,
-    "disputes_upheld_90d": 1,
-    "cancellations_30d": 3,
+    "disputes_upheld_90d": 0,
+    "cancellations_30d": 2,
     "prior_flags": []
   }
 }

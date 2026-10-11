@@ -152,7 +152,7 @@ class TestOrchestratorEscalation:
 
         original_check = orc_mod.guard_check
 
-        def always_fail(output, pack, policy_ids, policy_result=None):
+        def always_fail(output, pack, policy_ids, policy_result=None, **kwargs):
             return [Problem(
                 kind="forbidden_word",
                 detail="guaranteed found",

@@ -107,9 +107,9 @@
     "trip_id": "trip_rd_009",
     "messages": [
       {
-        "ts": "2026-01-01T17:09:00",
-        "sender": "rider",
-        "text": "Can we stop by a convenience store on the way?"
+        "ts": "2026-01-01T17:08:00",
+        "sender": "driver",
+        "text": "There's a road closure on the usual route, taking a detour."
       },
       {
         "ts": "2026-01-01T17:12:00",

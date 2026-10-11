@@ -127,6 +127,16 @@ class TestProfiles:
         p = ds.profiles["driver_bf1"]
         assert "gps_anomaly" in p.prior_flags
 
+    def test_upheld_never_exceeds_filed(self):
+        """Invariant: disputes_upheld_90d <= disputes_filed_90d for every
+        profile.  Upheld is a subset of filed; 200% or 999% rates are bugs."""
+        ds = load_dataset()
+        for pid, p in ds.profiles.items():
+            assert p.disputes_upheld_90d <= p.disputes_filed_90d, (
+                f"Profile {pid}: upheld ({p.disputes_upheld_90d}) > "
+                f"filed ({p.disputes_filed_90d})"
+            )
+
 
 class TestTrips:
     def test_every_trip_has_gps_trace(self):
@@ -143,3 +153,46 @@ class TestTrips:
         ds = load_dataset()
         for dispute in ds.disputes.values():
             assert ds.chat(dispute.trip_id) is not None
+
+    def test_arrived_after_accepted(self):
+        """Invariant: driver_arrived_at >= accepted_at when both are set."""
+        ds = load_dataset()
+        for trip in ds.trips.values():
+            if trip.accepted_at and trip.driver_arrived_at:
+                assert trip.driver_arrived_at >= trip.accepted_at, (
+                    f"Trip {trip.trip_id}: arrived < accepted"
+                )
+
+    def test_gps_trace_within_trip_bounds(self):
+        """Invariant: GPS trace timestamps must be within the trip's time
+        window.  First point >= driver_arrived_at, last <= trip_ended_at."""
+        ds = load_dataset()
+        for trip in ds.trips.values():
+            if not trip.gps_trace:
+                continue
+            first_ts = trip.gps_trace[0].ts
+            last_ts = trip.gps_trace[-1].ts
+            if trip.driver_arrived_at:
+                assert first_ts >= trip.driver_arrived_at, (
+                    f"Trip {trip.trip_id}: first GPS ts {first_ts} < "
+                    f"arrived {trip.driver_arrived_at}"
+                )
+            if trip.trip_ended_at:
+                assert last_ts <= trip.trip_ended_at, (
+                    f"Trip {trip.trip_id}: last GPS ts {last_ts} > "
+                    f"ended {trip.trip_ended_at}"
+                )
+
+    def test_no_show_driver_has_ended_at(self):
+        """Invariant: no_show_driver cases without driver_arrived_at must
+        have trip_ended_at so wait_minutes_past_eta can compute."""
+        ds = load_dataset()
+        for dispute in ds.disputes.values():
+            if dispute.category != "no_show_driver":
+                continue
+            trip = ds.trip(dispute.trip_id)
+            assert trip is not None
+            if trip.driver_arrived_at is None:
+                assert trip.trip_ended_at is not None, (
+                    f"Trip {trip.trip_id}: no_show_driver without ended_at"
+                )

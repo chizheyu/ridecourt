@@ -285,7 +285,7 @@ class TestRiderNoShow:
     def test_fee_stands(self):
         f = _facts(
             min_distance_to_pickup_m=50.0,
-            wait_minutes_past_eta=5.0,
+            wait_minutes_within_150m=5.0,
             contact_attempts=2,
             charged_total=4.0,
         )
@@ -294,10 +294,10 @@ class TestRiderNoShow:
         assert r.amount == 4.0
 
     def test_exactly_5_min_and_150m(self):
-        # Boundary: 5.0 min, 150m, 1 contact → stands
+        # Boundary: 5.0 min within 150m, 150m, 1 contact → stands
         f = _facts(
             min_distance_to_pickup_m=150.0,
-            wait_minutes_past_eta=5.0,
+            wait_minutes_within_150m=5.0,
             contact_attempts=1,
             charged_total=4.0,
         )
@@ -307,7 +307,7 @@ class TestRiderNoShow:
     def test_no_contact_attempt(self):
         f = _facts(
             min_distance_to_pickup_m=50.0,
-            wait_minutes_past_eta=5.0,
+            wait_minutes_within_150m=5.0,
             contact_attempts=0,
             charged_total=4.0,
         )
@@ -315,15 +315,36 @@ class TestRiderNoShow:
         assert r.outcome == "cancellation_fee_invalid"
         assert r.amount == 0.0
 
-    def test_driver_did_not_wait_long_enough(self):
+    def test_driver_did_not_wait_long_enough_within_150m(self):
+        """P-NS-2 uses wait_minutes_within_150m, not wait_minutes_past_eta.
+        If the driver only waited 4.9 min within 150m, the fee is invalid
+        even if wait_minutes_past_eta is >= 5."""
         f = _facts(
             min_distance_to_pickup_m=50.0,
-            wait_minutes_past_eta=4.9,
+            wait_minutes_within_150m=4.9,
+            wait_minutes_past_eta=6.0,  # past ETA is irrelevant for P-NS-2
             contact_attempts=2,
             charged_total=4.0,
         )
         r = clause_ns_2(f)
         assert r.outcome == "cancellation_fee_invalid"
+
+    def test_fee_stands_uses_within_150m_not_past_eta(self):
+        """The bug that caused disp_ns_r_001 to fail: the driver waited
+        6 min within 150m but only 4 min past the ETA.  P-NS-2 must use
+        the within-150m time (6.0 >= 5.0 → stands), not the past-ETA time."""
+        f = _facts(
+            min_distance_to_pickup_m=47.0,
+            wait_minutes_within_150m=6.0,
+            wait_minutes_past_eta=4.0,
+            contact_attempts=3,
+            charged_total=4.0,
+        )
+        r = clause_ns_2(f)
+        assert r.outcome == "cancellation_fee_stands"
+        assert r.amount == 4.0
+        # The computation string must mention within 150 m
+        assert "within 150 m" in r.computation
 
 
 # ---------------------------------------------------------------------------

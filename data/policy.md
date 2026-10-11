@@ -38,6 +38,9 @@ If the driver never came within 150 m of the pickup point, **or** cancelled
 after the rider waited more than 5 minutes past the ETA, any cancellation fee
 charged is refunded in full and the rider receives a S$3 goodwill credit.
 
+**Facts used:** `min_distance_to_pickup_m` (closest GPS distance to pickup),
+`wait_minutes_past_eta` (rider's wait past the ETA = accepted_at + 5 min).
+
 **Rationale:** When the driver fails to show, charging the rider a cancellation
 fee is unfair; the credit compensates for wasted time.
 
@@ -47,6 +50,10 @@ fee is unfair; the credit compensates for wasted time.
 
 If the driver waited at least 5 minutes within 150 m of the pickup point and
 made at least one contact attempt (call or chat), the cancellation fee stands.
+
+**Facts used:** `wait_minutes_within_150m` (minutes the driver's GPS stayed
+within 150 m of pickup — NOT the rider's wait past the ETA), `contact_attempts`
+(calls + driver→rider chat messages), `min_distance_to_pickup_m`.
 
 **Rationale:** The driver fulfilled their obligation; the rider's no-show
 justifies the fee.

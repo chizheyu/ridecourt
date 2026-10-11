@@ -35,6 +35,7 @@ from ridecourt.tools import (
     history_profile,
     haversine_m,
     recompute_fare,
+    wait_minutes_past_eta,
 )
 from ridecourt.policy import evaluate
 
@@ -576,3 +577,57 @@ class TestSummaryDataConsistency:
         charged_str = f"S${data['charged_total']:.2f}"
         assert recomp_str in summary
         assert charged_str in summary
+
+
+# ---------------------------------------------------------------------------
+# wait_minutes_past_eta — ETA = accepted_at + 5 min (P-NS-1 fact)
+# ---------------------------------------------------------------------------
+
+class TestWaitMinutesPastEta:
+    """P-NS-1 says 'cancelled after the rider waited more than 5 minutes
+    past the ETA'.  The ETA is accepted_at + 5 min."""
+
+    def test_driver_arrived_2_min_past_eta(self):
+        """accepted_at=08:02 → ETA=08:07.  driver_arrived_at=08:09 → 2.0 min."""
+        trip = _trip(
+            accepted_at="2026-01-01T08:02:00",
+            driver_arrived_at="2026-01-01T08:09:00",
+        )
+        assert wait_minutes_past_eta(trip) == 2.0
+
+    def test_driver_arrived_before_eta(self):
+        """accepted_at=08:02 → ETA=08:07.  driver_arrived_at=08:06 → 0.0
+        (arrived before ETA, so the rider didn't wait past it)."""
+        trip = _trip(
+            accepted_at="2026-01-01T08:02:00",
+            driver_arrived_at="2026-01-01T08:06:00",
+        )
+        assert wait_minutes_past_eta(trip) == 0.0
+
+    def test_driver_never_arrived_6_min_past_eta(self):
+        """accepted_at=08:02 → ETA=08:07.  trip_ended_at=08:13 → 6.0 min."""
+        trip = _trip(
+            accepted_at="2026-01-01T08:02:00",
+            driver_arrived_at=None,
+            trip_ended_at="2026-01-01T08:13:00",
+        )
+        assert wait_minutes_past_eta(trip) == 6.0
+
+    def test_exactly_5_min_past_eta_is_zero(self):
+        """Driver arrives exactly at ETA → 0 min past (not > 5)."""
+        trip = _trip(
+            accepted_at="2026-01-01T08:02:00",
+            driver_arrived_at="2026-01-01T08:07:00",
+        )
+        assert wait_minutes_past_eta(trip) == 0.0
+
+    def test_does_not_use_accepted_at_directly(self):
+        """Regression: the old code used accepted_at as the ETA instead of
+        accepted_at + 5 min.  This trip has accepted_at=08:02 and
+        driver_arrived_at=08:06 (4 min after acceptance).  The old buggy code
+        returned 4.0; the correct value is 0.0 (arrived before ETA)."""
+        trip = _trip(
+            accepted_at="2026-01-01T08:02:00",
+            driver_arrived_at="2026-01-01T08:06:00",
+        )
+        assert wait_minutes_past_eta(trip) == 0.0

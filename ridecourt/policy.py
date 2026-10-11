@@ -84,7 +84,13 @@ def clause_rd_2(facts: Facts) -> PolicyResult:
 
 
 def clause_ns_1(facts: Facts) -> PolicyResult:
-    """P-NS-1: driver no-show."""
+    """P-NS-1: driver no-show.
+
+    Uses two facts named by the clause text:
+    - "never came within 150 m of the pickup point" → ``min_distance_to_pickup_m``
+    - "cancelled after the rider waited more than 5 minutes past the ETA" →
+      ``wait_minutes_past_eta``
+    """
     too_far = facts.min_distance_to_pickup_m > NS_PICKUP_RADIUS_M
     waited = facts.wait_minutes_past_eta > NS_WAIT_MIN
 
@@ -100,7 +106,7 @@ def clause_ns_1(facts: Facts) -> PolicyResult:
             f"> {NS_PICKUP_RADIUS_M:.0f} m"
             if too_far
             else f"rider waited {facts.wait_minutes_past_eta:.1f} min "
-            f"> {NS_WAIT_MIN:.0f} min"
+            f"> {NS_WAIT_MIN:.0f} min past ETA"
         )
         return PolicyResult(
             applicable_clauses=["P-NS-1"],
@@ -118,16 +124,25 @@ def clause_ns_1(facts: Facts) -> PolicyResult:
         computation=(
             f"driver within {NS_PICKUP_RADIUS_M:.0f} m "
             f"(min {facts.min_distance_to_pickup_m:.0f} m), "
-            f"wait {facts.wait_minutes_past_eta:.1f} min "
+            f"rider wait {facts.wait_minutes_past_eta:.1f} min past ETA "
             f"≤ {NS_WAIT_MIN:.0f} min — driver did show."
         ),
     )
 
 
 def clause_ns_2(facts: Facts) -> PolicyResult:
-    """P-NS-2: rider no-show / cancellation fee stands."""
+    """P-NS-2: rider no-show / cancellation fee stands.
+
+    Uses the facts named by the clause text:
+    - "waited at least 5 minutes within 150 m of the pickup point" →
+      ``wait_minutes_within_150m`` (NOT ``wait_minutes_past_eta``; the clause
+      is about the driver's waiting time within 150 m, not the rider's wait
+      past the ETA).
+    - "made at least one contact attempt" → ``contact_attempts``
+    - "within 150 m of the pickup point" → ``min_distance_to_pickup_m``
+    """
     within = facts.min_distance_to_pickup_m <= NS_PICKUP_RADIUS_M
-    waited = facts.wait_minutes_past_eta >= NS_WAIT_MIN
+    waited = facts.wait_minutes_within_150m >= NS_WAIT_MIN
     contacted = facts.contact_attempts >= 1
 
     if within and waited and contacted:
@@ -139,7 +154,7 @@ def clause_ns_2(facts: Facts) -> PolicyResult:
             computation=(
                 f"driver within {NS_PICKUP_RADIUS_M:.0f} m "
                 f"(min {facts.min_distance_to_pickup_m:.0f} m), "
-                f"waited {facts.wait_minutes_past_eta:.1f} min "
+                f"waited {facts.wait_minutes_within_150m:.1f} min within 150 m "
                 f"≥ {NS_WAIT_MIN:.0f} min, "
                 f"contact attempts {facts.contact_attempts} ≥ 1 — "
                 f"cancellation fee S${cancellation_fee:.2f} stands."
@@ -150,7 +165,8 @@ def clause_ns_2(facts: Facts) -> PolicyResult:
         outcome="cancellation_fee_invalid",
         amount=0.0,
         computation=(
-            f"within={within}, waited={waited} ({facts.wait_minutes_past_eta:.1f} min), "
+            f"within={within}, "
+            f"waited_within_150m={waited} ({facts.wait_minutes_within_150m:.1f} min), "
             f"contacts={facts.contact_attempts} — conditions not met."
         ),
     )

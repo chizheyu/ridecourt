@@ -85,10 +85,13 @@ def wait_minutes_past_eta(trip: Trip) -> float:
     arrival window).  If the driver arrived (``driver_arrived_at``), the wait
     is (arrived − eta); if the driver never arrived, the wait is measured up
     to ``trip_ended_at`` or ``filed_at`` (we use the latest available).
+
+    This is the fact used by P-NS-1 ("cancelled after the rider waited more
+    than 5 minutes past the ETA").
     """
     if not trip.accepted_at:
         return 0.0
-    eta = _parse(trip.accepted_at)
+    eta = _parse(trip.accepted_at) + timedelta(minutes=5)
     if trip.driver_arrived_at:
         arrived = _parse(trip.driver_arrived_at)
         delta = (arrived - eta).total_seconds()

@@ -113,6 +113,7 @@ def check(
     policy_ids: Sequence[str] = (),
     *,
     policy_result: Any | None = None,
+    agent_role: str = "advocate",
 ) -> list[Problem]:
     """Validate *output* against the evidence pack and policy clause list.
 
@@ -129,6 +130,11 @@ def check(
     policy_result
         Optional ``PolicyResult`` — its ``computation`` string and ``amount``
         are also valid number sources (the policy engine is deterministic).
+    agent_role
+        ``"advocate"`` (default) — numbers must appear in **cited** evidence
+        items (the advocate cited E3, so only E3's data is valid).
+        ``"judge"`` — the Judge sees the whole evidence pack, so numbers
+        may come from **any** evidence item.  Citations must still exist.
     """
     problems: list[Problem] = []
 
@@ -169,8 +175,12 @@ def check(
                 )
 
     # --- 2. Number check ---
-    # Build the set of valid (value, unit) pairs from cited evidence.
-    cited_eids = _cited_eids(texts, cite_fields)
+    # Advocates: numbers must come from cited evidence only.
+    # Judge: numbers may come from any evidence item in the pack.
+    if agent_role == "judge":
+        cited_eids: set[str] = set()  # empty → use all items
+    else:
+        cited_eids = _cited_eids(texts, cite_fields)
     valid_numbers = _valid_numbers(evidence_pack, cited_eids, policy_result)
 
     for field_name, text in texts:
@@ -182,7 +192,7 @@ def check(
                         kind="unverified_number",
                         detail=(
                             f"Number {num.raw} ({num.value} {num.unit}) in "
-                            f"field '{field_name}' does not match any cited "
+                            f"field '{field_name}' does not match any "
                             "evidence or policy computation value with the "
                             "same unit."
                         ),

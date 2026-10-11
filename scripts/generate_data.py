@@ -242,23 +242,27 @@ def make_profiles(rng: random.Random) -> dict[str, Profile]:
 
     # Normal riders
     for i in range(1, 30):
+        filed = rng.randint(0, 3)
+        upheld = rng.randint(0, min(filed, 2))
         profiles[f"rider_{i:03d}"] = Profile(
             account_age_days=rng.randint(30, 800),
             rating=round(rng.uniform(4.0, 5.0), 1),
             trips_completed=rng.randint(5, 300),
-            disputes_filed_90d=rng.randint(0, 3),
-            disputes_upheld_90d=rng.randint(0, 2),
+            disputes_filed_90d=filed,
+            disputes_upheld_90d=upheld,
             cancellations_30d=rng.randint(0, 3),
         )
 
     # Normal drivers
     for i in range(1, 30):
+        filed = rng.randint(0, 2)
+        upheld = rng.randint(0, min(filed, 1))
         profiles[f"driver_{i:03d}"] = Profile(
             account_age_days=rng.randint(60, 1200),
             rating=round(rng.uniform(4.2, 5.0), 1),
             trips_completed=rng.randint(50, 2000),
-            disputes_filed_90d=rng.randint(0, 2),
-            disputes_upheld_90d=rng.randint(0, 1),
+            disputes_filed_90d=filed,
+            disputes_upheld_90d=upheld,
             cancellations_30d=rng.randint(0, 5),
         )
 
@@ -439,11 +443,6 @@ def gen_no_show_driver(
         # Set wait time past ETA
         pass
 
-    trace = [
-        GPSPoint(ts=ts(eta + timedelta(minutes=i * 2)), lat=p[0], lon=p[1], speed_kmh=0)
-        for i, p in enumerate(gps_pts)
-    ]
-
     # For wait-based no-show: driver arrived but cancelled after rider waited
     if not far_away:
         ended_dt = eta + timedelta(minutes=7)  # > 5 min past ETA
@@ -451,6 +450,15 @@ def gen_no_show_driver(
     else:
         ended_dt = eta + timedelta(minutes=3)
         arrived_dt = None
+
+    # GPS trace timestamps must be within [eta, ended_dt].
+    # Use 2-min intervals but cap the last point at ended_dt.
+    trace = []
+    for i, p in enumerate(gps_pts):
+        pt_dt = eta + timedelta(minutes=i * 2)
+        if pt_dt > ended_dt:
+            pt_dt = ended_dt
+        trace.append(GPSPoint(ts=ts(pt_dt), lat=p[0], lon=p[1], speed_kmh=0))
 
     fare = make_fare(0, 0, surge=1.0, total_charged=CANCELLATION_FEE)
 
@@ -511,13 +519,15 @@ def gen_no_show_rider(
     eta = accepted_dt + timedelta(minutes=5)
 
     if valid:
-        # Driver waited >= 5 min, within 150m, contacted rider
-        ended_dt = eta + timedelta(minutes=3)
+        # Driver waited >= 5 min within 150m, contacted rider.
+        # GPS trace spans from arrived_dt to arrived_dt + 6 min so
+        # wait_minutes_within_150m = 6.0 >= 5.0.
         gps_pts = [(plat + 0.0003, plon + 0.0003)] * 4
         contacts = 2
     else:
-        # Invalid: driver didn't wait long enough or didn't contact
-        ended_dt = arrived_dt + timedelta(minutes=2)  # only ~2 min
+        # Invalid: driver didn't wait long enough or didn't contact.
+        # GPS trace spans from arrived_dt to arrived_dt + 2 min so
+        # wait_minutes_within_150m = 2.0 < 5.0.
         gps_pts = [(plat + 0.0003, plon + 0.0003)] * 2
         contacts = 0  # no contact attempt
 
@@ -525,6 +535,8 @@ def gen_no_show_rider(
         GPSPoint(ts=ts(arrived_dt + timedelta(minutes=i * 2)), lat=p[0], lon=p[1], speed_kmh=0)
         for i, p in enumerate(gps_pts)
     ]
+    # trip_ended_at = last GPS timestamp (the driver cancelled then)
+    ended_dt = arrived_dt + timedelta(minutes=(len(gps_pts) - 1) * 2)
 
     fare = make_fare(0, 0, surge=1.0, total_charged=CANCELLATION_FEE)
 
@@ -768,6 +780,77 @@ def compute_labels(
 
 
 # ---------------------------------------------------------------------------
+# Invariant checks — fail loudly if data is inconsistent
+# ---------------------------------------------------------------------------
+
+def _validate_invariants(
+    trips: list[Trip],
+    chats: list[ChatLog],
+    disputes: list[Dispute],
+    profiles: dict[str, Profile],
+) -> None:
+    """Check invariants that must always hold.  Raises AssertionError."""
+    # 1. upheld <= filed for every profile
+    for pid, p in profiles.items():
+        assert p.disputes_upheld_90d <= p.disputes_filed_90d, (
+            f"Profile {pid}: upheld ({p.disputes_upheld_90d}) > "
+            f"filed ({p.disputes_filed_90d})"
+        )
+
+    trip_map = {t.trip_id: t for t in trips}
+    chat_map = {c.trip_id: c for c in chats}
+
+    # 2. Time consistency: driver_arrived_at must be after accepted_at
+    for t in trips:
+        if t.accepted_at and t.driver_arrived_at:
+            assert t.driver_arrived_at >= t.accepted_at, (
+                f"Trip {t.trip_id}: driver_arrived_at ({t.driver_arrived_at}) "
+                f"< accepted_at ({t.accepted_at})"
+            )
+
+    # 3. No-show rider: GPS trace timestamps must be consistent with
+    #    driver_arrived_at and the within-150m waiting time.  The first GPS
+    #    point should be at or after driver_arrived_at, and the last should
+    #    be at or after the first + (wait_minutes_within_150m if > 0).
+    for d in disputes:
+        if d.category != "no_show_rider":
+            continue
+        t = trip_map[d.trip_id]
+        if not t.gps_trace:
+            continue
+        first_ts = t.gps_trace[0].ts
+        if t.driver_arrived_at:
+            assert first_ts >= t.driver_arrived_at, (
+                f"Trip {t.trip_id}: first GPS ts ({first_ts}) < "
+                f"driver_arrived_at ({t.driver_arrived_at})"
+            )
+        if t.trip_ended_at:
+            assert t.gps_trace[-1].ts <= t.trip_ended_at, (
+                f"Trip {t.trip_id}: last GPS ts ({t.gps_trace[-1].ts}) > "
+                f"trip_ended_at ({t.trip_ended_at})"
+            )
+
+    # 4. No-show driver: if the driver never arrived (driver_arrived_at is
+    #    None), trip_ended_at must be set so wait_minutes_past_eta can compute.
+    for d in disputes:
+        if d.category != "no_show_driver":
+            continue
+        t = trip_map[d.trip_id]
+        if t.driver_arrived_at is None:
+            assert t.trip_ended_at is not None, (
+                f"Trip {t.trip_id}: no_show_driver with no arrival and "
+                f"no trip_ended_at — cannot compute wait"
+            )
+
+    # 5. Every dispute's trip_id must exist in trips.
+    trip_ids = set(trip_map)
+    for d in disputes:
+        assert d.trip_id in trip_ids, (
+            f"Dispute {d.dispute_id} references unknown trip {d.trip_id}"
+        )
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
@@ -821,6 +904,9 @@ def main():
 
     # Precedents
     precedents = gen_precedents(rng)
+
+    # Validate invariants before computing labels (fail loudly).
+    _validate_invariants(trips, chats, disputes, profiles)
 
     # Labels
     labels = compute_labels(trips, chats, disputes, profiles)

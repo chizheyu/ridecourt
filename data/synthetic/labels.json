@@ -2,7 +2,7 @@
   {
     "dispute_id": "disp_rd_000",
     "outcome": "refund_route_deviation",
-    "amount": 13.91,
+    "amount": 12.89,
     "applicable_clauses": [
       "P-RD-1"
     ]
@@ -10,7 +10,7 @@
   {
     "dispute_id": "disp_rd_001",
     "outcome": "refund_route_deviation",
-    "amount": 5.59,
+    "amount": 9.33,
     "applicable_clauses": [
       "P-RD-1"
     ]
@@ -18,29 +18,21 @@
   {
     "dispute_id": "disp_rd_002",
     "outcome": "refund_route_deviation",
-    "amount": 5.21,
+    "amount": 9.23,
     "applicable_clauses": [
       "P-RD-1"
     ]
   },
   {
     "dispute_id": "disp_rd_003",
-    "outcome": "no_deviation",
-    "amount": 0.0,
+    "outcome": "refund_route_deviation",
+    "amount": 5.63,
     "applicable_clauses": [
       "P-RD-1"
     ]
   },
   {
     "dispute_id": "disp_rd_004",
-    "outcome": "no_deviation",
-    "amount": 0.0,
-    "applicable_clauses": [
-      "P-RD-1"
-    ]
-  },
-  {
-    "dispute_id": "disp_rd_005",
     "outcome": "refund_route_deviation",
     "amount": 6.23,
     "applicable_clauses": [
@@ -48,9 +40,17 @@
     ]
   },
   {
+    "dispute_id": "disp_rd_005",
+    "outcome": "refund_route_deviation",
+    "amount": 9.23,
+    "applicable_clauses": [
+      "P-RD-1"
+    ]
+  },
+  {
     "dispute_id": "disp_rd_006",
     "outcome": "refund_route_deviation",
-    "amount": 5.4,
+    "amount": 8.37,
     "applicable_clauses": [
       "P-RD-1"
     ]
@@ -58,7 +58,7 @@
   {
     "dispute_id": "disp_rd_007",
     "outcome": "refund_route_deviation",
-    "amount": 6.22,
+    "amount": 11.66,
     "applicable_clauses": [
       "P-RD-1"
     ]
@@ -73,10 +73,10 @@
   },
   {
     "dispute_id": "disp_rd_009",
-    "outcome": "no_refund_rider_requested",
+    "outcome": "no_refund_road_closure",
     "amount": 0.0,
     "applicable_clauses": [
-      "P-RD-2"
+      "P-RD-1"
     ]
   },
   {
@@ -209,48 +209,48 @@
   },
   {
     "dispute_id": "disp_ns_r_000",
-    "outcome": "cancellation_fee_invalid",
-    "amount": 0.0,
+    "outcome": "cancellation_fee_stands",
+    "amount": 4.0,
     "applicable_clauses": [
       "P-NS-2"
     ]
   },
   {
     "dispute_id": "disp_ns_r_001",
-    "outcome": "cancellation_fee_invalid",
-    "amount": 0.0,
+    "outcome": "cancellation_fee_stands",
+    "amount": 4.0,
     "applicable_clauses": [
       "P-NS-2"
     ]
   },
   {
     "dispute_id": "disp_ns_r_002",
-    "outcome": "cancellation_fee_invalid",
-    "amount": 0.0,
+    "outcome": "cancellation_fee_stands",
+    "amount": 4.0,
     "applicable_clauses": [
       "P-NS-2"
     ]
   },
   {
     "dispute_id": "disp_ns_r_003",
-    "outcome": "cancellation_fee_invalid",
-    "amount": 0.0,
+    "outcome": "cancellation_fee_stands",
+    "amount": 4.0,
     "applicable_clauses": [
       "P-NS-2"
     ]
   },
   {
     "dispute_id": "disp_ns_r_004",
-    "outcome": "cancellation_fee_invalid",
-    "amount": 0.0,
+    "outcome": "cancellation_fee_stands",
+    "amount": 4.0,
     "applicable_clauses": [
       "P-NS-2"
     ]
   },
   {
     "dispute_id": "disp_ns_r_005",
-    "outcome": "cancellation_fee_invalid",
-    "amount": 0.0,
+    "outcome": "cancellation_fee_stands",
+    "amount": 4.0,
     "applicable_clauses": [
       "P-NS-2"
     ]
@@ -290,7 +290,7 @@
   {
     "dispute_id": "disp_fa_000",
     "outcome": "refund_overcharge",
-    "amount": 2.06,
+    "amount": 2.3,
     "applicable_clauses": [
       "P-FA-1"
     ]
@@ -298,7 +298,7 @@
   {
     "dispute_id": "disp_fa_001",
     "outcome": "refund_overcharge",
-    "amount": 4.87,
+    "amount": 1.73,
     "applicable_clauses": [
       "P-FA-1"
     ]
@@ -306,7 +306,7 @@
   {
     "dispute_id": "disp_fa_002",
     "outcome": "refund_overcharge",
-    "amount": 2.34,
+    "amount": 3.01,
     "applicable_clauses": [
       "P-FA-1"
     ]

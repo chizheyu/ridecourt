@@ -94,9 +94,14 @@ def _guard_check(
     pack: EvidencePack,
     policy_ids: list[str],
     policy_result: PolicyResult | None = None,
+    agent_role: str = "advocate",
 ) -> list[Problem]:
     """Run the guard on an agent output."""
-    return guard_check(output, pack, policy_ids, policy_result=policy_result)
+    return guard_check(
+        output, pack, policy_ids,
+        policy_result=policy_result,
+        agent_role=agent_role,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -448,9 +453,11 @@ class Orchestrator:
         )
         judge_latency = monotonic_ms(t0)
 
-        # Guard check on judge output.
+        # Guard check on judge output — the Judge sees the whole pack,
+        # so numbers may come from any evidence item (agent_role="judge").
         judge_problems = _guard_check(
             judge_output, pack, policy_ids, policy_result=policy_result,
+            agent_role="judge",
         )
 
         if judge_problems:
@@ -466,6 +473,7 @@ class Orchestrator:
             judge_latency += monotonic_ms(t0)
             judge_problems_2 = _guard_check(
                 judge_output, pack, policy_ids, policy_result=policy_result,
+                agent_role="judge",
             )
             if judge_problems_2:
                 # Guard failed twice — escalate.
@@ -486,7 +494,11 @@ class Orchestrator:
                     content={
                         "reason": reason,
                         "summary": summary,
+                        "judge_output": judge_output.model_dump(),
+                        "policy_outcome": policy_result.outcome,
+                        "policy_amount": policy_result.amount,
                         "problems": [p.__dict__ for p in judge_problems_2],
+                        "first_round_problems": [p.__dict__ for p in judge_problems],
                     },
                 )
                 cf = CaseFile(
