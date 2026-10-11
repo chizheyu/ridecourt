@@ -1,0 +1,290 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 800" width="1280" height="800" font-family="'Helvetica Neue', Arial, sans-serif">
+
+  <!-- ===== Background ===== -->
+  <rect width="1280" height="800" fill="#f8f9fc"/>
+
+  <!-- ===== Title ===== -->
+  <text x="640" y="36" text-anchor="middle" font-size="24" font-weight="700" fill="#1a2332">RideCourt — Multi-Agent Dispute Resolution Pipeline</text>
+  <text x="640" y="58" text-anchor="middle" font-size="13" fill="#6b7280">Agents argue, code computes. Numbers come from deterministic tools, never from model text.</text>
+
+  <!-- ===== Legend ===== -->
+  <g id="legend" transform="translate(40, 80)">
+    <rect width="11" height="11" rx="2" fill="#4f46e5" stroke="#3b3296" stroke-width="1"/>
+    <text x="16" y="10" font-size="11" fill="#374151">LLM Agent</text>
+    <rect x="92" y="0" width="11" height="11" rx="2" fill="#059669" stroke="#047857" stroke-width="1"/>
+    <text x="108" y="10" font-size="11" fill="#374151">Deterministic (code)</text>
+    <rect x="246" y="0" width="11" height="11" rx="2" fill="#d97706" stroke="#b45309" stroke-width="1"/>
+    <text x="262" y="10" font-size="11" fill="#374151">Data</text>
+    <rect x="310" y="0" width="11" height="11" rx="2" fill="#dc2626" stroke="#b91c1c" stroke-width="1"/>
+    <text x="326" y="10" font-size="11" fill="#374151">Guard</text>
+    <rect x="382" y="0" width="11" height="11" rx="2" fill="#7c3aed" stroke="#6d28d9" stroke-width="1"/>
+    <text x="398" y="10" font-size="11" fill="#374151">API / UI</text>
+  </g>
+
+  <!-- ============================================================ -->
+  <!-- ===== Row 1: Data sources / Tools / Evidence / Guard / Advocates ===== -->
+  <!-- ============================================================ -->
+
+  <!-- Data sources -->
+  <g id="data" transform="translate(40, 140)">
+    <rect width="150" height="190" rx="8" fill="#d97706" stroke="#b45309" stroke-width="1.5"/>
+    <text x="75" y="22" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">Data Sources</text>
+    <line x1="8" y1="30" x2="142" y2="30" stroke="#fff" stroke-width="0.5" opacity="0.4"/>
+    <text x="12" y="48" font-size="10" fill="#fff" font-weight="600">trips.json</text>
+    <text x="12" y="63" font-size="10" fill="#fff" font-weight="600">chats.json</text>
+    <text x="12" y="78" font-size="10" fill="#fff" font-weight="600">profiles.json</text>
+    <text x="12" y="93" font-size="10" fill="#fff" font-weight="600">disputes.json</text>
+    <text x="12" y="108" font-size="10" fill="#fff" font-weight="600">precedents.json</text>
+    <text x="12" y="123" font-size="10" fill="#fff" font-weight="600">policy.md</text>
+    <text x="12" y="145" font-size="10" fill="#fff" opacity="0.7">data/synthetic/</text>
+    <text x="12" y="162" font-size="10" fill="#fff" opacity="0.7">Adapters for real</text>
+    <text x="12" y="175" font-size="10" fill="#fff" opacity="0.7">organiser dataset</text>
+  </g>
+
+  <!-- Deterministic tools -->
+  <g id="tools" transform="translate(220, 140)">
+    <rect width="170" height="190" rx="8" fill="#059669" stroke="#047857" stroke-width="1.5"/>
+    <text x="85" y="22" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">Deterministic Tools</text>
+    <line x1="8" y1="30" x2="162" y2="30" stroke="#fff" stroke-width="0.5" opacity="0.4"/>
+    <text x="12" y="48" font-size="10" fill="#fff">• GPS analysis</text>
+    <text x="12" y="63" font-size="10" fill="#fff">• Arrival check (150 m)</text>
+    <text x="12" y="78" font-size="10" fill="#fff">• Chat scan</text>
+    <text x="12" y="93" font-size="10" fill="#fff">• Fare recompute</text>
+    <text x="12" y="108" font-size="10" fill="#fff">• History profile</text>
+    <text x="12" y="128" font-size="10" fill="#fff" font-weight="600">→ Facts (numbers)</text>
+    <text x="12" y="143" font-size="10" fill="#fff" opacity="0.7">ridecourt/tools.py</text>
+    <text x="12" y="158" font-size="10" fill="#fff" opacity="0.7">No LLM. Pure Python.</text>
+    <text x="12" y="180" font-size="10" fill="#fff" font-weight="600">Policy Engine</text>
+  </g>
+
+  <!-- Evidence pack -->
+  <g id="evidence" transform="translate(420, 140)">
+    <rect width="130" height="190" rx="8" fill="#059669" stroke="#047857" stroke-width="1.5" opacity="0.85"/>
+    <text x="65" y="22" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">Evidence Pack</text>
+    <line x1="8" y1="30" x2="122" y2="30" stroke="#fff" stroke-width="0.5" opacity="0.4"/>
+    <text x="12" y="48" font-size="10" fill="#fff">E1: GPS trace</text>
+    <text x="12" y="63" font-size="10" fill="#fff">E2: Arrival dist</text>
+    <text x="12" y="78" font-size="10" fill="#fff">E3: Wait time</text>
+    <text x="12" y="93" font-size="10" fill="#fff">E4: Fare audit</text>
+    <text x="12" y="108" font-size="10" fill="#fff">E5: Chat excerpt</text>
+    <text x="12" y="123" font-size="10" fill="#fff">E6: History</text>
+    <text x="12" y="138" font-size="10" fill="#fff">E7: Profile</text>
+    <text x="12" y="160" font-size="10" fill="#fff" opacity="0.7">Each item has a</text>
+    <text x="12" y="173" font-size="10" fill="#fff" opacity="0.7">summary + data.</text>
+  </g>
+
+  <!-- Guard -->
+  <g id="guard" transform="translate(580, 140)">
+    <rect width="120" height="100" rx="8" fill="#dc2626" stroke="#b91c1c" stroke-width="1.5"/>
+    <text x="60" y="22" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">Guard</text>
+    <line x1="8" y1="30" x2="112" y2="30" stroke="#fff" stroke-width="0.5" opacity="0.4"/>
+    <text x="12" y="48" font-size="10" fill="#fff">Validates every</text>
+    <text x="12" y="61" font-size="10" fill="#fff">agent output:</text>
+    <text x="12" y="75" font-size="10" fill="#fff">• citation IDs (E#, P-)</text>
+    <text x="12" y="89" font-size="10" fill="#fff">• numbers in pack</text>
+  </g>
+
+  <text x="640" y="350" text-anchor="middle" font-size="10" fill="#dc2626" font-weight="600">re-ask once → escalate</text>
+
+  <!-- Advocates -->
+  <g id="advocates" transform="translate(720, 140)">
+    <rect width="240" height="190" rx="8" fill="#4f46e5" stroke="#3b3296" stroke-width="1.5"/>
+    <text x="120" y="22" text-anchor="middle" font-size="13" font-weight="700" fill="#fff">Advocates (parallel)</text>
+    <line x1="8" y1="30" x2="232" y2="30" stroke="#fff" stroke-width="0.5" opacity="0.4"/>
+
+    <!-- Rider -->
+    <rect x="12" y="40" width="216" height="42" rx="6" fill="#6366f1" stroke="#4f46e5" stroke-width="1"/>
+    <text x="120" y="56" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">Rider Advocate</text>
+    <text x="120" y="69" text-anchor="middle" font-size="9" fill="#e0e7ff">argues for rider — cites E# + P-#</text>
+    <text x="120" y="80" text-anchor="middle" font-size="9" fill="#e0e7ff">→ position + rebuttal round</text>
+
+    <!-- Driver -->
+    <rect x="12" y="92" width="216" height="42" rx="6" fill="#6366f1" stroke="#4f46e5" stroke-width="1"/>
+    <text x="120" y="108" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">Driver Advocate</text>
+    <text x="120" y="121" text-anchor="middle" font-size="9" fill="#e0e7ff">argues for driver — cites E# + P-#</text>
+    <text x="120" y="132" text-anchor="middle" font-size="9" fill="#e0e7ff">→ position + rebuttal round</text>
+
+    <!-- Fraud -->
+    <rect x="12" y="144" width="216" height="42" rx="6" fill="#6366f1" stroke="#4f46e5" stroke-width="1"/>
+    <text x="120" y="160" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">Fraud &amp; Bad-Faith Agent</text>
+    <text x="120" y="173" text-anchor="middle" font-size="9" fill="#e0e7ff">deterministic features → risk</text>
+    <text x="120" y="184" text-anchor="middle" font-size="9" fill="#e0e7ff">low / medium / high</text>
+  </g>
+
+  <!-- Precedent Agent -->
+  <g id="precedent" transform="translate(1000, 140)">
+    <rect width="240" height="90" rx="8" fill="#4f46e5" stroke="#3b3296" stroke-width="1.5"/>
+    <text x="120" y="22" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">Precedent Agent</text>
+    <line x1="8" y1="30" x2="232" y2="30" stroke="#fff" stroke-width="0.5" opacity="0.4"/>
+    <text x="12" y="48" font-size="10" fill="#fff">TF-IDF similarity over</text>
+    <text x="12" y="61" font-size="10" fill="#fff">category + claim text</text>
+    <text x="12" y="76" font-size="10" fill="#fff">→ top 3 similar rulings</text>
+    <text x="12" y="88" font-size="10" fill="#e0e7ff" font-style="italic">(includes override precedents)</text>
+  </g>
+
+  <text x="1120" y="120" text-anchor="middle" font-size="10" fill="#4f46e5" font-weight="600">LLM layer: gemini | openai_compatible | mock</text>
+
+  <!-- ============================================================ -->
+  <!-- ===== Row 2: Event log / Judge / Escalation / Feedback ===== -->
+  <!-- ============================================================ -->
+
+  <!-- Event log -->
+  <g id="event-log" transform="translate(40, 360)">
+    <rect width="150" height="220" rx="8" fill="#059669" stroke="#047857" stroke-width="1.5" opacity="0.85"/>
+    <text x="75" y="22" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">Event Log</text>
+    <line x1="8" y1="30" x2="142" y2="30" stroke="#fff" stroke-width="0.5" opacity="0.4"/>
+    <text x="12" y="48" font-size="9" fill="#fff">DISPUTE_FILED</text>
+    <text x="12" y="60" font-size="9" fill="#fff">EVIDENCE_REQUEST</text>
+    <text x="12" y="72" font-size="9" fill="#fff">EVIDENCE</text>
+    <text x="12" y="84" font-size="9" fill="#fff">CLAIM</text>
+    <text x="12" y="96" font-size="9" fill="#fff">REBUTTAL</text>
+    <text x="12" y="108" font-size="9" fill="#fff">RISK_SIGNAL</text>
+    <text x="12" y="120" font-size="9" fill="#fff">PRECEDENT</text>
+    <text x="12" y="132" font-size="9" fill="#fff">RULING</text>
+    <text x="12" y="144" font-size="9" fill="#fff">ESCALATION</text>
+    <text x="12" y="156" font-size="9" fill="#fff">HUMAN_OVERRIDE</text>
+    <text x="12" y="178" font-size="9" fill="#fff" opacity="0.7">id, case_id, ts,</text>
+    <text x="12" y="190" font-size="9" fill="#fff" opacity="0.7">from/to, type,</text>
+    <text x="12" y="202" font-size="9" fill="#fff" opacity="0.7">cites, tokens, lat</text>
+    <text x="12" y="214" font-size="9" fill="#fff" opacity="0.7">streamed live (SSE)</text>
+  </g>
+
+  <!-- Policy Engine output box -->
+  <g id="policy-out" transform="translate(220, 360)">
+    <rect width="170" height="80" rx="8" fill="#059669" stroke="#047857" stroke-width="1.5" opacity="0.85"/>
+    <text x="85" y="22" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">Policy Engine</text>
+    <line x1="8" y1="30" x2="162" y2="30" stroke="#fff" stroke-width="0.5" opacity="0.4"/>
+    <text x="12" y="48" font-size="10" fill="#fff">ridecourt/policy.py</text>
+    <text x="12" y="62" font-size="10" fill="#fff">→ outcome, amount,</text>
+    <text x="12" y="74" font-size="10" fill="#fff">  computation string</text>
+  </g>
+
+  <!-- Judge -->
+  <g id="judge" transform="translate(420, 360)">
+    <rect width="240" height="100" rx="8" fill="#4f46e5" stroke="#3b3296" stroke-width="2"/>
+    <text x="120" y="22" text-anchor="middle" font-size="13" font-weight="700" fill="#fff">Judge Agent</text>
+    <line x1="8" y1="30" x2="232" y2="30" stroke="#fff" stroke-width="0.5" opacity="0.4"/>
+    <text x="12" y="48" font-size="10" fill="#fff">Weighs both cases + risk + precedents</text>
+    <text x="12" y="62" font-size="10" fill="#fff">Applies policy engine result (code)</text>
+    <text x="12" y="76" font-size="10" fill="#fff">Amount must match policy engine</text>
+    <text x="12" y="90" font-size="10" fill="#fff">Confidence &lt; 0.7 → escalate</text>
+  </g>
+
+  <!-- Escalation queue -->
+  <g id="escalation" transform="translate(700, 360)">
+    <rect width="150" height="100" rx="8" fill="#d97706" stroke="#b45309" stroke-width="1.5"/>
+    <text x="75" y="22" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">Escalation Queue</text>
+    <line x1="8" y1="30" x2="142" y2="30" stroke="#fff" stroke-width="0.5" opacity="0.4"/>
+    <text x="12" y="48" font-size="10" fill="#fff">• Safety (always)</text>
+    <text x="12" y="62" font-size="10" fill="#fff">• Low confidence</text>
+    <text x="12" y="76" font-size="10" fill="#fff">• Guard failure</text>
+    <text x="12" y="90" font-size="10" fill="#fff">• Policy mismatch</text>
+  </g>
+
+  <!-- Human reviewer + feedback -->
+  <g id="feedback" transform="translate(890, 360)">
+    <rect width="240" height="100" rx="8" fill="#059669" stroke="#047857" stroke-width="1.5" opacity="0.85"/>
+    <text x="120" y="22" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">Human Reviewer + Feedback Loop</text>
+    <line x1="8" y1="30" x2="232" y2="30" stroke="#fff" stroke-width="0.5" opacity="0.4"/>
+    <text x="12" y="48" font-size="10" fill="#fff">Override → stored as precedent</text>
+    <text x="12" y="62" font-size="10" fill="#fff">(source="override", reason)</text>
+    <text x="12" y="78" font-size="10" fill="#fff">→ retrieved for similar future</text>
+    <text x="12" y="90" font-size="10" fill="#fff">  cases — the system learns</text>
+  </g>
+
+  <!-- SLA / Priority label -->
+  <g id="sla" transform="translate(1150, 360)">
+    <rect width="90" height="100" rx="8" fill="#7c3aed" stroke="#6d28d9" stroke-width="1.5"/>
+    <text x="45" y="22" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">SLA / Priority</text>
+    <line x1="8" y1="30" x2="82" y2="30" stroke="#fff" stroke-width="0.5" opacity="0.4"/>
+    <text x="8" y="48" font-size="9" fill="#fff">1. Safety first</text>
+    <text x="8" y="60" font-size="9" fill="#fff">2. Amount at stake</text>
+    <text x="8" y="72" font-size="9" fill="#fff">3. Age (hours)</text>
+    <text x="8" y="88" font-size="9" fill="#e0e7ff" font-style="italic">queue sorted by it</text>
+  </g>
+
+  <!-- ============================================================ -->
+  <!-- ===== Row 3: API / UI ===== -->
+  <!-- ============================================================ -->
+  <g id="api-ui" transform="translate(220, 520)">
+    <rect width="920" height="90" rx="8" fill="#7c3aed" stroke="#6d28d9" stroke-width="1.5"/>
+    <text x="460" y="22" text-anchor="middle" font-size="13" font-weight="700" fill="#fff">FastAPI + Server-Sent Events + Single-Page UI (no build step)</text>
+    <line x1="8" y1="30" x2="912" y2="30" stroke="#fff" stroke-width="0.5" opacity="0.4"/>
+    <text x="16" y="48" font-size="10" fill="#fff">GET /api/disputes</text>
+    <text x="146" y="48" font-size="10" fill="#fff">POST /resolve</text>
+    <text x="246" y="48" font-size="10" fill="#fff">GET /events (SSE)</text>
+    <text x="356" y="48" font-size="10" fill="#fff">GET /escalations</text>
+    <text x="478" y="48" font-size="10" fill="#fff">POST /override</text>
+    <text x="576" y="48" font-size="10" fill="#fff">GET /metrics</text>
+    <text x="656" y="48" font-size="10" fill="#fff">GET /healthz</text>
+    <text x="16" y="64" font-size="9" fill="#e0e7ff">Courtroom timeline UI: Rider (left) · Driver (right) · Judge (center) · evidence chips · live streaming</text>
+    <text x="16" y="78" font-size="9" fill="#e0e7ff">Leaflet + OpenStreetMap tiles, vanilla JS, no build step — works at 1280 px and on a phone.</text>
+  </g>
+
+  <!-- ============================================================ -->
+  <!-- ===== Arrows ===== -->
+  <!-- ============================================================ -->
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#374151"/>
+    </marker>
+    <marker id="arrow-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#059669"/>
+    </marker>
+    <marker id="arrow-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#dc2626"/>
+    </marker>
+    <marker id="arrow-orange" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#d97706"/>
+    </marker>
+    <marker id="arrow-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#7c3aed"/>
+    </marker>
+  </defs>
+
+  <!-- Data → Tools -->
+  <line x1="190" y1="235" x2="215" y2="235" stroke="#374151" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <!-- Tools → Evidence -->
+  <line x1="390" y1="235" x2="415" y2="235" stroke="#374151" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <!-- Evidence → Guard (validation) - routed above the guard box -->
+  <path d="M 550 165 L 575 165" fill="none" stroke="#dc2626" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#arrow-red)"/>
+  <!-- Evidence → Advocates - routed below the guard -->
+  <line x1="550" y1="290" x2="715" y2="245" stroke="#374151" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <!-- Guard → Advocates (retry/validate) - small loop -->
+  <path d="M 700 200 Q 730 200 730 230" fill="none" stroke="#dc2626" stroke-width="1.2" stroke-dasharray="4,3" marker-end="url(#arrow-red)"/>
+
+  <!-- Advocates → Judge -->
+  <line x1="840" y1="330" x2="580" y2="395" stroke="#374151" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <!-- Precedent → Judge -->
+  <line x1="1080" y1="230" x2="580" y2="395" stroke="#374151" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Policy engine → Judge -->
+  <line x1="390" y1="400" x2="415" y2="400" stroke="#374151" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <!-- Tools → Policy (internal) -->
+  <line x1="305" y1="330" x2="305" y2="355" stroke="#374151" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Judge → Escalation -->
+  <line x1="660" y1="410" x2="695" y2="410" stroke="#d97706" stroke-width="1.5" marker-end="url(#arrow-orange)"/>
+  <!-- Escalation → Feedback -->
+  <line x1="850" y1="410" x2="885" y2="410" stroke="#374151" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Feedback → Precedent (loop back) -->
+  <path d="M 1010 360 Q 1010 305 1120 305 L 1120 235" fill="none" stroke="#059669" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#arrow-green)"/>
+
+  <!-- Judge → API/UI (ruling + event stream) -->
+  <line x1="540" y1="460" x2="540" y2="515" stroke="#7c3aed" stroke-width="1.5" marker-end="url(#arrow-purple)"/>
+  <!-- Event log → UI (every message is a typed event) -->
+  <line x1="190" y1="470" x2="215" y2="540" stroke="#374151" stroke-width="1" stroke-dasharray="3,3" opacity="0.5" marker-end="url(#arrow)"/>
+
+  <!-- Escalation → SLA -->
+  <line x1="850" y1="380" x2="1145" y2="380" stroke="#374151" stroke-width="1" stroke-dasharray="3,3" opacity="0.5" marker-end="url(#arrow)"/>
+
+  <!-- Caption -->
+  <text x="640" y="740" text-anchor="middle" font-size="11" font-style="italic" fill="#6b7280">Every arrow is a typed message on the case's event log (DISPUTE_FILED, EVIDENCE, CLAIM, REBUTTAL, RISK_SIGNAL, PRECEDENT, RULING, ESCALATION, HUMAN_OVERRIDE).</text>
+  <text x="640" y="760" text-anchor="middle" font-size="11" font-style="italic" fill="#6b7280">The Guard rejects agent output that cites unknown IDs or states a number not in the evidence pack; the agent retries once, then escalates to a human.</text>
+
+  <!-- Footer with badge -->
+  <text x="40" y="780" font-size="10" fill="#6b7280">RideCourt · Tencent Cloud AI CAN DO IT Hackathon Singapore 2026 (Ryde) · Apache-2.0</text>
+
+</svg>
