@@ -4,3 +4,5 @@ __pycache__/
 devlog/*.stderr.log
 runs/
 .DS_Store
+devlog/
+eval/results-*-mock.json
