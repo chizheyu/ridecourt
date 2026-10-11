@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RideCourt — Dispute Resolution</title>
+  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo">RC</span>
+      <span class="title">RideCourt</span>
+      <span class="subtitle">Autonomous Dispute Resolution</span>
+    </div>
+    <div class="actions">
+      <button id="file-dispute-btn" class="btn btn-primary">File a Dispute</button>
+      <button id="refresh-btn" class="btn">Refresh</button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <!-- LEFT: Dispute queue -->
+    <section class="panel queue-panel">
+      <h2 class="panel-title">Dispute Queue</h2>
+      <div id="dispute-queue" class="queue-list"></div>
+    </section>
+
+    <!-- CENTRE: Courtroom timeline -->
+    <section class="panel courtroom-panel">
+      <div class="courtroom-header">
+        <h2 class="panel-title">Courtroom</h2>
+        <span id="case-status-badge" class="status-badge status-new">No case selected</span>
+      </div>
+      <div id="courtroom-timeline" class="timeline">
+        <p class="placeholder">Select a dispute from the queue to begin.</p>
+      </div>
+    </section>
+
+    <!-- RIGHT: Evidence + ruling -->
+    <section class="panel evidence-panel">
+      <h2 class="panel-title">Evidence</h2>
+      <div id="evidence-content" class="evidence-content">
+        <p class="placeholder">Evidence will appear here when a case is selected.</p>
+      </div>
+      <div id="ruling-card" class="ruling-card hidden">
+        <h3 class="ruling-title">Ruling</h3>
+        <div class="ruling-body"></div>
+      </div>
+    </section>
+  </main>
+
+  <!-- File a dispute modal -->
+  <div id="file-modal" class="modal hidden">
+    <div class="modal-content">
+      <h2>File a Dispute</h2>
+      <form id="file-dispute-form">
+        <label>
+          Trip
+          <select id="form-trip" required></select>
+        </label>
+        <label>
+          Category
+          <select id="form-category" required>
+            <option value="route_deviation">Route Deviation</option>
+            <option value="no_show_driver">No-Show (Driver)</option>
+            <option value="no_show_rider">No-Show (Rider)</option>
+            <option value="fare_error">Fare Error</option>
+            <option value="safety">Safety</option>
+          </select>
+        </label>
+        <label>
+          Claim
+          <textarea id="form-claim" rows="3" placeholder="Describe the dispute..." required></textarea>
+        </label>
+        <div class="modal-actions">
+          <button type="button" id="cancel-file" class="btn">Cancel</button>
+          <button type="submit" class="btn btn-primary">File</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Override modal -->
+  <div id="override-modal" class="modal hidden">
+    <div class="modal-content">
+      <h2>Human Override</h2>
+      <form id="override-form">
+        <label>
+          Outcome
+          <input type="text" id="override-outcome" required placeholder="e.g. refund_route_deviation">
+        </label>
+        <label>
+          Amount (S$)
+          <input type="number" id="override-amount" step="0.01" value="0" required>
+        </label>
+        <label>
+          Reason
+          <textarea id="override-reason" rows="3" placeholder="Why are you overriding?" required></textarea>
+        </label>
+        <div class="modal-actions">
+          <button type="button" id="cancel-override" class="btn">Cancel</button>
+          <button type="submit" class="btn btn-primary">Submit Override</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="/app.js"></script>
+</body>
+</html>

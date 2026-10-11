@@ -95,7 +95,7 @@ class EventLog:
     def __init__(self, case_id: str, *, runs_dir: Path | str | None = None):
         self.case_id = case_id
         self._events: list[Event] = []
-        self._subscribers: list[asyncio.Queue[Event]] = []
+        self._subscribers: list[tuple[asyncio.Queue, asyncio.AbstractEventLoop]] = []
         self._closed = False
         self._runs_dir = Path(runs_dir) if runs_dir else _ensure_runs_dir()
         self._jsonl_path = self._runs_dir / f"{case_id}.jsonl"
@@ -119,9 +119,19 @@ class EventLog:
             f.write(line + "\n")
 
     def _notify(self, event: Event) -> None:
-        for q in self._subscribers:
+        for q, loop in self._subscribers:
             try:
-                q.put_nowait(event)
+                # Thread-safe: schedule put_nowait on the subscriber's loop.
+                if loop.is_running():
+                    loop.call_soon_threadsafe(q.put_nowait, event)
+                else:
+                    q.put_nowait(event)
+            except RuntimeError:
+                # Loop closed — fallback to direct put.
+                try:
+                    q.put_nowait(event)
+                except asyncio.QueueFull:
+                    pass
             except asyncio.QueueFull:
                 pass  # subscriber too slow — drop
 
@@ -149,9 +159,17 @@ class EventLog:
         """Return a queue that receives events as they are appended.
 
         Call ``close()`` to signal end-of-stream (sentinel ``None``).
+
+        The queue is associated with the running event loop so that
+        ``append()`` calls from a background thread are delivered safely
+        via ``call_soon_threadsafe``.
         """
         q: asyncio.Queue[Event] = asyncio.Queue(maxsize=maxsize)
-        self._subscribers.append(q)
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            loop = asyncio.get_event_loop()
+        self._subscribers.append((q, loop))
         # Replay existing events into the new subscriber.
         for ev in self._events:
             q.put_nowait(ev)
@@ -169,10 +187,13 @@ class EventLog:
     def close(self) -> None:
         """Signal end-of-stream to all subscribers."""
         self._closed = True
-        for q in self._subscribers:
+        for q, loop in self._subscribers:
             try:
-                q.put_nowait(None)  # type: ignore[arg-type]
-            except asyncio.QueueFull:
+                if loop.is_running():
+                    loop.call_soon_threadsafe(q.put_nowait, None)  # type: ignore[arg-type]
+                else:
+                    q.put_nowait(None)  # type: ignore[arg-type]
+            except (RuntimeError, asyncio.QueueFull):
                 pass
         self._subscribers.clear()
 
