@@ -246,6 +246,210 @@ class TestGuardFailure:
 
 
 # ---------------------------------------------------------------------------
+# Rebuttal guard rejection — drop rebuttal, continue to Judge
+# ---------------------------------------------------------------------------
+
+
+class TestRebuttalGuardRejection:
+    """When a rebuttal fails the guard after one re-ask, it is dropped with a
+    GUARD_REJECTED event and the case continues to the Judge with the original
+    claims.  Escalation happens only for initial-claim or Judge-ruling guard
+    failures, not for rebuttals."""
+
+    def test_rebuttal_guard_failure_drops_rebuttal(self, ds, monkeypatch):
+        """A rebuttal that always fails the guard is dropped (set to None),
+        a GUARD_REJECTED event is emitted, and the case is NOT escalated."""
+        import ridecourt.orchestrator as orc_mod
+
+        original_check = orc_mod.guard_check
+
+        call_state = {"n": 0}
+
+        def fail_rebuttals(output, pack, policy_ids, policy_result=None):
+            call_state["n"] += 1
+            # Calls 1-2: rider + driver initial claims → pass.
+            # Calls 3-4: rider + driver rebuttals (first try) → fail.
+            # Calls 5-6: rider + driver rebuttals (re-ask) → fail again.
+            # Call 7+: judge output → pass.
+            if call_state["n"] >= 3 and call_state["n"] <= 6:
+                return [Problem(
+                    kind="forbidden_word",
+                    detail="guaranteed found in rebuttal",
+                    field="position",
+                )]
+            return original_check(output, pack, policy_ids, policy_result=policy_result)
+
+        monkeypatch.setattr(orc_mod, "guard_check", fail_rebuttals)
+
+        orc = Orchestrator(ds)
+        cf = orc.resolve("disp_rd_000")
+
+        # Case is NOT escalated — rebuttal guard failure does not escalate.
+        assert not cf.escalated
+        assert cf.ruling is not None
+        # Rebuttals are dropped (None).
+        assert cf.rider_rebuttal is None
+        assert cf.driver_rebuttal is None
+        # Original claims are still present.
+        assert cf.rider_case is not None
+        assert cf.driver_case is not None
+        # GUARD_REJECTED events were emitted.
+        types = cf.events.types()
+        rejected = cf.events.by_type("GUARD_REJECTED")
+        assert len(rejected) == 2  # one per advocate
+        assert "GUARD_REJECTED" in types
+        # Each GUARD_REJECTED shows the problem.
+        for ev in rejected:
+            assert ev.content["stage"] == "rebuttal"
+            assert len(ev.content["problems"]) >= 1
+        # Case ends with a RULING, not an ESCALATION.
+        assert types[-1] == "RULING"
+
+    def test_rebuttal_guard_reask_then_pass_continues(self, ds, monkeypatch):
+        """If the rebuttal guard fails the first time but passes on re-ask,
+        the rebuttal is kept and the case proceeds normally."""
+        import ridecourt.orchestrator as orc_mod
+
+        original_check = orc_mod.guard_check
+
+        call_state = {"n": 0}
+
+        def fail_rebuttal_once(output, pack, policy_ids, policy_result=None):
+            call_state["n"] += 1
+            # Calls 3 and 5: first rebuttal try → fail.
+            # Calls 4 and 6: re-ask → pass.
+            if call_state["n"] in (3, 5):
+                return [Problem(
+                    kind="unknown_cite",
+                    detail="first rebuttal try fails",
+                    cite="E99",
+                    field="position",
+                )]
+            return original_check(output, pack, policy_ids, policy_result=policy_result)
+
+        monkeypatch.setattr(orc_mod, "guard_check", fail_rebuttal_once)
+
+        orc = Orchestrator(ds)
+        cf = orc.resolve("disp_rd_000")
+
+        assert not cf.escalated
+        assert cf.ruling is not None
+        # Rebuttals were kept (re-ask passed).
+        assert cf.rider_rebuttal is not None
+        assert cf.driver_rebuttal is not None
+        # No GUARD_REJECTED events — re-ask succeeded.
+        rejected = cf.events.by_type("GUARD_REJECTED")
+        assert len(rejected) == 0
+
+    def test_one_rebuttal_fails_other_passes(self, ds, monkeypatch):
+        """If only one rebuttal fails (both tries) but the other passes,
+        the failing rebuttal is dropped and the case continues to the Judge."""
+        # Directly patch _rebuttal_guarded to fail for the rider side only.
+        original_rebuttal = Orchestrator._rebuttal_guarded
+
+        def fail_one_rebuttal(self, advocate, claim_text, pack, opponent,
+                              policy_result, policy_ids):
+            if advocate.side == "rider":
+                # Always fail — both tries.
+                from ridecourt.llm import LLMMeta
+                meta = LLMMeta(
+                    provider="mock", model="mock",
+                    agent_name="rider_advocate", tokens=100, latency_ms=0,
+                )
+                return None, meta, [Problem(
+                    kind="forbidden_word",
+                    detail="guaranteed found",
+                    field="position",
+                )]
+            return original_rebuttal(
+                self, advocate, claim_text, pack, opponent,
+                policy_result, policy_ids,
+            )
+
+        monkeypatch.setattr(Orchestrator, "_rebuttal_guarded", fail_one_rebuttal)
+
+        orc = Orchestrator(ds)
+        cf = orc.resolve("disp_rd_000")
+
+        # Case continues to Judge — not escalated.
+        assert not cf.escalated
+        assert cf.ruling is not None
+        # Rider rebuttal dropped, driver rebuttal kept.
+        assert cf.rider_rebuttal is None
+        assert cf.driver_rebuttal is not None
+        # One GUARD_REJECTED event for the rider.
+        rejected = cf.events.by_type("GUARD_REJECTED")
+        assert len(rejected) == 1
+        assert rejected[0].content["agent"] == "rider_advocate"
+        assert rejected[0].content["stage"] == "rebuttal"
+
+    def test_guard_escalation_only_for_initial_claims(self, ds, monkeypatch):
+        """Guard failure on initial claims escalates (guard_failure_advocate),
+        even if rebuttals would have been fine."""
+        import ridecourt.orchestrator as orc_mod
+
+        original_check = orc_mod.guard_check
+
+        call_state = {"n": 0}
+
+        def fail_claims_only(output, pack, policy_ids, policy_result=None):
+            call_state["n"] += 1
+            # Calls 1-2: initial claims → always fail (both tries).
+            # Since both claims fail, the case escalates before rebuttals run.
+            if call_state["n"] <= 2:
+                return [Problem(
+                    kind="forbidden_word",
+                    detail="guaranteed found in claim",
+                    field="position",
+                )]
+            return original_check(output, pack, policy_ids, policy_result=policy_result)
+
+        monkeypatch.setattr(orc_mod, "guard_check", fail_claims_only)
+
+        orc = Orchestrator(ds)
+        cf = orc.resolve("disp_rd_000")
+
+        assert cf.escalated
+        assert cf.escalation_reason == "guard_failure_advocate"
+        # No ruling — case was escalated.
+        assert cf.ruling is None
+
+    def test_guard_escalation_on_judge_ruling(self, ds, monkeypatch):
+        """Guard failure on the Judge's ruling escalates
+        (guard_failure_judge), not dropped."""
+        import ridecourt.orchestrator as orc_mod
+
+        original_check = orc_mod.guard_check
+
+        # The mock LLM produces clean advocate output, so claims and
+        # rebuttals pass on the first try: 2 claim calls + 2 rebuttal calls
+        # = 4 guard calls before the Judge.  The Judge's first guard call
+        # is #5; its re-ask is #6.
+        call_state = {"n": 0}
+
+        def fail_judge_only(output, pack, policy_ids, policy_result=None):
+            call_state["n"] += 1
+            # Calls 1-4: advocates + rebuttals → pass.
+            # Call 5+: judge output → always fail.
+            if call_state["n"] >= 5:
+                return [Problem(
+                    kind="forbidden_word",
+                    detail="guaranteed found in judge ruling",
+                    field="reasoning",
+                )]
+            return original_check(output, pack, policy_ids, policy_result=policy_result)
+
+        monkeypatch.setattr(orc_mod, "guard_check", fail_judge_only)
+
+        orc = Orchestrator(ds)
+        cf = orc.resolve("disp_rd_000")
+
+        assert cf.escalated
+        assert cf.escalation_reason == "guard_failure_judge"
+        assert len(cf.guard_problems) > 0
+
+
+# ---------------------------------------------------------------------------
 # Event log sequence
 # ---------------------------------------------------------------------------
 
