@@ -85,13 +85,13 @@ MAX_RETRIES=12
 SLEEP_SEC=15
 
 for i in $(seq 1 "${MAX_RETRIES}"); do
-  echo "  Attempt ${i}/${MAX_RETRIES}: ${SERVICE_URL}/healthz"
-  HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "${SERVICE_URL}/healthz" || echo "000")
+  echo "  Attempt ${i}/${MAX_RETRIES}: ${SERVICE_URL}/api/metrics"
+  HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "${SERVICE_URL}/api/metrics" || echo "000")
   if [ "${HTTP_CODE}" = "200" ]; then
     echo ""
     echo "=== Deployment successful! ==="
     echo "Service URL: ${SERVICE_URL}"
-    echo "Health:      ${SERVICE_URL}/healthz"
+    echo "Health:      ${SERVICE_URL}/api/metrics"
     exit 0
   fi
   echo "  Got HTTP ${HTTP_CODE}, retrying in ${SLEEP_SEC}s..."
@@ -102,5 +102,5 @@ echo ""
 echo "WARNING: IAM propagation may still be in progress."
 echo "The service account has roles/aiplatform.user but Vertex AI"
 echo "may need a few more minutes. Check again later:"
-echo "  curl ${SERVICE_URL}/healthz"
+echo "  curl ${SERVICE_URL}/api/metrics"
 exit 0
