@@ -1,0 +1,434 @@
+[
+  {
+    "dispute_id": "disp_rd_000",
+    "trip_id": "trip_rd_000",
+    "filed_by": "rider",
+    "category": "route_deviation",
+    "claim_text": "The driver took a longer route and I was overcharged.",
+    "filed_at": "2026-01-01T08:20:30",
+    "label": null
+  },
+  {
+    "dispute_id": "disp_rd_001",
+    "trip_id": "trip_rd_001",
+    "filed_by": "rider",
+    "category": "route_deviation",
+    "claim_text": "The driver took a longer route and I was overcharged.",
+    "filed_at": "2026-01-01T09:20:30",
+    "label": null
+  },
+  {
+    "dispute_id": "disp_rd_002",
+    "trip_id": "trip_rd_002",
+    "filed_by": "rider",
+    "category": "route_deviation",
+    "claim_text": "The driver took a longer route and I was overcharged.",
+    "filed_at": "2026-01-01T10:20:30",
+    "label": null
+  },
+  {
+    "dispute_id": "disp_rd_003",
+    "trip_id": "trip_rd_003",
+    "filed_by": "rider",
+    "category": "route_deviation",
+    "claim_text": "The driver took a longer route and I was overcharged.",
+    "filed_at": "2026-01-01T11:20:30",
+    "label": null
+  },
+  {
+    "dispute_id": "disp_rd_004",
+    "trip_id": "trip_rd_004",
+    "filed_by": "rider",
+    "category": "route_deviation",
+    "claim_text": "The driver took a longer route and I was overcharged.",
+    "filed_at": "2026-01-01T12:20:30",
+    "label": null
+  },
+  {
+    "dispute_id": "disp_rd_005",
+    "trip_id": "trip_rd_005",
+    "filed_by": "rider",
+    "category": "route_deviation",
+    "claim_text": "The driver took a longer route and I was overcharged.",
+    "filed_at": "2026-01-01T13:20:30",
+    "label": null
+  },
+  {
+    "dispute_id": "disp_rd_006",
+    "trip_id": "trip_rd_006",
+    "filed_by": "rider",
+    "category": "route_deviation",
+    "claim_text": "The driver took a longer route and I was overcharged.",
+    "filed_at": "2026-01-01T14:20:30",
+    "label": null
+  },
+  {
+    "dispute_id": "disp_rd_007",
+    "trip_id": "trip_rd_007",
+    "filed_by": "rider",
+    "category": "route_deviation",
+    "claim_text": "The driver took a longer route and I was overcharged.",
+    "filed_at": "2026-01-01T15:20:30",
+    "label": null
+  },
+  {
+    "dispute_id": "disp_rd_008",
+    "trip_id": "trip_rd_008",
+    "filed_by": "rider",
+    "category": "route_deviation",
+    "claim_text": "The driver took a longer route and I was overcharged.",
+    "filed_at": "2026-01-01T16:19:30",
+    "label": null
+  },
+  {
+    "dispute_id": "disp_rd_009",
+    "trip_id": "trip_rd_009",
+    "filed_by": "rider",
+    "category": "route_deviation",
+    "claim_text": "The driver took a longer route and I was overcharged.",
+    "filed_at": "2026-01-01T17:19:30",
+    "label": null
+  },
+  {
+    "dispute_id": "disp_rd_010",
+    "trip_id": "trip_rd_010",
+    "filed_by": "rider",
+    "category": "route_deviation",
+    "claim_text": "The driver took a longer route and I was overcharged.",
+    "filed_at": "2026-01-01T18:19:30",
+    "label": null
+  },
+  {
+    "dispute_id": "disp_rd_011",
+    "trip_id": "trip_rd_011",
+    "filed_by": "rider",
+    "category": "route_deviation",
+    "claim_text": "The driver took a longer route and I was overcharged.",
+    "filed_at": "2026-01-01T19:19:30",
+    "label": null
+  },
+  {
+    "dispute_id": "disp_rd_012",
+    "trip_id": "trip_rd_012",
+    "filed_by": "rider",
+    "category": "route_deviation",
+    "claim_text": "The driver took a longer route and I was overcharged.",
+    "filed_at": "2026-01-01T20:19:30",
+    "label": null
+  },
+  {
+    "dispute_id": "disp_rd_013",
+    "trip_id": "trip_rd_013",
+    "filed_by": "rider",
+    "category": "route_deviation",
+    "claim_text": "The driver took a longer route and I was overcharged.",
+    "filed_at": "2026-01-01T21:19:30",
+    "label": null
+  },
+  {
+    "dispute_id": "disp_rd_014",
+    "trip_id": "trip_rd_014",
+    "filed_by": "rider",
+    "category": "route_deviation",
+    "claim_text": "The driver took a longer route and I was overcharged.",
+    "filed_at": "2026-01-01T22:19:30",
+    "label": null
+  },
+  {
+    "dispute_id": "disp_rd_015",
+    "trip_id": "trip_rd_015",
+    "filed_by": "rider",
+    "category": "route_deviation",
+    "claim_text": "The driver took a longer route and I was overcharged.",
+    "filed_at": "2026-01-01T23:19:30",
+    "label": null
+  },
+  {
+    "dispute_id": "disp_ns_d_000",
+    "trip_id": "trip_ns_d_000",
+    "filed_by": "rider",
+    "category": "no_show_driver",
+    "claim_text": "The driver never showed up and I was charged a cancellation fee.",
+    "filed_at": "2026-01-01T08:20:00",
+    "label": null
+  },
+  {
+    "dispute_id": "disp_ns_d_001",
+    "trip_id": "trip_ns_d_001",
+    "filed_by": "rider",
+    "category": "no_show_driver",
+    "claim_text": "The driver never showed up and I was charged a cancellation fee.",
+    "filed_at": "2026-01-01T09:24:00",
+    "label": null
+  },
+  {
+    "dispute_id": "disp_ns_d_002",
+    "trip_id": "trip_ns_d_002",
+    "filed_by": "rider",
+    "category": "no_show_driver",
+    "claim_text": "The driver never showed up and I was charged a cancellation fee.",
+    "filed_at": "2026-01-01T10:24:00",
+    "label": null
+  },
+  {
+    "dispute_id": "disp_ns_d_003",
+    "trip_id": "trip_ns_d_003",
+    "filed_by": "rider",
+    "category": "no_show_driver",
+    "claim_text": "The driver never showed up and I was charged a cancellation fee.",
+    "filed_at": "2026-01-01T11:20:00",
+    "label": null
+  },
+  {
+    "dispute_id": "disp_ns_d_004",
+    "trip_id": "trip_ns_d_004",
+    "filed_by": "rider",
+    "category": "no_show_driver",
+    "claim_text": "The driver never showed up and I was charged a cancellation fee.",
+    "filed_at": "2026-01-01T12:24:00",
+    "label": null
+  },
+  {
+    "dispute_id": "disp_ns_d_005",
+    "trip_id": "trip_ns_d_005",
+    "filed_by": "rider",
+    "category": "no_show_driver",
+    "claim_text": "The driver never showed up and I was charged a cancellation fee.",
+    "filed_at": "2026-01-01T13:24:00",
+    "label": null
+  },
+  {
+    "dispute_id": "disp_ns_d_006",
+    "trip_id": "trip_ns_d_006",
+    "filed_by": "rider",
+    "category": "no_show_driver",
+    "claim_text": "The driver never showed up and I was charged a cancellation fee.",
+    "filed_at": "2026-01-01T14:20:00",
+    "label": null
+  },
+  {
+    "dispute_id": "disp_ns_d_007",
+    "trip_id": "trip_ns_d_007",
+    "filed_by": "rider",
+    "category": "no_show_driver",
+    "claim_text": "The driver never showed up and I was charged a cancellation fee.",
+    "filed_at": "2026-01-01T15:20:00",
+    "label": null
+  },
+  {
+    "dispute_id": "disp_ns_d_008",
+    "trip_id": "trip_ns_d_008",
+    "filed_by": "rider",
+    "category": "no_show_driver",
+    "claim_text": "The driver never showed up and I was charged a cancellation fee.",
+    "filed_at": "2026-01-01T16:20:00",
+    "label": null
+  },
+  {
+    "dispute_id": "disp_ns_d_009",
+    "trip_id": "trip_ns_d_009",
+    "filed_by": "rider",
+    "category": "no_show_driver",
+    "claim_text": "The driver never showed up and I was charged a cancellation fee.",
+    "filed_at": "2026-01-01T17:20:00",
+    "label": null
+  },
+  {
+    "dispute_id": "disp_ns_r_000",
+    "trip_id": "trip_ns_r_000",
+    "filed_by": "rider",
+    "category": "no_show_rider",
+    "claim_text": "I was charged a cancellation fee but the driver didn't wait.",
+    "filed_at": "2026-01-01T08:20:00",
+    "label": null
+  },
+  {
+    "dispute_id": "disp_ns_r_001",
+    "trip_id": "trip_ns_r_001",
+    "filed_by": "rider",
+    "category": "no_show_rider",
+    "claim_text": "I was charged a cancellation fee but the driver didn't wait.",
+    "filed_at": "2026-01-01T09:20:00",
+    "label": null
+  },
+  {
+    "dispute_id": "disp_ns_r_002",
+    "trip_id": "trip_ns_r_002",
+    "filed_by": "rider",
+    "category": "no_show_rider",
+    "claim_text": "I was charged a cancellation fee but the driver didn't wait.",
+    "filed_at": "2026-01-01T10:20:00",
+    "label": null
+  },
+  {
+    "dispute_id": "disp_ns_r_003",
+    "trip_id": "trip_ns_r_003",
+    "filed_by": "rider",
+    "category": "no_show_rider",
+    "claim_text": "I was charged a cancellation fee but the driver didn't wait.",
+    "filed_at": "2026-01-01T11:20:00",
+    "label": null
+  },
+  {
+    "dispute_id": "disp_ns_r_004",
+    "trip_id": "trip_ns_r_004",
+    "filed_by": "rider",
+    "category": "no_show_rider",
+    "claim_text": "I was charged a cancellation fee but the driver didn't wait.",
+    "filed_at": "2026-01-01T12:20:00",
+    "label": null
+  },
+  {
+    "dispute_id": "disp_ns_r_005",
+    "trip_id": "trip_ns_r_005",
+    "filed_by": "rider",
+    "category": "no_show_rider",
+    "claim_text": "I was charged a cancellation fee but the driver didn't wait.",
+    "filed_at": "2026-01-01T13:20:00",
+    "label": null
+  },
+  {
+    "dispute_id": "disp_ns_r_006",
+    "trip_id": "trip_ns_r_006",
+    "filed_by": "rider",
+    "category": "no_show_rider",
+    "claim_text": "I was charged a cancellation fee but the driver didn't wait.",
+    "filed_at": "2026-01-01T14:18:00",
+    "label": null
+  },
+  {
+    "dispute_id": "disp_ns_r_007",
+    "trip_id": "trip_ns_r_007",
+    "filed_by": "rider",
+    "category": "no_show_rider",
+    "claim_text": "I was charged a cancellation fee but the driver didn't wait.",
+    "filed_at": "2026-01-01T15:18:00",
+    "label": null
+  },
+  {
+    "dispute_id": "disp_ns_r_008",
+    "trip_id": "trip_ns_r_008",
+    "filed_by": "rider",
+    "category": "no_show_rider",
+    "claim_text": "I was charged a cancellation fee but the driver didn't wait.",
+    "filed_at": "2026-01-01T16:18:00",
+    "label": null
+  },
+  {
+    "dispute_id": "disp_ns_r_009",
+    "trip_id": "trip_ns_r_009",
+    "filed_by": "rider",
+    "category": "no_show_rider",
+    "claim_text": "I was charged a cancellation fee but the driver didn't wait.",
+    "filed_at": "2026-01-01T17:18:00",
+    "label": null
+  },
+  {
+    "dispute_id": "disp_fa_000",
+    "trip_id": "trip_fa_000",
+    "filed_by": "rider",
+    "category": "fare_error",
+    "claim_text": "I think the fare I was charged is incorrect.",
+    "filed_at": "2026-01-01T08:19:30",
+    "label": null
+  },
+  {
+    "dispute_id": "disp_fa_001",
+    "trip_id": "trip_fa_001",
+    "filed_by": "rider",
+    "category": "fare_error",
+    "claim_text": "I think the fare I was charged is incorrect.",
+    "filed_at": "2026-01-01T09:19:30",
+    "label": null
+  },
+  {
+    "dispute_id": "disp_fa_002",
+    "trip_id": "trip_fa_002",
+    "filed_by": "rider",
+    "category": "fare_error",
+    "claim_text": "I think the fare I was charged is incorrect.",
+    "filed_at": "2026-01-01T10:19:30",
+    "label": null
+  },
+  {
+    "dispute_id": "disp_fa_003",
+    "trip_id": "trip_fa_003",
+    "filed_by": "rider",
+    "category": "fare_error",
+    "claim_text": "I think the fare I was charged is incorrect.",
+    "filed_at": "2026-01-01T11:19:30",
+    "label": null
+  },
+  {
+    "dispute_id": "disp_fa_004",
+    "trip_id": "trip_fa_004",
+    "filed_by": "rider",
+    "category": "fare_error",
+    "claim_text": "I think the fare I was charged is incorrect.",
+    "filed_at": "2026-01-01T12:19:30",
+    "label": null
+  },
+  {
+    "dispute_id": "disp_fa_005",
+    "trip_id": "trip_fa_005",
+    "filed_by": "rider",
+    "category": "fare_error",
+    "claim_text": "I think the fare I was charged is incorrect.",
+    "filed_at": "2026-01-01T13:19:30",
+    "label": null
+  },
+  {
+    "dispute_id": "disp_sf_000",
+    "trip_id": "trip_sf_000",
+    "filed_by": "rider",
+    "category": "safety",
+    "claim_text": "I felt threatened and unsafe during the trip.",
+    "filed_at": "2026-01-01T08:14:00",
+    "label": null
+  },
+  {
+    "dispute_id": "disp_sf_001",
+    "trip_id": "trip_sf_001",
+    "filed_by": "rider",
+    "category": "safety",
+    "claim_text": "I felt threatened and unsafe during the trip.",
+    "filed_at": "2026-01-01T09:14:00",
+    "label": null
+  },
+  {
+    "dispute_id": "disp_sf_002",
+    "trip_id": "trip_sf_002",
+    "filed_by": "rider",
+    "category": "safety",
+    "claim_text": "I felt threatened and unsafe during the trip.",
+    "filed_at": "2026-01-01T10:14:00",
+    "label": null
+  },
+  {
+    "dispute_id": "disp_sf_003",
+    "trip_id": "trip_sf_003",
+    "filed_by": "rider",
+    "category": "safety",
+    "claim_text": "I felt threatened and unsafe during the trip.",
+    "filed_at": "2026-01-01T11:14:00",
+    "label": null
+  },
+  {
+    "dispute_id": "disp_sf_004",
+    "trip_id": "trip_sf_004",
+    "filed_by": "rider",
+    "category": "safety",
+    "claim_text": "I felt threatened and unsafe during the trip.",
+    "filed_at": "2026-01-01T12:14:00",
+    "label": null
+  },
+  {
+    "dispute_id": "disp_sf_005",
+    "trip_id": "trip_sf_005",
+    "filed_by": "rider",
+    "category": "safety",
+    "claim_text": "I felt threatened and unsafe during the trip.",
+    "filed_at": "2026-01-01T13:14:00",
+    "label": null
+  }
+]

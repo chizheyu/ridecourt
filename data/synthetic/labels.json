@@ -1,0 +1,386 @@
+[
+  {
+    "dispute_id": "disp_rd_000",
+    "outcome": "refund_route_deviation",
+    "amount": 7.96,
+    "applicable_clauses": [
+      "P-RD-1"
+    ]
+  },
+  {
+    "dispute_id": "disp_rd_001",
+    "outcome": "refund_route_deviation",
+    "amount": -0.55,
+    "applicable_clauses": [
+      "P-RD-1"
+    ]
+  },
+  {
+    "dispute_id": "disp_rd_002",
+    "outcome": "refund_route_deviation",
+    "amount": 0.6,
+    "applicable_clauses": [
+      "P-RD-1"
+    ]
+  },
+  {
+    "dispute_id": "disp_rd_003",
+    "outcome": "no_deviation",
+    "amount": 0.0,
+    "applicable_clauses": [
+      "P-RD-1"
+    ]
+  },
+  {
+    "dispute_id": "disp_rd_004",
+    "outcome": "no_deviation",
+    "amount": 0.0,
+    "applicable_clauses": [
+      "P-RD-1"
+    ]
+  },
+  {
+    "dispute_id": "disp_rd_005",
+    "outcome": "refund_route_deviation",
+    "amount": 0.69,
+    "applicable_clauses": [
+      "P-RD-1"
+    ]
+  },
+  {
+    "dispute_id": "disp_rd_006",
+    "outcome": "refund_route_deviation",
+    "amount": -0.97,
+    "applicable_clauses": [
+      "P-RD-1"
+    ]
+  },
+  {
+    "dispute_id": "disp_rd_007",
+    "outcome": "refund_route_deviation",
+    "amount": 0.67,
+    "applicable_clauses": [
+      "P-RD-1"
+    ]
+  },
+  {
+    "dispute_id": "disp_rd_008",
+    "outcome": "no_refund_rider_requested",
+    "amount": 0.0,
+    "applicable_clauses": [
+      "P-RD-2"
+    ]
+  },
+  {
+    "dispute_id": "disp_rd_009",
+    "outcome": "no_refund_rider_requested",
+    "amount": 0.0,
+    "applicable_clauses": [
+      "P-RD-2"
+    ]
+  },
+  {
+    "dispute_id": "disp_rd_010",
+    "outcome": "no_refund_road_closure",
+    "amount": 0.0,
+    "applicable_clauses": [
+      "P-RD-1"
+    ]
+  },
+  {
+    "dispute_id": "disp_rd_011",
+    "outcome": "no_refund_road_closure",
+    "amount": 0.0,
+    "applicable_clauses": [
+      "P-RD-1"
+    ]
+  },
+  {
+    "dispute_id": "disp_rd_012",
+    "outcome": "no_refund_road_closure",
+    "amount": 0.0,
+    "applicable_clauses": [
+      "P-RD-1"
+    ]
+  },
+  {
+    "dispute_id": "disp_rd_013",
+    "outcome": "no_refund_road_closure",
+    "amount": 0.0,
+    "applicable_clauses": [
+      "P-RD-1"
+    ]
+  },
+  {
+    "dispute_id": "disp_rd_014",
+    "outcome": "no_refund_road_closure",
+    "amount": 0.0,
+    "applicable_clauses": [
+      "P-RD-1"
+    ]
+  },
+  {
+    "dispute_id": "disp_rd_015",
+    "outcome": "no_refund_road_closure",
+    "amount": 0.0,
+    "applicable_clauses": [
+      "P-RD-1"
+    ]
+  },
+  {
+    "dispute_id": "disp_ns_d_000",
+    "outcome": "refund_and_credit",
+    "amount": 7.0,
+    "applicable_clauses": [
+      "P-NS-1"
+    ]
+  },
+  {
+    "dispute_id": "disp_ns_d_001",
+    "outcome": "refund_and_credit",
+    "amount": 7.0,
+    "applicable_clauses": [
+      "P-NS-1"
+    ]
+  },
+  {
+    "dispute_id": "disp_ns_d_002",
+    "outcome": "refund_and_credit",
+    "amount": 7.0,
+    "applicable_clauses": [
+      "P-NS-1"
+    ]
+  },
+  {
+    "dispute_id": "disp_ns_d_003",
+    "outcome": "refund_and_credit",
+    "amount": 7.0,
+    "applicable_clauses": [
+      "P-NS-1"
+    ]
+  },
+  {
+    "dispute_id": "disp_ns_d_004",
+    "outcome": "refund_and_credit",
+    "amount": 7.0,
+    "applicable_clauses": [
+      "P-NS-1"
+    ]
+  },
+  {
+    "dispute_id": "disp_ns_d_005",
+    "outcome": "refund_and_credit",
+    "amount": 7.0,
+    "applicable_clauses": [
+      "P-NS-1"
+    ]
+  },
+  {
+    "dispute_id": "disp_ns_d_006",
+    "outcome": "refund_and_credit",
+    "amount": 7.0,
+    "applicable_clauses": [
+      "P-NS-1"
+    ]
+  },
+  {
+    "dispute_id": "disp_ns_d_007",
+    "outcome": "refund_and_credit",
+    "amount": 7.0,
+    "applicable_clauses": [
+      "P-NS-1"
+    ]
+  },
+  {
+    "dispute_id": "disp_ns_d_008",
+    "outcome": "refund_and_credit",
+    "amount": 7.0,
+    "applicable_clauses": [
+      "P-NS-1"
+    ]
+  },
+  {
+    "dispute_id": "disp_ns_d_009",
+    "outcome": "refund_and_credit",
+    "amount": 7.0,
+    "applicable_clauses": [
+      "P-NS-1"
+    ]
+  },
+  {
+    "dispute_id": "disp_ns_r_000",
+    "outcome": "cancellation_fee_invalid",
+    "amount": 0.0,
+    "applicable_clauses": [
+      "P-NS-2"
+    ]
+  },
+  {
+    "dispute_id": "disp_ns_r_001",
+    "outcome": "cancellation_fee_invalid",
+    "amount": 0.0,
+    "applicable_clauses": [
+      "P-NS-2"
+    ]
+  },
+  {
+    "dispute_id": "disp_ns_r_002",
+    "outcome": "cancellation_fee_invalid",
+    "amount": 0.0,
+    "applicable_clauses": [
+      "P-NS-2"
+    ]
+  },
+  {
+    "dispute_id": "disp_ns_r_003",
+    "outcome": "cancellation_fee_invalid",
+    "amount": 0.0,
+    "applicable_clauses": [
+      "P-NS-2"
+    ]
+  },
+  {
+    "dispute_id": "disp_ns_r_004",
+    "outcome": "cancellation_fee_invalid",
+    "amount": 0.0,
+    "applicable_clauses": [
+      "P-NS-2"
+    ]
+  },
+  {
+    "dispute_id": "disp_ns_r_005",
+    "outcome": "cancellation_fee_invalid",
+    "amount": 0.0,
+    "applicable_clauses": [
+      "P-NS-2"
+    ]
+  },
+  {
+    "dispute_id": "disp_ns_r_006",
+    "outcome": "cancellation_fee_invalid",
+    "amount": 0.0,
+    "applicable_clauses": [
+      "P-NS-2"
+    ]
+  },
+  {
+    "dispute_id": "disp_ns_r_007",
+    "outcome": "cancellation_fee_invalid",
+    "amount": 0.0,
+    "applicable_clauses": [
+      "P-NS-2"
+    ]
+  },
+  {
+    "dispute_id": "disp_ns_r_008",
+    "outcome": "cancellation_fee_invalid",
+    "amount": 0.0,
+    "applicable_clauses": [
+      "P-NS-2"
+    ]
+  },
+  {
+    "dispute_id": "disp_ns_r_009",
+    "outcome": "cancellation_fee_invalid",
+    "amount": 0.0,
+    "applicable_clauses": [
+      "P-NS-2"
+    ]
+  },
+  {
+    "dispute_id": "disp_fa_000",
+    "outcome": "refund_overcharge",
+    "amount": 2.06,
+    "applicable_clauses": [
+      "P-FA-1"
+    ]
+  },
+  {
+    "dispute_id": "disp_fa_001",
+    "outcome": "refund_overcharge",
+    "amount": 4.87,
+    "applicable_clauses": [
+      "P-FA-1"
+    ]
+  },
+  {
+    "dispute_id": "disp_fa_002",
+    "outcome": "refund_overcharge",
+    "amount": 2.34,
+    "applicable_clauses": [
+      "P-FA-1"
+    ]
+  },
+  {
+    "dispute_id": "disp_fa_003",
+    "outcome": "fare_correct",
+    "amount": 0.0,
+    "applicable_clauses": [
+      "P-FA-1"
+    ]
+  },
+  {
+    "dispute_id": "disp_fa_004",
+    "outcome": "fare_correct",
+    "amount": 0.0,
+    "applicable_clauses": [
+      "P-FA-1"
+    ]
+  },
+  {
+    "dispute_id": "disp_fa_005",
+    "outcome": "fare_correct",
+    "amount": 0.0,
+    "applicable_clauses": [
+      "P-FA-1"
+    ]
+  },
+  {
+    "dispute_id": "disp_sf_000",
+    "outcome": "escalate",
+    "amount": 0.0,
+    "applicable_clauses": [
+      "P-SF-1"
+    ]
+  },
+  {
+    "dispute_id": "disp_sf_001",
+    "outcome": "escalate",
+    "amount": 0.0,
+    "applicable_clauses": [
+      "P-SF-1"
+    ]
+  },
+  {
+    "dispute_id": "disp_sf_002",
+    "outcome": "escalate",
+    "amount": 0.0,
+    "applicable_clauses": [
+      "P-SF-1"
+    ]
+  },
+  {
+    "dispute_id": "disp_sf_003",
+    "outcome": "escalate",
+    "amount": 0.0,
+    "applicable_clauses": [
+      "P-SF-1"
+    ]
+  },
+  {
+    "dispute_id": "disp_sf_004",
+    "outcome": "escalate",
+    "amount": 0.0,
+    "applicable_clauses": [
+      "P-SF-1"
+    ]
+  },
+  {
+    "dispute_id": "disp_sf_005",
+    "outcome": "escalate",
+    "amount": 0.0,
+    "applicable_clauses": [
+      "P-SF-1"
+    ]
+  }
+]

@@ -1,0 +1,86 @@
+[
+  {
+    "case_id": "PC-2025-001",
+    "category": "route_deviation",
+    "summary": "Driver took a 3 km detour without rider consent. Refund S$4.20.",
+    "outcome": "refund",
+    "amount": 4.2
+  },
+  {
+    "case_id": "PC-2025-002",
+    "category": "route_deviation",
+    "summary": "Rider asked for a stop en route. No refund — P-RD-2.",
+    "outcome": "no_refund",
+    "amount": 0.0
+  },
+  {
+    "case_id": "PC-2025-003",
+    "category": "route_deviation",
+    "summary": "Road closure on Bukit Timah, driver detoured. No refund.",
+    "outcome": "no_refund",
+    "amount": 0.0
+  },
+  {
+    "case_id": "PC-2025-004",
+    "category": "no_show_driver",
+    "summary": "Driver GPS 400m from pickup. Refund cancellation + S$3 credit.",
+    "outcome": "refund_and_credit",
+    "amount": 7.0
+  },
+  {
+    "case_id": "PC-2025-005",
+    "category": "no_show_driver",
+    "summary": "Driver arrived within 150m, waited 6 min. No refund.",
+    "outcome": "no_refund",
+    "amount": 0.0
+  },
+  {
+    "case_id": "PC-2025-006",
+    "category": "no_show_rider",
+    "summary": "Driver waited 7 min, called rider. Cancellation fee stands.",
+    "outcome": "cancellation_fee_stands",
+    "amount": 4.0
+  },
+  {
+    "case_id": "PC-2025-007",
+    "category": "no_show_rider",
+    "summary": "Driver waited only 2 min. Cancellation fee refunded.",
+    "outcome": "refund",
+    "amount": 4.0
+  },
+  {
+    "case_id": "PC-2025-008",
+    "category": "fare_error",
+    "summary": "Charged S$12.50 vs recomputed S$9.80. Refund S$2.70.",
+    "outcome": "refund_overcharge",
+    "amount": 2.7
+  },
+  {
+    "case_id": "PC-2025-009",
+    "category": "fare_error",
+    "summary": "Promo code expired at booking. Discount removed.",
+    "outcome": "refund_overcharge",
+    "amount": 5.0
+  },
+  {
+    "case_id": "PC-2025-010",
+    "category": "fare_error",
+    "summary": "Fare correct within S$0.50 tolerance. No refund.",
+    "outcome": "no_refund",
+    "amount": 0.0
+  },
+  {
+    "case_id": "PC-2025-011",
+    "category": "safety",
+    "summary": "Rider felt threatened. Escalated to human reviewer.",
+    "outcome": "escalate",
+    "amount": 0.0
+  },
+  {
+    "case_id": "PC-2025-012",
+    "category": "route_deviation",
+    "summary": "Deviation 12% under threshold. No refund.",
+    "outcome": "no_refund",
+    "amount": 0.0
+  }
+]

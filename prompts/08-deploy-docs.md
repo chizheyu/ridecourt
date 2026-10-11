@@ -1,0 +1,8 @@
+Read CODEBUDDY.md and docs/SPEC.md. Do build-order step 8: deployment and documents.
+
+1. `Dockerfile` (python:3.12-slim, non-root user, uvicorn on $PORT) and `scripts/deploy.sh` that deploys to Google Cloud Run with `gcloud run deploy ridecourt --source . --region asia-southeast1 --allow-unauthenticated` using project `$PROJECT_ID`, a dedicated service account with only `roles/aiplatform.user`, env vars `LLM_PROVIDER=gemini GOOGLE_GENAI_USE_VERTEXAI=true GOOGLE_CLOUD_PROJECT=$PROJECT_ID GOOGLE_CLOUD_LOCATION=global MODEL=gemini-3.8-flash`, max instances 2, and a retry loop for IAM propagation. Do not run the deploy yourself; just make it ready.
+2. `docs/architecture.svg` and `docs/architecture.png`: the multi-agent pipeline and key components (data sources, deterministic tools, evidence pack, advocates, fraud agent, precedent agent, judge, policy engine, guard, escalation queue, feedback loop, API/SSE, UI). Clear labels, readable at 1280 px wide.
+3. Cover image for the online showcase: `docs/cover.png` at 1520x864 (16:9) and `docs/cover-380x216.png`, with the project name "RideCourt", the line "Autonomous, explainable dispute resolution for ride-hailing", and a simple courtroom motif. No stock images, no third-party logos.
+4. README.md: problem, what it does, architecture diagram, how the agents work (agents argue, code computes), how to run locally (mock and Gemini), evaluation table, how CodeBuddy was used to build it (spec-driven tasks in headless mode; the prompts are in `prompts/` and the transcripts in `devlog/`), limits, licence Apache-2.0 (add LICENSE).
+
+Run pytest, commit, summarize.

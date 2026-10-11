@@ -1,0 +1,9 @@
+Read CODEBUDDY.md and docs/SPEC.md (sections 3, 6). Do build-order step 4: the three core agents, the Judge rules, the orchestrator and the event log.
+
+1. `ridecourt/agents/advocate.py`: Rider Advocate and Driver Advocate share one class with a side parameter. Prompt: argue for your side using only the evidence pack and the policy; every argument cites E# and P- IDs; acknowledge evidence against your side briefly (judges reward candour). Output schema per SPEC section 6.
+2. `ridecourt/agents/judge.py`: receives both cases, the policy engine result, risk signals and precedents when present. It must use the policy engine's outcome and amount; if it disagrees it escalates instead of overriding. Output: outcome, amount, confidence 0..1, reasoning, cites, message_to_rider, message_to_driver (plain English, polite, specific). Confidence below 0.7 escalates. Safety category always escalates with a neutral case summary.
+3. `ridecourt/events.py`: typed event log per SPEC section 3 (DISPUTE_FILED, EVIDENCE_REQUEST, EVIDENCE, CLAIM, REBUTTAL, RULING, ESCALATION, ...), in memory plus append-only JSONL under `runs/` so a run can be replayed; an async subscriber API for streaming.
+4. `ridecourt/orchestrator.py`: `resolve(dispute_id) -> CaseFile`: build evidence pack (EVIDENCE_REQUEST/EVIDENCE events), run both advocates in parallel (CLAIM events), give each the other's claim for one short rebuttal round (REBUTTAL events), run the guard on every agent output (re-ask once, then escalate), call the policy engine, then the Judge (RULING or ESCALATION). Record tokens and latency per step.
+5. Tests with `LLM_PROVIDER=mock`: a route deviation case ends with the label's outcome and amount; a requested-stop case ends with no refund; a no-show case; a safety case escalates; a guard failure leads to a re-ask and then escalation; the event log has the expected sequence.
+
+Run pytest until green, commit, summarize.
