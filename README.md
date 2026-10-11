@@ -181,6 +181,25 @@ dispute through the full pipeline and reports:
 
 Results are written to `eval/results-<date>-<provider>.json`.
 
+### Gemini 3.8 Flash results (11 October 2026)
+
+Run with: `LLM_PROVIDER=gemini python scripts/evaluate.py --provider gemini --repeats 2`
+(48 labelled cases, each run twice; full rows in `eval/results-2026-10-11-gemini.json`).
+
+| Category | N | Outcome acc. | Amount acc. | Both acc. | Escalation rate | Consistency |
+|:--|:--:|:--:|:--:|:--:|:--:|:--:|
+| route_deviation | 16 | 100.0% | 100.0% | 100.0% | 0.0% | 100.0% |
+| no_show_driver | 10 | 100.0% | 100.0% | 100.0% | 0.0% | 100.0% |
+| no_show_rider | 10 | 90.0% | 100.0% | 90.0% | 10.0% | 100.0% |
+| fare_error | 6 | 83.3% | 100.0% | 83.3% | 16.7% | 100.0% |
+| safety | 6 | 100.0% | 100.0% | 100.0% | 100.0% | 100.0% |
+| **Overall** | 48 | **95.8%** | **100.0%** | **95.8%** | **16.7%** | **100.0%** |
+
+- Every safety case escalated, as the policy requires.
+- The two other escalations (one rider no-show, one fare case) are the guard rejecting agent text in both runs; the system handed those cases to a person rather than let an unsupported number through.
+- Median time to ruling 17.1 s (p90 24.1 s); median 8,505 tokens per case.
+- What this measures: the labels come from the same policy clauses the system applies, so the evaluation tests whether the multi-agent pipeline reaches the policy result without inventing numbers or escalating needlessly. It is not an independent human labelling. An earlier run of this evaluation found a real policy bug (the rider no-show clause read the minutes past the ETA instead of the minutes waited within 150 m); it was fixed in step 11 of the build log.
+
 ### Mock provider results
 
 Run with: `LLM_PROVIDER=mock python scripts/evaluate.py --provider mock`
@@ -198,10 +217,6 @@ Run with: `LLM_PROVIDER=mock python scripts/evaluate.py --provider mock`
 - Median time to ruling: 1.0 ms
 - p90 time to ruling: 1.0 ms
 - Median tokens per case: 500
-
-> The Gemini run is reported separately — see
-> `eval/results-<date>-gemini.json` after running
-> `LLM_PROVIDER=gemini python scripts/evaluate.py --provider gemini`.
 
 **Note on fare_error escalation:** the mock provider's canned advocate
 output triggers the guard (it generates text containing "0.00 km" which
