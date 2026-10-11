@@ -53,6 +53,21 @@ def _case_token_budget() -> int:
     return int(os.environ.get("CASE_TOKEN_BUDGET", "60000"))
 
 
+def _gemini_thinking() -> str:
+    """Return the thinking level: ``low`` (default), ``medium``, ``high``, ``off``."""
+    return os.environ.get("GEMINI_THINKING", "low").lower()
+
+
+# Mapping from env level to thinking_budget tokens accepted by google-genai.
+# ``low`` keeps latency manageable for one-line structured calls.
+_THINKING_BUDGET_MAP = {
+    "off": 0,
+    "low": 1024,
+    "medium": 4096,
+    "high": 16384,
+}
+
+
 # ---------------------------------------------------------------------------
 # Meta + errors
 # ---------------------------------------------------------------------------
@@ -217,8 +232,9 @@ def _complete_gemini(
 
     use_vertex = os.environ.get("GOOGLE_GENAI_USE_VERTEXAI", "true").lower() == "true"
     project = os.environ.get("GOOGLE_CLOUD_PROJECT", "")
-    location = os.environ.get("GOOGLE_CLOUD_LOCATION", "asia-southeast1")
+    location = os.environ.get("GOOGLE_CLOUD_LOCATION", "global")
     model = _model()
+    thinking_level = _gemini_thinking()
 
     client = genai.Client(
         vertexai=use_vertex,
@@ -228,11 +244,21 @@ def _complete_gemini(
 
     json_schema = _pydantic_to_json_schema(schema)
 
+    # Build thinking config; google-genai accepts a ThinkingConfigDict.
+    thinking_budget = _THINKING_BUDGET_MAP.get(thinking_level, 1024)
+    thinking_cfg: dict[str, Any] | None = None
+    if thinking_budget > 0:
+        thinking_cfg = {"thinking_budget": thinking_budget}
+    else:
+        # Explicitly disable thinking.
+        thinking_cfg = {"thinking_budget": 0}
+
     config = GenerateContentConfig(
         system_instruction=system,
         temperature=0.0,
         response_mime_type="application/json",
         response_json_schema=json_schema,
+        thinking_config=thinking_cfg,
     )
 
     start = time.monotonic()
@@ -493,7 +519,10 @@ def _mock_field(
 
     # String fields — dispatch by name heuristics.
     if annotation is str:
-        return _mock_str_field(name, agent_name, cite_pool, numbers, amount)
+        return _mock_str_field(
+            name, agent_name, cite_pool, numbers, amount,
+            policy_result=policy_result,
+        )
 
     # Numeric fields.
     if annotation in (int, float):
@@ -571,6 +600,8 @@ def _mock_str_field(
     cite_pool: list[str],
     numbers: dict[str, float],
     amount: float,
+    *,
+    policy_result: Any | None = None,
 ) -> str:
     """Deterministic string content that cites real IDs and uses real numbers."""
     cite_str = ", ".join(cite_pool[:3])
@@ -583,6 +614,11 @@ def _mock_str_field(
         return f"Position based on evidence {cite_str}."
 
     if name in ("outcome",):
+        # Use the policy engine's outcome so the Judge doesn't mismatch.
+        if policy_result is not None:
+            outcome = getattr(policy_result, "outcome", "")
+            if outcome:
+                return outcome
         return "refund" if amount > 0 else "no_refund"
 
     if name in ("reasoning", "message_to_rider", "message_to_driver"):

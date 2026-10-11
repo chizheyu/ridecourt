@@ -754,10 +754,10 @@ def history_profile(
 # Which tools to run for each dispute category.
 _CATEGORY_TOOLS: dict[str, set[str]] = {
     "route_deviation": {"gps_analysis", "chat_scan", "fare_check", "history_profile"},
-    "no_show_driver": {"arrival_check", "chat_scan", "history_profile"},
-    "no_show_rider": {"arrival_check", "chat_scan", "history_profile"},
+    "no_show_driver": {"arrival_check", "chat_scan", "fare_check", "history_profile"},
+    "no_show_rider": {"arrival_check", "chat_scan", "fare_check", "history_profile"},
     "fare_error": {"fare_check", "chat_scan", "history_profile"},
-    "safety": {"chat_scan", "gps_analysis", "arrival_check", "history_profile"},
+    "safety": {"chat_scan", "gps_analysis", "arrival_check", "fare_check", "history_profile"},
 }
 
 

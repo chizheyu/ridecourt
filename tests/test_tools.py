@@ -484,8 +484,8 @@ class TestBuildEvidencePack:
         kinds = {i.kind for i in pack.items}
         assert "arrival_check" in kinds
         assert "chat_scan" in kinds
-        # fare_check not relevant for no_show_driver
-        assert "fare_check" not in kinds
+        # fare_check provides the cancellation fee amount for no-show cases
+        assert "fare_check" in kinds
 
 
 # ---------------------------------------------------------------------------

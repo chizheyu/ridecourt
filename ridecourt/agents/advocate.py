@@ -1,0 +1,205 @@
+"""Advocate agent — one class for both Rider Advocate and Driver Advocate.
+
+Both advocates share the same output schema and reasoning strategy; they
+differ only in which side they argue for.  The agent's job is to build
+the strongest case for its side using **only** the evidence pack and the
+policy, cite evidence IDs (``E#``) and policy clause IDs (``P-..``) for
+every argument, and briefly acknowledge evidence against its side
+(judges reward candour).
+
+Output schema (per SPEC section 6)::
+
+    {position, arguments: [{text, cites}], requested_outcome}
+"""
+
+from __future__ import annotations
+
+from typing import Literal
+
+from pydantic import BaseModel, Field
+
+from ..data import EvidencePack, PolicyResult
+from ..llm import LLMMeta, complete_json
+
+
+# ---------------------------------------------------------------------------
+# Output schema
+# ---------------------------------------------------------------------------
+
+
+class Argument(BaseModel):
+    """A single argument with evidence/policy citations."""
+
+    text: str
+    cites: list[str] = Field(default_factory=list)
+
+
+class AdvocateOutput(BaseModel):
+    """Output shape for both Rider Advocate and Driver Advocate."""
+
+    position: str
+    arguments: list[Argument] = Field(default_factory=list)
+    requested_outcome: str
+
+
+Side = Literal["rider", "driver"]
+
+
+# ---------------------------------------------------------------------------
+# System prompt builder
+# ---------------------------------------------------------------------------
+
+
+def _system_prompt(side: Side) -> str:
+    who = "Rider Advocate" if side == "rider" else "Driver Advocate"
+    target = "the rider" if side == "rider" else "the driver"
+    return (
+        f"You are the {who} in RideCourt, a dispute resolution system for "
+        "ride-hailing.\n\n"
+        "Your job: argue for your side using ONLY the evidence pack and the "
+        "policy provided. You must not invent facts or numbers.\n\n"
+        "Rules:\n"
+        "1. Every argument must cite at least one evidence ID (E#) and/or "
+        "policy clause ID (P-..) that exists in the provided context.\n"
+        "2. Numbers in your text must come from the cited evidence — never "
+        "make up amounts, distances, or times.\n"
+        "3. Briefly acknowledge evidence that cuts against your side. "
+        "Judges reward candour.\n"
+        f"4. Your position and requested_outcome should favour {target}.\n"
+        "5. Be concise and specific.\n\n"
+        "Return JSON matching the provided schema."
+    )
+
+
+def _user_prompt(
+    side: Side,
+    claim_text: str,
+    pack: EvidencePack,
+    policy_result: PolicyResult | None,
+) -> str:
+    """Build the user prompt with the evidence pack and policy context."""
+    # Evidence pack summary
+    lines: list[str] = []
+    lines.append(f"Dispute claim: {claim_text}\n")
+    lines.append("Evidence pack:")
+    for item in pack.items:
+        lines.append(
+            f"  {item.id} [{item.kind}]: {item.summary}"
+        )
+    lines.append("")
+
+    # Policy result
+    if policy_result is not None:
+        lines.append(f"Policy engine result:")
+        lines.append(f"  clauses: {', '.join(policy_result.applicable_clauses)}")
+        lines.append(f"  outcome: {policy_result.outcome}")
+        lines.append(f"  amount: S${policy_result.amount:.2f}")
+        lines.append(f"  computation: {policy_result.computation}")
+        lines.append("")
+
+    lines.append(
+        f"Argue for {'the rider' if side == 'rider' else 'the driver'}. "
+        "Cite E# and P-.. IDs. Acknowledge counter-evidence briefly."
+    )
+    return "\n".join(lines)
+
+
+# ---------------------------------------------------------------------------
+# Advocate agent
+# ---------------------------------------------------------------------------
+
+
+class Advocate:
+    """Advocate agent — argues for one side using evidence and policy.
+
+    Parameters
+    ----------
+    side : ``"rider"`` or ``"driver"``
+        Which side to argue for.
+    """
+
+    def __init__(self, side: Side):
+        self.side: Side = side
+        self.name: str = (
+            "rider_advocate" if side == "rider" else "driver_advocate"
+        )
+
+    def build(
+        self,
+        claim_text: str,
+        pack: EvidencePack,
+        policy_result: PolicyResult | None = None,
+    ) -> tuple[AdvocateOutput, LLMMeta]:
+        """Call the LLM to produce an AdvocateOutput for this side."""
+        system = _system_prompt(self.side)
+        user = _user_prompt(self.side, claim_text, pack, policy_result)
+        result, meta = complete_json(
+            system,
+            user,
+            AdvocateOutput,
+            self.name,
+            evidence_pack=pack,
+            policy_result=policy_result,
+        )
+        return result, meta
+
+    def rebut(
+        self,
+        claim_text: str,
+        pack: EvidencePack,
+        opponent_output: AdvocateOutput,
+        policy_result: PolicyResult | None = None,
+    ) -> tuple[AdvocateOutput, LLMMeta]:
+        """Produce a short rebuttal after seeing the opponent's claim."""
+        who = "Rider Advocate" if self.side == "rider" else "Driver Advocate"
+        opp = "Driver Advocate" if self.side == "rider" else "Rider Advocate"
+        system = (
+            f"You are the {who}. The {opp} has presented their case. "
+            "Provide a short rebuttal: identify the weakest point in the "
+            "opponent's argument and reinforce your side's position. "
+            "Cite E# and P-.. IDs. Be brief (2-3 arguments max). "
+            "Return JSON matching the provided schema."
+        )
+        lines: list[str] = []
+        lines.append(f"Dispute claim: {claim_text}\n")
+        lines.append("Evidence pack:")
+        for item in pack.items:
+            lines.append(f"  {item.id} [{item.kind}]: {item.summary}")
+        lines.append("")
+        lines.append(f"Opponent ({opp}) case:")
+        lines.append(f"  position: {opponent_output.position}")
+        for i, arg in enumerate(opponent_output.arguments):
+            cites_str = ", ".join(arg.cites)
+            lines.append(f"  argument {i + 1}: {arg.text} [{cites_str}]")
+        lines.append(f"  requested_outcome: {opponent_output.requested_outcome}")
+        lines.append("")
+        if policy_result is not None:
+            lines.append(f"Policy engine: {policy_result.outcome}, S${policy_result.amount:.2f}")
+            lines.append("")
+        lines.append(
+            f"Argue for {'the rider' if self.side == 'rider' else 'the driver'}. "
+            "Cite E# and P-.. IDs."
+        )
+        user = "\n".join(lines)
+        result, meta = complete_json(
+            system,
+            user,
+            AdvocateOutput,
+            self.name,
+            evidence_pack=pack,
+            policy_result=policy_result,
+        )
+        return result, meta
+
+
+# ---------------------------------------------------------------------------
+# Convenience constructors
+# ---------------------------------------------------------------------------
+
+
+def rider_advocate() -> Advocate:
+    return Advocate(side="rider")
+
+
+def driver_advocate() -> Advocate:
+    return Advocate(side="driver")
