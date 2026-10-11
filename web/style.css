@@ -545,6 +545,14 @@ body {
   color: var(--text);
 }
 
+.outcome-code {
+  display: inline;
+  font-size: 10px;
+  color: var(--text-light);
+  font-family: monospace;
+  margin-left: 6px;
+}
+
 .clauses {
   display: flex;
   flex-wrap: wrap;

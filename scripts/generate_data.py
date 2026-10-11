@@ -343,7 +343,10 @@ def gen_route_deviation(
     start_dt = accepted_dt + timedelta(minutes=5)
     trace = make_gps_trace(route_pts, start_dt, interval_s=15, speed_kmh=40)
     actual_km = trace_distance_km(trace)
-    actual_min = len(trace) * 15 / 60.0
+    # Duration must be consistent with distance and speed so a detour (longer
+    # distance) always takes longer than the optimal route.  Using the GPS
+    # point count would under-count because the trace is sparse.
+    actual_min = actual_km / 40 * 60  # same speed basis as optimal
 
     surge = rng.choice([1.0, 1.2, 1.5, 1.8])
     fare = make_fare(actual_km, actual_min, surge=surge)

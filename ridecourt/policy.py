@@ -29,8 +29,8 @@ BF_REPEAT_THRESHOLD = 3  # 3 upheld disputes same type in 90d
 
 def clause_rd_1(facts: Facts) -> PolicyResult:
     """P-RD-1: route deviation refund."""
-    extra_km = facts.distance_actual_km - facts.distance_optimal_km
-    extra_min = facts.duration_actual_min - facts.duration_optimal_min
+    extra_km = max(0.0, facts.distance_actual_km - facts.distance_optimal_km)
+    extra_min = max(0.0, facts.duration_actual_min - facts.duration_optimal_min)
     pct_over = (
         extra_km / facts.distance_optimal_km
         if facts.distance_optimal_km > 0
@@ -255,11 +255,15 @@ def _route_deviation_refund(facts: Facts, fare_params) -> float:
     refund = (extra_km × per_km + extra_min × per_min) × surge_multiplier
     rounded to cents.
 
+    Both ``extra_km`` and ``extra_min`` are clamped to ``max(0, …)`` so a
+    detour that is shorter in time than the optimal route does not produce
+    a negative contribution (P-RD-1).
+
     *fare_params* is a simple namespace with ``per_km``, ``per_min``, and
     ``surge_multiplier``. We pass the trip's Fare object in practice.
     """
-    extra_km = facts.distance_actual_km - facts.distance_optimal_km
-    extra_min = facts.duration_actual_min - facts.duration_optimal_min
+    extra_km = max(0.0, facts.distance_actual_km - facts.distance_optimal_km)
+    extra_min = max(0.0, facts.duration_actual_min - facts.duration_optimal_min)
     if extra_km <= 0 and extra_min <= 0:
         return 0.0
     per_km = getattr(fare_params, "per_km", 0.75)
@@ -320,14 +324,16 @@ def evaluate(
 
         # Deviation is significant — compute refund
         refund = _route_deviation_refund(facts, fare_params)
-        extra_km = facts.distance_actual_km - facts.distance_optimal_km
-        extra_min = facts.extra_min
+        extra_km = max(0.0, facts.distance_actual_km - facts.distance_optimal_km)
+        extra_min = max(0.0, facts.extra_min)
         per_km = fare_params.per_km
         per_min = fare_params.per_min
         surge = fare_params.surge_multiplier
         comp = (
-            f"extra_km={extra_km:.2f} × S${per_km:.2f}/km = S${extra_km * per_km:.2f}; "
-            f"extra_min={extra_min:.1f} × S${per_min:.2f}/min = S${extra_min * per_min:.2f}; "
+            f"extra_km=max(0,{facts.distance_actual_km - facts.distance_optimal_km:.2f})"
+            f"={extra_km:.2f} × S${per_km:.2f}/km = S${extra_km * per_km:.2f}; "
+            f"extra_min=max(0,{facts.extra_min:.1f})={extra_min:.1f} "
+            f"× S${per_min:.2f}/min = S${extra_min * per_min:.2f}; "
             f"sum × surge {surge:.1f} = S${refund:.2f}"
         )
         return PolicyResult(

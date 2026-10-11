@@ -29,6 +29,38 @@ const CAT_PRIORITY_CLASS = {
   fare_error: "priority-normal",
 };
 
+// ---- Outcome human labels ----
+// Maps internal outcome codes to human-readable phrases.
+// The raw code is shown underneath in small text so it stays traceable.
+const OUTCOME_LABELS = {
+  refund_route_deviation: "Refund for route deviation",
+  no_deviation: "No route deviation",
+  no_refund: "No refund",
+  no_refund_rider_requested: "No refund — rider requested route change",
+  no_refund_road_closure: "No refund — road closure documented",
+  refund_and_credit: "Refund and goodwill credit",
+  no_show_not_proven: "Driver did show — no refund",
+  cancellation_fee_stands: "Cancellation fee stands",
+  cancellation_fee_invalid: "Cancellation fee invalid",
+  refund_overcharge: "Refund for fare overcharge",
+  undercharge_noted: "Undercharge noted, not collected",
+  fare_correct: "Fare is correct",
+  escalate: "Escalated to human reviewer",
+  requested_change: "Rider requested route change",
+  not_applicable: "Not applicable",
+};
+
+function humanOutcome(code) {
+  if (!code) return "—";
+  return OUTCOME_LABELS[code] || code;
+}
+
+function formatMoney(amount) {
+  // Always show as non-negative plain money, never negative.
+  const v = Math.abs(Number(amount) || 0);
+  return `S$${v.toFixed(2)}`;
+}
+
 // ---- Initialization ----
 document.addEventListener("DOMContentLoaded", () => {
   loadDisputes();
@@ -104,7 +136,8 @@ async function selectDispute(disputeId) {
     el.classList.toggle("active", el.dataset.id === disputeId);
   });
 
-  // Clear courtroom and evidence.
+  // Clear courtroom and evidence. The map container is persistent (moved
+  // around, not destroyed), so clearing innerHTML here is safe.
   document.getElementById("courtroom-timeline").innerHTML = "";
   document.getElementById("evidence-content").innerHTML =
     '<p class="placeholder">Loading case...</p>';
@@ -345,10 +378,10 @@ function addEventBubble(ev) {
         html += `<div>Evidence: ${escapeHtml(items)}</div>`;
       }
       if (content.outcome) {
-        html += `<div>Outcome: <strong>${escapeHtml(content.outcome)}</strong></div>`;
+        html += `<div>Outcome: <strong>${escapeHtml(humanOutcome(content.outcome))}</strong> <span class="outcome-code">${escapeHtml(content.outcome)}</span></div>`;
       }
       if (content.amount !== undefined && content.amount !== null) {
-        html += `<div>Amount: <strong>S$${Number(content.amount).toFixed(2)}</strong></div>`;
+        html += `<div>Amount: <strong>${formatMoney(content.amount)}</strong></div>`;
       }
       if (content.confidence !== undefined && content.confidence !== null) {
         html += `<div>Confidence: ${(content.confidence * 100).toFixed(0)}%</div>`;
@@ -419,7 +452,7 @@ function renderEvidence(data) {
     mapSection.className = "evidence-section";
     mapSection.innerHTML = `
       <h4>Route Map</h4>
-      <div id="map"></div>
+      <div class="map-slot"></div>
       <div class="map-legend">
         <div class="legend-item"><span class="legend-dot" style="background:#ef4444"></span> Actual GPS</div>
         <div class="legend-item"><span class="legend-dot" style="background:#2563eb"></span> Optimal Route</div>
@@ -513,24 +546,66 @@ function highlightEvidence(eid) {
 }
 
 // ---- Leaflet map ----
-function renderMap(trip) {
-  if (map) {
-    map.remove();
-    map = null;
-    mapLayers = [];
+// The map is created once and reused across case switches.  Removing and
+// re-creating the map on every case switch causes a Leaflet error
+// ("Cannot read properties of undefined (reading '_leaflet_pos')") when the
+// container is hidden or removed during the transition.
+//
+// Approach: a persistent #map-container div is created in JS and kept
+// alive.  When the evidence panel needs the map, the container is moved
+// into the map section.  Old layers are cleared (not the map) and
+// invalidateSize() is called after the panel is visible.
+
+let mapContainer = null; // persistent DOM element holding the Leaflet map
+
+function ensureMapContainer() {
+  if (!mapContainer) {
+    mapContainer = document.createElement("div");
+    mapContainer.id = "map";
   }
+  return mapContainer;
+}
 
-  const mapEl = document.getElementById("map");
-  if (!mapEl) return;
+function ensureMap() {
+  ensureMapContainer();
+  if (map) return map;
+  if (!mapContainer.parentElement) return null;
 
-  // Center on pickup.
-  const center = [trip.pickup.lat, trip.pickup.lon];
-  map = L.map("map").setView(center, 13);
-
+  map = L.map(mapContainer, { center: [1.3521, 103.9450], zoom: 13 });
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     attribution: '&copy; OpenStreetMap contributors',
     maxZoom: 19,
   }).addTo(map);
+
+  return map;
+}
+
+function clearMapLayers() {
+  if (!map) return;
+  for (const layer of mapLayers) {
+    if (map.hasLayer(layer)) {
+      map.removeLayer(layer);
+    }
+  }
+  mapLayers = [];
+}
+
+function renderMap(trip) {
+  ensureMapContainer();
+
+  // Move the persistent container into the map section (it may have been
+  // removed from the DOM if the evidence panel was cleared).
+  const mapSection = document.querySelector(".evidence-section .map-slot");
+  if (mapSection && mapContainer.parentElement !== mapSection) {
+    mapSection.appendChild(mapContainer);
+  }
+
+  // Create the map now that the container is in the DOM.
+  ensureMap();
+  if (!map) return;
+
+  // Clear previous layers (don't remove the map itself).
+  clearMapLayers();
 
   // Actual GPS trace (red).
   if (trip.gps_trace && trip.gps_trace.length > 0) {
@@ -543,12 +618,13 @@ function renderMap(trip) {
     mapLayers.push(traceLine);
 
     // Start and end markers.
-    L.circleMarker(tracePoints[0], {
+    const startMarker = L.circleMarker(tracePoints[0], {
       color: "#ef4444", fillColor: "#ef4444", fillOpacity: 1, radius: 5,
     }).addTo(map).bindTooltip("Pickup");
-    L.circleMarker(tracePoints[tracePoints.length - 1], {
+    const endMarker = L.circleMarker(tracePoints[tracePoints.length - 1], {
       color: "#ef4444", fillColor: "#ef4444", fillOpacity: 1, radius: 5,
     }).addTo(map).bindTooltip("Dropoff");
+    mapLayers.push(startMarker, endMarker);
   }
 
   // Optimal route (blue).
@@ -568,6 +644,10 @@ function renderMap(trip) {
     const group = L.featureGroup(mapLayers);
     map.fitBounds(group.getBounds(), { padding: [20, 20] });
   }
+
+  // Invalidate size after the panel is visible — the container may have
+  // been moved or resized when switching cases.
+  setTimeout(() => { if (map) map.invalidateSize(); }, 100);
 }
 
 // ---- Ruling card ----
@@ -601,9 +681,9 @@ function renderRuling(data) {
 
   let html = "";
 
-  // Outcome and amount.
-  html += `<div class="ruling-row"><span class="label">Outcome</span><span class="value">${escapeHtml(ruling.outcome)}</span></div>`;
-  html += `<div class="ruling-row"><span class="label">Amount</span><span class="value">S$${Number(ruling.amount).toFixed(2)}</span></div>`;
+  // Outcome and amount — human words with the code underneath in small text.
+  html += `<div class="ruling-row"><span class="label">Outcome</span><span class="value">${escapeHtml(humanOutcome(ruling.outcome))}<span class="outcome-code">${escapeHtml(ruling.outcome)}</span></span></div>`;
+  html += `<div class="ruling-row"><span class="label">Amount</span><span class="value">${formatMoney(ruling.amount)}</span></div>`;
 
   // Confidence bar.
   html += `<div class="ruling-row"><span class="label">Confidence</span><span class="value">${confidencePct}%</span></div>`;

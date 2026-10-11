@@ -2,7 +2,7 @@
   {
     "dispute_id": "disp_rd_000",
     "outcome": "refund_route_deviation",
-    "amount": 7.96,
+    "amount": 13.91,
     "applicable_clauses": [
       "P-RD-1"
     ]
@@ -10,7 +10,7 @@
   {
     "dispute_id": "disp_rd_001",
     "outcome": "refund_route_deviation",
-    "amount": -0.55,
+    "amount": 5.59,
     "applicable_clauses": [
       "P-RD-1"
     ]
@@ -18,7 +18,7 @@
   {
     "dispute_id": "disp_rd_002",
     "outcome": "refund_route_deviation",
-    "amount": 0.6,
+    "amount": 5.21,
     "applicable_clauses": [
       "P-RD-1"
     ]
@@ -42,7 +42,7 @@
   {
     "dispute_id": "disp_rd_005",
     "outcome": "refund_route_deviation",
-    "amount": 0.69,
+    "amount": 6.23,
     "applicable_clauses": [
       "P-RD-1"
     ]
@@ -50,7 +50,7 @@
   {
     "dispute_id": "disp_rd_006",
     "outcome": "refund_route_deviation",
-    "amount": -0.97,
+    "amount": 5.4,
     "applicable_clauses": [
       "P-RD-1"
     ]
@@ -58,7 +58,7 @@
   {
     "dispute_id": "disp_rd_007",
     "outcome": "refund_route_deviation",
-    "amount": 0.67,
+    "amount": 6.22,
     "applicable_clauses": [
       "P-RD-1"
     ]

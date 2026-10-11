@@ -13,7 +13,9 @@ nor caused by a documented road closure, the rider is refunded the fare for the
 extra distance and extra time.
 
 **Refund formula:** `(extra_km × per_km + extra_min × per_min) × surge_multiplier`,
-rounded to the nearest cent.
+rounded to the nearest cent. Both `extra_km` and `extra_min` are clamped to
+`max(0, …)` — a detour that is shorter in distance or time than the optimal
+route contributes zero, never a negative amount.
 
 **Rationale:** Riders should pay only for the efficient route unless they
 opted into a detour or the driver had no reasonable alternative.

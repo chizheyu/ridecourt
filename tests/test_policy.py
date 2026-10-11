@@ -153,6 +153,35 @@ class TestRouteDeviation:
         # (2.25 + 1.50) * 1.5 = 5.625 → 5.62
         assert result.amount == 5.62
 
+    def test_negative_extra_time_clamped(self):
+        """A detour that is longer in distance but shorter in time must
+        not produce a negative time contribution."""
+        f = _facts(
+            distance_actual_km=16.87, distance_optimal_km=10.0,
+            duration_actual_min=17.1, duration_optimal_min=20.0,
+            # extra_km=6.87, extra_min=-2.9 → clamped to 0
+        )
+        trip = _trip()
+        d = _dispute(category="route_deviation")
+        result = evaluate(d, trip, {}, f, trip.fare)
+        assert result.outcome == "refund_route_deviation"
+        # 6.87 * 0.75 + 0 * 0.25 = 5.1525 → 5.15
+        assert result.amount == 5.15
+        # Computation must not contain a negative S$ value
+        assert "S$-0" not in result.computation
+        assert "max(0," in result.computation
+
+    def test_negative_extra_distance_clamped(self):
+        """If actual distance is less than optimal (edge case), extra_km
+        is clamped to 0."""
+        f = _facts(
+            distance_actual_km=10.0, distance_optimal_km=10.0,
+            duration_actual_min=25.0, duration_optimal_min=20.0,
+        )
+        r = clause_rd_1(f)
+        # extra_km=0 → 0% → no deviation
+        assert r.outcome == "no_deviation"
+
 
 # ---------------------------------------------------------------------------
 # P-RD-2: requested stop / rider-requested change
