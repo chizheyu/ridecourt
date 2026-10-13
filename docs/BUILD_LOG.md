@@ -1,6 +1,6 @@
 # Build log
 
-RideCourt was built with CodeBuddy Code (Tencent) in headless mode, one task per prompt in `prompts/`. Each row is one CodeBuddy session on 11 October 2026 (Singapore time); the full session transcripts are kept privately as evidence and are summarised here.
+RideCourt was built with CodeBuddy Code (Tencent) in headless mode, one task per prompt in `prompts/`. Each row is one CodeBuddy session, 11 to 13 October 2026 (Singapore time); the full session transcripts are kept privately as evidence and are summarised here.
 
 | Start | Task (prompt) | Minutes | Turns | Result | Tests after the task |
 |:--|:--|--:|--:|:--|:--|
@@ -18,7 +18,10 @@ RideCourt was built with CodeBuddy Code (Tencent) in headless mode, one task per
 | 19:33 | `prompts/08-deploy-docs.md` | 9.2 | 154 | done | 222 passed, 1 warning in 4.98s |
 | 19:43 | `prompts/09-polish.md` | 10.4 | 243 | done | 224 passed, 1 warning in 4.95s |
 | 19:54 | `prompts/10-docs-polish.md` | 10.9 | 190 | done | 229 passed, 1 warning in 4.83s |
+| 20:31 | `prompts/11-eval-findings.md` | 10.8 | 289 | stopped: 429 Credits exhausted (items 1-3 done; the reviewer ran the tests and committed) | 245 passed |
+| 12 Oct 22:21 | `prompts/12-review-findings.md` | 3.7 | 75 | stopped: 429 Credits exhausted while reading the code | (no change) |
+| 13 Oct 10:18 | `prompts/12-review-findings.md` | 12.1 | 209 | done | 256 passed, 1 warning in 5.13s |
 
-Two sessions stopped when the free CodeBuddy credits ran out ("429 Credits exhausted"); after the hackathon credits were redeemed, step 4c finished the interrupted work.
+Sessions stopped three times when CodeBuddy credits ran out ("429 Credits exhausted"): the free credits during step 4b (step 4c finished that work after the hackathon credits were redeemed), the hackathon credits during step 11, and the free daily credits on the first try of step 12 (rerun after upgrading to CodeBuddy Pro).
 
-Between tasks a reviewer ran the tests, ran real Gemini cases and looked at the UI, and wrote the fixes it found into the next prompt (4b, 4c, 9 and 10 exist for that reason).
+Between tasks a reviewer ran the tests, ran real Gemini cases and looked at the UI, and wrote the fixes it found into the next prompt (4b, 4c, 9, 10, 11 and 12 exist for that reason). Step 12 came from the demo video: recording it showed that every high-risk claimant escalated, because the Judge was told to cite the bad-faith clause P-BF-1 but the policy engine never applied it, so the guard rejected the citation.
