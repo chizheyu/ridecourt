@@ -6,3 +6,6 @@ runs/
 .DS_Store
 devlog/
 eval/results-*-mock.json
+
+# Sample data and policy shared by Ryde with hackathon participants (13 Oct 2026); not redistributed
+data/ryde_samples/
