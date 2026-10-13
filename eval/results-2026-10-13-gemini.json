@@ -1,28 +1,64 @@
 {
   "provider": "gemini",
   "date": "2026-10-13",
-  "repeats": 1,
+  "repeats": 2,
   "overall": {
-    "total": 4,
-    "outcome_accuracy": 1.0,
-    "amount_accuracy": 1.0,
-    "both_accuracy": 1.0,
-    "escalation_rate": 0.0,
+    "total": 48,
+    "outcome_accuracy": 0.9792,
+    "amount_accuracy": 0.9792,
+    "both_accuracy": 0.9792,
+    "escalation_rate": 0.1458,
     "error_count": 0,
     "error_rate": 0.0,
     "safety_all_escalated": true,
-    "consistency": 1.0,
-    "median_time_ms": 124809.5,
-    "p90_time_ms": 175919.2,
-    "median_tokens": 7585.5
+    "consistency": 0.9583,
+    "median_time_ms": 23465,
+    "p90_time_ms": 152652.60000000003,
+    "median_tokens": 8588.0
   },
   "per_category": {
-    "fare_error": {
-      "n": 4,
+    "route_deviation": {
+      "n": 16,
       "outcome_accuracy": 1.0,
       "amount_accuracy": 1.0,
       "both_accuracy": 1.0,
       "escalation_rate": 0.0,
+      "error_rate": 0.0,
+      "consistency": 1.0
+    },
+    "no_show_driver": {
+      "n": 10,
+      "outcome_accuracy": 0.9,
+      "amount_accuracy": 0.9,
+      "both_accuracy": 0.9,
+      "escalation_rate": 0.1,
+      "error_rate": 0.0,
+      "consistency": 0.8
+    },
+    "no_show_rider": {
+      "n": 10,
+      "outcome_accuracy": 1.0,
+      "amount_accuracy": 1.0,
+      "both_accuracy": 1.0,
+      "escalation_rate": 0.0,
+      "error_rate": 0.0,
+      "consistency": 1.0
+    },
+    "fare_error": {
+      "n": 6,
+      "outcome_accuracy": 1.0,
+      "amount_accuracy": 1.0,
+      "both_accuracy": 1.0,
+      "escalation_rate": 0.0,
+      "error_rate": 0.0,
+      "consistency": 1.0
+    },
+    "safety": {
+      "n": 6,
+      "outcome_accuracy": 1.0,
+      "amount_accuracy": 1.0,
+      "both_accuracy": 1.0,
+      "escalation_rate": 1.0,
       "error_rate": 0.0,
       "consistency": 1.0
     }
@@ -36,17 +72,26 @@
           "amount": 2.3,
           "escalated": false,
           "escalation_reason": "",
-          "tokens": 7818,
-          "latency_ms": 397121,
-          "wall_ms": 187426
+          "tokens": 7728,
+          "latency_ms": 196633,
+          "wall_ms": 159751
+        },
+        {
+          "outcome": "refund_overcharge",
+          "amount": 2.3,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 7897,
+          "latency_ms": 263371,
+          "wall_ms": 226986
         }
       ],
       "outcome": "refund_overcharge",
       "amount": 2.3,
       "escalated": false,
       "consistent": true,
-      "tokens": 7818,
-      "wall_ms": 187426,
+      "tokens": 7728,
+      "wall_ms": 159751,
       "category": "fare_error",
       "label_outcome": "refund_overcharge",
       "label_amount": 2.3,
@@ -61,17 +106,26 @@
           "amount": 1.73,
           "escalated": false,
           "escalation_reason": "",
-          "tokens": 7655,
-          "latency_ms": 147396,
-          "wall_ms": 63405
+          "tokens": 7598,
+          "latency_ms": 59390,
+          "wall_ms": 20752
+        },
+        {
+          "outcome": "refund_overcharge",
+          "amount": 1.73,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 7567,
+          "latency_ms": 101352,
+          "wall_ms": 33001
         }
       ],
       "outcome": "refund_overcharge",
       "amount": 1.73,
       "escalated": false,
       "consistent": true,
-      "tokens": 7655,
-      "wall_ms": 63405,
+      "tokens": 7598,
+      "wall_ms": 20752,
       "category": "fare_error",
       "label_outcome": "refund_overcharge",
       "label_amount": 1.73,
@@ -86,17 +140,26 @@
           "amount": 3.01,
           "escalated": false,
           "escalation_reason": "",
-          "tokens": 7516,
-          "latency_ms": 141718,
-          "wall_ms": 100549
+          "tokens": 7629,
+          "latency_ms": 251290,
+          "wall_ms": 122762
+        },
+        {
+          "outcome": "refund_overcharge",
+          "amount": 3.01,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 7587,
+          "latency_ms": 208564,
+          "wall_ms": 154265
         }
       ],
       "outcome": "refund_overcharge",
       "amount": 3.01,
       "escalated": false,
       "consistent": true,
-      "tokens": 7516,
-      "wall_ms": 100549,
+      "tokens": 7629,
+      "wall_ms": 122762,
       "category": "fare_error",
       "label_outcome": "refund_overcharge",
       "label_amount": 3.01,
@@ -111,19 +174,1524 @@
           "amount": 0.0,
           "escalated": false,
           "escalation_reason": "",
-          "tokens": 7511,
-          "latency_ms": 327107,
-          "wall_ms": 149070
+          "tokens": 7073,
+          "latency_ms": 61562,
+          "wall_ms": 190384
+        },
+        {
+          "outcome": "fare_correct",
+          "amount": 0.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 7438,
+          "latency_ms": 59183,
+          "wall_ms": 18996
         }
       ],
       "outcome": "fare_correct",
       "amount": 0.0,
       "escalated": false,
       "consistent": true,
-      "tokens": 7511,
-      "wall_ms": 149070,
+      "tokens": 7073,
+      "wall_ms": 190384,
       "category": "fare_error",
       "label_outcome": "fare_correct",
+      "label_amount": 0.0,
+      "outcome_match": true,
+      "amount_match": true
+    },
+    {
+      "dispute_id": "disp_fa_004",
+      "runs": [
+        {
+          "outcome": "fare_correct",
+          "amount": 0.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 7499,
+          "latency_ms": 51814,
+          "wall_ms": 18663
+        },
+        {
+          "outcome": "fare_correct",
+          "amount": 0.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 7333,
+          "latency_ms": 171153,
+          "wall_ms": 129181
+        }
+      ],
+      "outcome": "fare_correct",
+      "amount": 0.0,
+      "escalated": false,
+      "consistent": true,
+      "tokens": 7499,
+      "wall_ms": 18663,
+      "category": "fare_error",
+      "label_outcome": "fare_correct",
+      "label_amount": 0.0,
+      "outcome_match": true,
+      "amount_match": true
+    },
+    {
+      "dispute_id": "disp_fa_005",
+      "runs": [
+        {
+          "outcome": "fare_correct",
+          "amount": 0.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 8111,
+          "latency_ms": 276812,
+          "wall_ms": 228358
+        },
+        {
+          "outcome": "fare_correct",
+          "amount": 0.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 8056,
+          "latency_ms": 56124,
+          "wall_ms": 19508
+        }
+      ],
+      "outcome": "fare_correct",
+      "amount": 0.0,
+      "escalated": false,
+      "consistent": true,
+      "tokens": 8111,
+      "wall_ms": 228358,
+      "category": "fare_error",
+      "label_outcome": "fare_correct",
+      "label_amount": 0.0,
+      "outcome_match": true,
+      "amount_match": true
+    },
+    {
+      "dispute_id": "disp_ns_d_000",
+      "runs": [
+        {
+          "outcome": "refund_and_credit",
+          "amount": 7.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 8777,
+          "latency_ms": 157485,
+          "wall_ms": 76638
+        },
+        {
+          "outcome": "refund_and_credit",
+          "amount": 7.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 8654,
+          "latency_ms": 290496,
+          "wall_ms": 162600
+        }
+      ],
+      "outcome": "refund_and_credit",
+      "amount": 7.0,
+      "escalated": false,
+      "consistent": true,
+      "tokens": 8777,
+      "wall_ms": 76638,
+      "category": "no_show_driver",
+      "label_outcome": "refund_and_credit",
+      "label_amount": 7.0,
+      "outcome_match": true,
+      "amount_match": true
+    },
+    {
+      "dispute_id": "disp_ns_d_001",
+      "runs": [
+        {
+          "outcome": "refund_and_credit",
+          "amount": 7.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 8521,
+          "latency_ms": 173340,
+          "wall_ms": 70103
+        },
+        {
+          "outcome": "refund_and_credit",
+          "amount": 7.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 8476,
+          "latency_ms": 127152,
+          "wall_ms": 98995
+        }
+      ],
+      "outcome": "refund_and_credit",
+      "amount": 7.0,
+      "escalated": false,
+      "consistent": true,
+      "tokens": 8521,
+      "wall_ms": 70103,
+      "category": "no_show_driver",
+      "label_outcome": "refund_and_credit",
+      "label_amount": 7.0,
+      "outcome_match": true,
+      "amount_match": true
+    },
+    {
+      "dispute_id": "disp_ns_d_002",
+      "runs": [
+        {
+          "outcome": "refund_and_credit",
+          "amount": 7.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 8544,
+          "latency_ms": 48550,
+          "wall_ms": 15809
+        },
+        {
+          "outcome": "refund_and_credit",
+          "amount": 7.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 8688,
+          "latency_ms": 55139,
+          "wall_ms": 21334
+        }
+      ],
+      "outcome": "refund_and_credit",
+      "amount": 7.0,
+      "escalated": false,
+      "consistent": true,
+      "tokens": 8544,
+      "wall_ms": 15809,
+      "category": "no_show_driver",
+      "label_outcome": "refund_and_credit",
+      "label_amount": 7.0,
+      "outcome_match": true,
+      "amount_match": true
+    },
+    {
+      "dispute_id": "disp_ns_d_003",
+      "runs": [
+        {
+          "outcome": "refund_and_credit",
+          "amount": 7.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 8605,
+          "latency_ms": 54588,
+          "wall_ms": 17420
+        },
+        {
+          "outcome": "refund_and_credit",
+          "amount": 7.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 8512,
+          "latency_ms": 101834,
+          "wall_ms": 56622
+        }
+      ],
+      "outcome": "refund_and_credit",
+      "amount": 7.0,
+      "escalated": false,
+      "consistent": true,
+      "tokens": 8605,
+      "wall_ms": 17420,
+      "category": "no_show_driver",
+      "label_outcome": "refund_and_credit",
+      "label_amount": 7.0,
+      "outcome_match": true,
+      "amount_match": true
+    },
+    {
+      "dispute_id": "disp_ns_d_004",
+      "runs": [
+        {
+          "outcome": "refund_and_credit",
+          "amount": 7.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 8652,
+          "latency_ms": 155679,
+          "wall_ms": 123043
+        },
+        {
+          "outcome": "refund_and_credit",
+          "amount": 7.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 8670,
+          "latency_ms": 248934,
+          "wall_ms": 116410
+        }
+      ],
+      "outcome": "refund_and_credit",
+      "amount": 7.0,
+      "escalated": false,
+      "consistent": true,
+      "tokens": 8652,
+      "wall_ms": 123043,
+      "category": "no_show_driver",
+      "label_outcome": "refund_and_credit",
+      "label_amount": 7.0,
+      "outcome_match": true,
+      "amount_match": true
+    },
+    {
+      "dispute_id": "disp_ns_d_005",
+      "runs": [
+        {
+          "outcome": "refund_and_credit",
+          "amount": 7.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 8453,
+          "latency_ms": 47091,
+          "wall_ms": 16035
+        },
+        {
+          "outcome": "refund_and_credit",
+          "amount": 7.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 8206,
+          "latency_ms": 58891,
+          "wall_ms": 22420
+        }
+      ],
+      "outcome": "refund_and_credit",
+      "amount": 7.0,
+      "escalated": false,
+      "consistent": true,
+      "tokens": 8453,
+      "wall_ms": 16035,
+      "category": "no_show_driver",
+      "label_outcome": "refund_and_credit",
+      "label_amount": 7.0,
+      "outcome_match": true,
+      "amount_match": true
+    },
+    {
+      "dispute_id": "disp_ns_d_006",
+      "runs": [
+        {
+          "outcome": "escalate",
+          "amount": 0.0,
+          "escalated": true,
+          "escalation_reason": "guard_failure_judge",
+          "tokens": 10672,
+          "latency_ms": 124870,
+          "wall_ms": 63149
+        },
+        {
+          "outcome": "refund_and_credit",
+          "amount": 7.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 8273,
+          "latency_ms": 202561,
+          "wall_ms": 93117
+        }
+      ],
+      "outcome": "escalate",
+      "amount": 0.0,
+      "escalated": true,
+      "consistent": false,
+      "tokens": 10672,
+      "wall_ms": 63149,
+      "category": "no_show_driver",
+      "label_outcome": "refund_and_credit",
+      "label_amount": 7.0,
+      "outcome_match": false,
+      "amount_match": false
+    },
+    {
+      "dispute_id": "disp_ns_d_007",
+      "runs": [
+        {
+          "outcome": "refund_and_credit",
+          "amount": 7.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 8753,
+          "latency_ms": 47605,
+          "wall_ms": 16445
+        },
+        {
+          "outcome": "refund_and_credit",
+          "amount": 7.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 8735,
+          "latency_ms": 45528,
+          "wall_ms": 14735
+        }
+      ],
+      "outcome": "refund_and_credit",
+      "amount": 7.0,
+      "escalated": false,
+      "consistent": true,
+      "tokens": 8753,
+      "wall_ms": 16445,
+      "category": "no_show_driver",
+      "label_outcome": "refund_and_credit",
+      "label_amount": 7.0,
+      "outcome_match": true,
+      "amount_match": true
+    },
+    {
+      "dispute_id": "disp_ns_d_008",
+      "runs": [
+        {
+          "outcome": "refund_and_credit",
+          "amount": 7.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 11039,
+          "latency_ms": 48967,
+          "wall_ms": 21106
+        },
+        {
+          "outcome": "refund_and_credit",
+          "amount": 7.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 8441,
+          "latency_ms": 321920,
+          "wall_ms": 84358
+        }
+      ],
+      "outcome": "refund_and_credit",
+      "amount": 7.0,
+      "escalated": false,
+      "consistent": true,
+      "tokens": 11039,
+      "wall_ms": 21106,
+      "category": "no_show_driver",
+      "label_outcome": "refund_and_credit",
+      "label_amount": 7.0,
+      "outcome_match": true,
+      "amount_match": true
+    },
+    {
+      "dispute_id": "disp_ns_d_009",
+      "runs": [
+        {
+          "outcome": "refund_and_credit",
+          "amount": 7.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 8526,
+          "latency_ms": 59238,
+          "wall_ms": 19554
+        },
+        {
+          "outcome": "escalate",
+          "amount": 0.0,
+          "escalated": true,
+          "escalation_reason": "guard_failure_judge",
+          "tokens": 10766,
+          "latency_ms": 68894,
+          "wall_ms": 30517
+        }
+      ],
+      "outcome": "refund_and_credit",
+      "amount": 7.0,
+      "escalated": false,
+      "consistent": false,
+      "tokens": 8526,
+      "wall_ms": 19554,
+      "category": "no_show_driver",
+      "label_outcome": "refund_and_credit",
+      "label_amount": 7.0,
+      "outcome_match": true,
+      "amount_match": true
+    },
+    {
+      "dispute_id": "disp_ns_r_000",
+      "runs": [
+        {
+          "outcome": "cancellation_fee_stands",
+          "amount": 4.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 8643,
+          "latency_ms": 49341,
+          "wall_ms": 15573
+        },
+        {
+          "outcome": "cancellation_fee_stands",
+          "amount": 4.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 8475,
+          "latency_ms": 69663,
+          "wall_ms": 20722
+        }
+      ],
+      "outcome": "cancellation_fee_stands",
+      "amount": 4.0,
+      "escalated": false,
+      "consistent": true,
+      "tokens": 8643,
+      "wall_ms": 15573,
+      "category": "no_show_rider",
+      "label_outcome": "cancellation_fee_stands",
+      "label_amount": 4.0,
+      "outcome_match": true,
+      "amount_match": true
+    },
+    {
+      "dispute_id": "disp_ns_r_001",
+      "runs": [
+        {
+          "outcome": "cancellation_fee_stands",
+          "amount": 4.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 8817,
+          "latency_ms": 61982,
+          "wall_ms": 19082
+        },
+        {
+          "outcome": "cancellation_fee_stands",
+          "amount": 4.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 8598,
+          "latency_ms": 57899,
+          "wall_ms": 19990
+        }
+      ],
+      "outcome": "cancellation_fee_stands",
+      "amount": 4.0,
+      "escalated": false,
+      "consistent": true,
+      "tokens": 8817,
+      "wall_ms": 19082,
+      "category": "no_show_rider",
+      "label_outcome": "cancellation_fee_stands",
+      "label_amount": 4.0,
+      "outcome_match": true,
+      "amount_match": true
+    },
+    {
+      "dispute_id": "disp_ns_r_002",
+      "runs": [
+        {
+          "outcome": "cancellation_fee_stands",
+          "amount": 4.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 8703,
+          "latency_ms": 66995,
+          "wall_ms": 23765
+        },
+        {
+          "outcome": "cancellation_fee_stands",
+          "amount": 4.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 8678,
+          "latency_ms": 74465,
+          "wall_ms": 21560
+        }
+      ],
+      "outcome": "cancellation_fee_stands",
+      "amount": 4.0,
+      "escalated": false,
+      "consistent": true,
+      "tokens": 8703,
+      "wall_ms": 23765,
+      "category": "no_show_rider",
+      "label_outcome": "cancellation_fee_stands",
+      "label_amount": 4.0,
+      "outcome_match": true,
+      "amount_match": true
+    },
+    {
+      "dispute_id": "disp_ns_r_003",
+      "runs": [
+        {
+          "outcome": "cancellation_fee_stands",
+          "amount": 4.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 8154,
+          "latency_ms": 55440,
+          "wall_ms": 19734
+        },
+        {
+          "outcome": "cancellation_fee_stands",
+          "amount": 4.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 8460,
+          "latency_ms": 56199,
+          "wall_ms": 18099
+        }
+      ],
+      "outcome": "cancellation_fee_stands",
+      "amount": 4.0,
+      "escalated": false,
+      "consistent": true,
+      "tokens": 8154,
+      "wall_ms": 19734,
+      "category": "no_show_rider",
+      "label_outcome": "cancellation_fee_stands",
+      "label_amount": 4.0,
+      "outcome_match": true,
+      "amount_match": true
+    },
+    {
+      "dispute_id": "disp_ns_r_004",
+      "runs": [
+        {
+          "outcome": "cancellation_fee_stands",
+          "amount": 4.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 8504,
+          "latency_ms": 51901,
+          "wall_ms": 15818
+        },
+        {
+          "outcome": "cancellation_fee_stands",
+          "amount": 4.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 8220,
+          "latency_ms": 49282,
+          "wall_ms": 15926
+        }
+      ],
+      "outcome": "cancellation_fee_stands",
+      "amount": 4.0,
+      "escalated": false,
+      "consistent": true,
+      "tokens": 8504,
+      "wall_ms": 15818,
+      "category": "no_show_rider",
+      "label_outcome": "cancellation_fee_stands",
+      "label_amount": 4.0,
+      "outcome_match": true,
+      "amount_match": true
+    },
+    {
+      "dispute_id": "disp_ns_r_005",
+      "runs": [
+        {
+          "outcome": "cancellation_fee_stands",
+          "amount": 4.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 8297,
+          "latency_ms": 52843,
+          "wall_ms": 16866
+        },
+        {
+          "outcome": "cancellation_fee_stands",
+          "amount": 4.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 8290,
+          "latency_ms": 56501,
+          "wall_ms": 20605
+        }
+      ],
+      "outcome": "cancellation_fee_stands",
+      "amount": 4.0,
+      "escalated": false,
+      "consistent": true,
+      "tokens": 8297,
+      "wall_ms": 16866,
+      "category": "no_show_rider",
+      "label_outcome": "cancellation_fee_stands",
+      "label_amount": 4.0,
+      "outcome_match": true,
+      "amount_match": true
+    },
+    {
+      "dispute_id": "disp_ns_r_006",
+      "runs": [
+        {
+          "outcome": "cancellation_fee_invalid",
+          "amount": 0.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 9500,
+          "latency_ms": 59230,
+          "wall_ms": 21854
+        },
+        {
+          "outcome": "cancellation_fee_invalid",
+          "amount": 0.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 9405,
+          "latency_ms": 47670,
+          "wall_ms": 24794
+        }
+      ],
+      "outcome": "cancellation_fee_invalid",
+      "amount": 0.0,
+      "escalated": false,
+      "consistent": true,
+      "tokens": 9500,
+      "wall_ms": 21854,
+      "category": "no_show_rider",
+      "label_outcome": "cancellation_fee_invalid",
+      "label_amount": 0.0,
+      "outcome_match": true,
+      "amount_match": true
+    },
+    {
+      "dispute_id": "disp_ns_r_007",
+      "runs": [
+        {
+          "outcome": "cancellation_fee_invalid",
+          "amount": 0.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 10956,
+          "latency_ms": 37005,
+          "wall_ms": 26025
+        },
+        {
+          "outcome": "cancellation_fee_invalid",
+          "amount": 0.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 11194,
+          "latency_ms": 50608,
+          "wall_ms": 26833
+        }
+      ],
+      "outcome": "cancellation_fee_invalid",
+      "amount": 0.0,
+      "escalated": false,
+      "consistent": true,
+      "tokens": 10956,
+      "wall_ms": 26025,
+      "category": "no_show_rider",
+      "label_outcome": "cancellation_fee_invalid",
+      "label_amount": 0.0,
+      "outcome_match": true,
+      "amount_match": true
+    },
+    {
+      "dispute_id": "disp_ns_r_008",
+      "runs": [
+        {
+          "outcome": "cancellation_fee_invalid",
+          "amount": 0.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 9854,
+          "latency_ms": 107561,
+          "wall_ms": 81476
+        },
+        {
+          "outcome": "cancellation_fee_invalid",
+          "amount": 0.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 11160,
+          "latency_ms": 46182,
+          "wall_ms": 31929
+        }
+      ],
+      "outcome": "cancellation_fee_invalid",
+      "amount": 0.0,
+      "escalated": false,
+      "consistent": true,
+      "tokens": 9854,
+      "wall_ms": 81476,
+      "category": "no_show_rider",
+      "label_outcome": "cancellation_fee_invalid",
+      "label_amount": 0.0,
+      "outcome_match": true,
+      "amount_match": true
+    },
+    {
+      "dispute_id": "disp_ns_r_009",
+      "runs": [
+        {
+          "outcome": "cancellation_fee_invalid",
+          "amount": 0.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 9866,
+          "latency_ms": 294069,
+          "wall_ms": 275715
+        },
+        {
+          "outcome": "cancellation_fee_invalid",
+          "amount": 0.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 10990,
+          "latency_ms": 53332,
+          "wall_ms": 30620
+        }
+      ],
+      "outcome": "cancellation_fee_invalid",
+      "amount": 0.0,
+      "escalated": false,
+      "consistent": true,
+      "tokens": 9866,
+      "wall_ms": 275715,
+      "category": "no_show_rider",
+      "label_outcome": "cancellation_fee_invalid",
+      "label_amount": 0.0,
+      "outcome_match": true,
+      "amount_match": true
+    },
+    {
+      "dispute_id": "disp_rd_000",
+      "runs": [
+        {
+          "outcome": "refund_route_deviation",
+          "amount": 12.89,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 9259,
+          "latency_ms": 58142,
+          "wall_ms": 20295
+        },
+        {
+          "outcome": "refund_route_deviation",
+          "amount": 12.89,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 9360,
+          "latency_ms": 60031,
+          "wall_ms": 20964
+        }
+      ],
+      "outcome": "refund_route_deviation",
+      "amount": 12.89,
+      "escalated": false,
+      "consistent": true,
+      "tokens": 9259,
+      "wall_ms": 20295,
+      "category": "route_deviation",
+      "label_outcome": "refund_route_deviation",
+      "label_amount": 12.89,
+      "outcome_match": true,
+      "amount_match": true
+    },
+    {
+      "dispute_id": "disp_rd_001",
+      "runs": [
+        {
+          "outcome": "refund_route_deviation",
+          "amount": 9.33,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 9559,
+          "latency_ms": 70183,
+          "wall_ms": 25672
+        },
+        {
+          "outcome": "refund_route_deviation",
+          "amount": 9.33,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 9521,
+          "latency_ms": 291955,
+          "wall_ms": 132695
+        }
+      ],
+      "outcome": "refund_route_deviation",
+      "amount": 9.33,
+      "escalated": false,
+      "consistent": true,
+      "tokens": 9559,
+      "wall_ms": 25672,
+      "category": "route_deviation",
+      "label_outcome": "refund_route_deviation",
+      "label_amount": 9.33,
+      "outcome_match": true,
+      "amount_match": true
+    },
+    {
+      "dispute_id": "disp_rd_002",
+      "runs": [
+        {
+          "outcome": "refund_route_deviation",
+          "amount": 9.23,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 9814,
+          "latency_ms": 126852,
+          "wall_ms": 142005
+        },
+        {
+          "outcome": "refund_route_deviation",
+          "amount": 9.23,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 9792,
+          "latency_ms": 58107,
+          "wall_ms": 19389
+        }
+      ],
+      "outcome": "refund_route_deviation",
+      "amount": 9.23,
+      "escalated": false,
+      "consistent": true,
+      "tokens": 9814,
+      "wall_ms": 142005,
+      "category": "route_deviation",
+      "label_outcome": "refund_route_deviation",
+      "label_amount": 9.23,
+      "outcome_match": true,
+      "amount_match": true
+    },
+    {
+      "dispute_id": "disp_rd_003",
+      "runs": [
+        {
+          "outcome": "refund_route_deviation",
+          "amount": 5.63,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 11391,
+          "latency_ms": 63889,
+          "wall_ms": 23465
+        },
+        {
+          "outcome": "refund_route_deviation",
+          "amount": 5.63,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 9651,
+          "latency_ms": 68442,
+          "wall_ms": 21945
+        }
+      ],
+      "outcome": "refund_route_deviation",
+      "amount": 5.63,
+      "escalated": false,
+      "consistent": true,
+      "tokens": 11391,
+      "wall_ms": 23465,
+      "category": "route_deviation",
+      "label_outcome": "refund_route_deviation",
+      "label_amount": 5.63,
+      "outcome_match": true,
+      "amount_match": true
+    },
+    {
+      "dispute_id": "disp_rd_004",
+      "runs": [
+        {
+          "outcome": "refund_route_deviation",
+          "amount": 6.23,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 9628,
+          "latency_ms": 237018,
+          "wall_ms": 192950
+        },
+        {
+          "outcome": "refund_route_deviation",
+          "amount": 6.23,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 11207,
+          "latency_ms": 358686,
+          "wall_ms": 172298
+        }
+      ],
+      "outcome": "refund_route_deviation",
+      "amount": 6.23,
+      "escalated": false,
+      "consistent": true,
+      "tokens": 9628,
+      "wall_ms": 192950,
+      "category": "route_deviation",
+      "label_outcome": "refund_route_deviation",
+      "label_amount": 6.23,
+      "outcome_match": true,
+      "amount_match": true
+    },
+    {
+      "dispute_id": "disp_rd_005",
+      "runs": [
+        {
+          "outcome": "refund_route_deviation",
+          "amount": 9.23,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 9597,
+          "latency_ms": 148364,
+          "wall_ms": 43609
+        },
+        {
+          "outcome": "refund_route_deviation",
+          "amount": 9.23,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 11355,
+          "latency_ms": 113281,
+          "wall_ms": 88123
+        }
+      ],
+      "outcome": "refund_route_deviation",
+      "amount": 9.23,
+      "escalated": false,
+      "consistent": true,
+      "tokens": 9597,
+      "wall_ms": 43609,
+      "category": "route_deviation",
+      "label_outcome": "refund_route_deviation",
+      "label_amount": 9.23,
+      "outcome_match": true,
+      "amount_match": true
+    },
+    {
+      "dispute_id": "disp_rd_006",
+      "runs": [
+        {
+          "outcome": "refund_route_deviation",
+          "amount": 8.37,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 9325,
+          "latency_ms": 55035,
+          "wall_ms": 17965
+        },
+        {
+          "outcome": "refund_route_deviation",
+          "amount": 8.37,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 9776,
+          "latency_ms": 198788,
+          "wall_ms": 84966
+        }
+      ],
+      "outcome": "refund_route_deviation",
+      "amount": 8.37,
+      "escalated": false,
+      "consistent": true,
+      "tokens": 9325,
+      "wall_ms": 17965,
+      "category": "route_deviation",
+      "label_outcome": "refund_route_deviation",
+      "label_amount": 8.37,
+      "outcome_match": true,
+      "amount_match": true
+    },
+    {
+      "dispute_id": "disp_rd_007",
+      "runs": [
+        {
+          "outcome": "refund_route_deviation",
+          "amount": 11.66,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 9677,
+          "latency_ms": 88966,
+          "wall_ms": 32875
+        },
+        {
+          "outcome": "refund_route_deviation",
+          "amount": 11.66,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 9356,
+          "latency_ms": 313639,
+          "wall_ms": 141268
+        }
+      ],
+      "outcome": "refund_route_deviation",
+      "amount": 11.66,
+      "escalated": false,
+      "consistent": true,
+      "tokens": 9677,
+      "wall_ms": 32875,
+      "category": "route_deviation",
+      "label_outcome": "refund_route_deviation",
+      "label_amount": 11.66,
+      "outcome_match": true,
+      "amount_match": true
+    },
+    {
+      "dispute_id": "disp_rd_008",
+      "runs": [
+        {
+          "outcome": "no_refund_rider_requested",
+          "amount": 0.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 8371,
+          "latency_ms": 69240,
+          "wall_ms": 23633
+        },
+        {
+          "outcome": "no_refund_rider_requested",
+          "amount": 0.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 8440,
+          "latency_ms": 59450,
+          "wall_ms": 18770
+        }
+      ],
+      "outcome": "no_refund_rider_requested",
+      "amount": 0.0,
+      "escalated": false,
+      "consistent": true,
+      "tokens": 8371,
+      "wall_ms": 23633,
+      "category": "route_deviation",
+      "label_outcome": "no_refund_rider_requested",
+      "label_amount": 0.0,
+      "outcome_match": true,
+      "amount_match": true
+    },
+    {
+      "dispute_id": "disp_rd_009",
+      "runs": [
+        {
+          "outcome": "no_refund_road_closure",
+          "amount": 0.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 8425,
+          "latency_ms": 190093,
+          "wall_ms": 61223
+        },
+        {
+          "outcome": "no_refund_road_closure",
+          "amount": 0.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 8397,
+          "latency_ms": 68314,
+          "wall_ms": 19841
+        }
+      ],
+      "outcome": "no_refund_road_closure",
+      "amount": 0.0,
+      "escalated": false,
+      "consistent": true,
+      "tokens": 8425,
+      "wall_ms": 61223,
+      "category": "route_deviation",
+      "label_outcome": "no_refund_road_closure",
+      "label_amount": 0.0,
+      "outcome_match": true,
+      "amount_match": true
+    },
+    {
+      "dispute_id": "disp_rd_010",
+      "runs": [
+        {
+          "outcome": "no_refund_road_closure",
+          "amount": 0.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 8430,
+          "latency_ms": 93014,
+          "wall_ms": 34650
+        },
+        {
+          "outcome": "no_refund_road_closure",
+          "amount": 0.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 8285,
+          "latency_ms": 68554,
+          "wall_ms": 23180
+        }
+      ],
+      "outcome": "no_refund_road_closure",
+      "amount": 0.0,
+      "escalated": false,
+      "consistent": true,
+      "tokens": 8430,
+      "wall_ms": 34650,
+      "category": "route_deviation",
+      "label_outcome": "no_refund_road_closure",
+      "label_amount": 0.0,
+      "outcome_match": true,
+      "amount_match": true
+    },
+    {
+      "dispute_id": "disp_rd_011",
+      "runs": [
+        {
+          "outcome": "no_refund_road_closure",
+          "amount": 0.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 8571,
+          "latency_ms": 75834,
+          "wall_ms": 29587
+        },
+        {
+          "outcome": "no_refund_road_closure",
+          "amount": 0.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 8672,
+          "latency_ms": 161935,
+          "wall_ms": 98745
+        }
+      ],
+      "outcome": "no_refund_road_closure",
+      "amount": 0.0,
+      "escalated": false,
+      "consistent": true,
+      "tokens": 8571,
+      "wall_ms": 29587,
+      "category": "route_deviation",
+      "label_outcome": "no_refund_road_closure",
+      "label_amount": 0.0,
+      "outcome_match": true,
+      "amount_match": true
+    },
+    {
+      "dispute_id": "disp_rd_012",
+      "runs": [
+        {
+          "outcome": "no_refund_road_closure",
+          "amount": 0.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 8447,
+          "latency_ms": 60642,
+          "wall_ms": 19566
+        },
+        {
+          "outcome": "no_refund_road_closure",
+          "amount": 0.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 10229,
+          "latency_ms": 57978,
+          "wall_ms": 24812
+        }
+      ],
+      "outcome": "no_refund_road_closure",
+      "amount": 0.0,
+      "escalated": false,
+      "consistent": true,
+      "tokens": 8447,
+      "wall_ms": 19566,
+      "category": "route_deviation",
+      "label_outcome": "no_refund_road_closure",
+      "label_amount": 0.0,
+      "outcome_match": true,
+      "amount_match": true
+    },
+    {
+      "dispute_id": "disp_rd_013",
+      "runs": [
+        {
+          "outcome": "no_refund_road_closure",
+          "amount": 0.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 8485,
+          "latency_ms": 297995,
+          "wall_ms": 137971
+        },
+        {
+          "outcome": "no_refund_road_closure",
+          "amount": 0.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 8824,
+          "latency_ms": 68000,
+          "wall_ms": 20868
+        }
+      ],
+      "outcome": "no_refund_road_closure",
+      "amount": 0.0,
+      "escalated": false,
+      "consistent": true,
+      "tokens": 8485,
+      "wall_ms": 137971,
+      "category": "route_deviation",
+      "label_outcome": "no_refund_road_closure",
+      "label_amount": 0.0,
+      "outcome_match": true,
+      "amount_match": true
+    },
+    {
+      "dispute_id": "disp_rd_014",
+      "runs": [
+        {
+          "outcome": "no_refund_road_closure",
+          "amount": 0.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 8396,
+          "latency_ms": 67818,
+          "wall_ms": 22354
+        },
+        {
+          "outcome": "no_refund_road_closure",
+          "amount": 0.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 8345,
+          "latency_ms": 64089,
+          "wall_ms": 21921
+        }
+      ],
+      "outcome": "no_refund_road_closure",
+      "amount": 0.0,
+      "escalated": false,
+      "consistent": true,
+      "tokens": 8396,
+      "wall_ms": 22354,
+      "category": "route_deviation",
+      "label_outcome": "no_refund_road_closure",
+      "label_amount": 0.0,
+      "outcome_match": true,
+      "amount_match": true
+    },
+    {
+      "dispute_id": "disp_rd_015",
+      "runs": [
+        {
+          "outcome": "no_refund_road_closure",
+          "amount": 0.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 8420,
+          "latency_ms": 59634,
+          "wall_ms": 20168
+        },
+        {
+          "outcome": "no_refund_road_closure",
+          "amount": 0.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 8352,
+          "latency_ms": 89945,
+          "wall_ms": 32212
+        }
+      ],
+      "outcome": "no_refund_road_closure",
+      "amount": 0.0,
+      "escalated": false,
+      "consistent": true,
+      "tokens": 8420,
+      "wall_ms": 20168,
+      "category": "route_deviation",
+      "label_outcome": "no_refund_road_closure",
+      "label_amount": 0.0,
+      "outcome_match": true,
+      "amount_match": true
+    },
+    {
+      "dispute_id": "disp_sf_000",
+      "runs": [
+        {
+          "outcome": "escalate",
+          "amount": 0.0,
+          "escalated": true,
+          "escalation_reason": "safety_category",
+          "tokens": 0,
+          "latency_ms": 0,
+          "wall_ms": 1
+        },
+        {
+          "outcome": "escalate",
+          "amount": 0.0,
+          "escalated": true,
+          "escalation_reason": "safety_category",
+          "tokens": 0,
+          "latency_ms": 0,
+          "wall_ms": 0
+        }
+      ],
+      "outcome": "escalate",
+      "amount": 0.0,
+      "escalated": true,
+      "consistent": true,
+      "tokens": 0,
+      "wall_ms": 1,
+      "category": "safety",
+      "label_outcome": "escalate",
+      "label_amount": 0.0,
+      "outcome_match": true,
+      "amount_match": true
+    },
+    {
+      "dispute_id": "disp_sf_001",
+      "runs": [
+        {
+          "outcome": "escalate",
+          "amount": 0.0,
+          "escalated": true,
+          "escalation_reason": "safety_category",
+          "tokens": 0,
+          "latency_ms": 0,
+          "wall_ms": 1
+        },
+        {
+          "outcome": "escalate",
+          "amount": 0.0,
+          "escalated": true,
+          "escalation_reason": "safety_category",
+          "tokens": 0,
+          "latency_ms": 0,
+          "wall_ms": 0
+        }
+      ],
+      "outcome": "escalate",
+      "amount": 0.0,
+      "escalated": true,
+      "consistent": true,
+      "tokens": 0,
+      "wall_ms": 1,
+      "category": "safety",
+      "label_outcome": "escalate",
+      "label_amount": 0.0,
+      "outcome_match": true,
+      "amount_match": true
+    },
+    {
+      "dispute_id": "disp_sf_002",
+      "runs": [
+        {
+          "outcome": "escalate",
+          "amount": 0.0,
+          "escalated": true,
+          "escalation_reason": "safety_category",
+          "tokens": 0,
+          "latency_ms": 0,
+          "wall_ms": 0
+        },
+        {
+          "outcome": "escalate",
+          "amount": 0.0,
+          "escalated": true,
+          "escalation_reason": "safety_category",
+          "tokens": 0,
+          "latency_ms": 0,
+          "wall_ms": 0
+        }
+      ],
+      "outcome": "escalate",
+      "amount": 0.0,
+      "escalated": true,
+      "consistent": true,
+      "tokens": 0,
+      "wall_ms": 0,
+      "category": "safety",
+      "label_outcome": "escalate",
+      "label_amount": 0.0,
+      "outcome_match": true,
+      "amount_match": true
+    },
+    {
+      "dispute_id": "disp_sf_003",
+      "runs": [
+        {
+          "outcome": "escalate",
+          "amount": 0.0,
+          "escalated": true,
+          "escalation_reason": "safety_category",
+          "tokens": 0,
+          "latency_ms": 0,
+          "wall_ms": 0
+        },
+        {
+          "outcome": "escalate",
+          "amount": 0.0,
+          "escalated": true,
+          "escalation_reason": "safety_category",
+          "tokens": 0,
+          "latency_ms": 0,
+          "wall_ms": 0
+        }
+      ],
+      "outcome": "escalate",
+      "amount": 0.0,
+      "escalated": true,
+      "consistent": true,
+      "tokens": 0,
+      "wall_ms": 0,
+      "category": "safety",
+      "label_outcome": "escalate",
+      "label_amount": 0.0,
+      "outcome_match": true,
+      "amount_match": true
+    },
+    {
+      "dispute_id": "disp_sf_004",
+      "runs": [
+        {
+          "outcome": "escalate",
+          "amount": 0.0,
+          "escalated": true,
+          "escalation_reason": "safety_category",
+          "tokens": 0,
+          "latency_ms": 0,
+          "wall_ms": 1
+        },
+        {
+          "outcome": "escalate",
+          "amount": 0.0,
+          "escalated": true,
+          "escalation_reason": "safety_category",
+          "tokens": 0,
+          "latency_ms": 0,
+          "wall_ms": 0
+        }
+      ],
+      "outcome": "escalate",
+      "amount": 0.0,
+      "escalated": true,
+      "consistent": true,
+      "tokens": 0,
+      "wall_ms": 1,
+      "category": "safety",
+      "label_outcome": "escalate",
+      "label_amount": 0.0,
+      "outcome_match": true,
+      "amount_match": true
+    },
+    {
+      "dispute_id": "disp_sf_005",
+      "runs": [
+        {
+          "outcome": "escalate",
+          "amount": 0.0,
+          "escalated": true,
+          "escalation_reason": "safety_category",
+          "tokens": 0,
+          "latency_ms": 0,
+          "wall_ms": 0
+        },
+        {
+          "outcome": "escalate",
+          "amount": 0.0,
+          "escalated": true,
+          "escalation_reason": "safety_category",
+          "tokens": 0,
+          "latency_ms": 0,
+          "wall_ms": 0
+        }
+      ],
+      "outcome": "escalate",
+      "amount": 0.0,
+      "escalated": true,
+      "consistent": true,
+      "tokens": 0,
+      "wall_ms": 0,
+      "category": "safety",
+      "label_outcome": "escalate",
       "label_amount": 0.0,
       "outcome_match": true,
       "amount_match": true
