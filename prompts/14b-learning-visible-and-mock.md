@@ -1,0 +1,7 @@
+Read CODEBUDDY.md. Two gaps found while checking step 14:
+
+1. Learning from overrides is invisible in the interface. After a reviewer overrides a ruling, the next similar case retrieves that override as its top precedent (`source: "override"`, case log `learned_from_override: true`), but the PRECEDENT bubble and the ruling card do not say so; the demo had to show it through the case-file API. In the PRECEDENT bubble, mark each precedent that came from a reviewer override (for example "Reviewer override of disp_fa_005") and show its similarity as a percentage; on the ruling card, when the top precedent came from an override, say "Learned from a reviewer override". Extend the UI field-coverage test from step 14 so it fails if precedent `source` is not rendered.
+
+2. The mock provider writes numbers that are not in the evidence. With LLM_PROVIDER=mock, disp_fa_005 escalates with guard_failure_advocate: both advocates' arguments say "0.00 km" although that fare case has no GPS evidence item, and the guard rejects the number. The mock is used by every test and by anyone running the app offline, so it must only state numbers that appear in the evidence items it cites. Fix the mock, then add a test that resolves all 48 cases with the mock provider and fails on any guard problem (safety escalations by design are fine). Make sure that test fails on the current code.
+
+Do not run real Gemini (an evaluation is running and shares the model quota). Commit and summarize.
