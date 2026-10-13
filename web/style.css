@@ -372,13 +372,14 @@ body {
 
 /* ---- Evidence panel ---- */
 .evidence-panel {
-  overflow-y: auto;
+  overflow: hidden;
 }
 
 .evidence-content {
   padding: 14px;
   overflow-y: auto;
   flex: 1;
+  min-height: 120px;
 }
 
 .evidence-section {
@@ -486,12 +487,35 @@ body {
   border-top: 2px solid var(--accent);
   padding: 14px;
   background: var(--surface);
-  flex-shrink: 0;
+  flex-shrink: 1;
   overflow-y: auto;
+  max-height: 60%;
+  min-height: 80px;
 }
 
 .ruling-card.hidden {
   display: none;
+}
+
+.ruling-card.collapsed {
+  max-height: 160px;
+  overflow-y: hidden;
+}
+
+.ruling-card.collapsed .ruling-details {
+  display: none;
+}
+
+.ruling-summary {
+  cursor: pointer;
+  user-select: none;
+}
+
+.ruling-toggle {
+  display: inline-block;
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-left: 8px;
 }
 
 .ruling-title {
@@ -699,6 +723,16 @@ body {
   background: #6d28d9;
 }
 
+.btn-rerun {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+}
+
+.btn-rerun:hover {
+  background: var(--accent-dark);
+}
+
 /* ---- Modals ---- */
 .modal {
   position: fixed;
@@ -777,7 +811,15 @@ body {
   }
 
   .evidence-panel {
-    min-height: 300px;
+    min-height: 400px;
+  }
+
+  .ruling-card {
+    max-height: none;
+  }
+
+  .ruling-card.collapsed {
+    max-height: none;
   }
 }
 

@@ -791,3 +791,130 @@ class TestUIFieldCoverage:
         assert 'precedent_matches' in js, (
             "The ruling card does not check precedent_matches for override source."
         )
+
+
+# ---------------------------------------------------------------------------
+# UI layout — evidence list and ruling card must coexist at 1440x810 / 1920x1080
+# ---------------------------------------------------------------------------
+
+
+class TestUILayout:
+    """Verify that the CSS and JS restructure the evidence panel so the
+    evidence list and ruling card have their own scroll areas, the ruling
+    card defaults to a collapsed summary, and clicking an E# chip collapses
+    the ruling card to bring the evidence item into view.
+
+    What a reviewer should see at each window size:
+    - 1920x1080: Ruling card collapsed (~160px tall) shows outcome, amount,
+      confidence bar, markers. Evidence list fills the remaining ~650px —
+      8+ evidence items visible. Clicking a chip collapses the card and
+      scrolls the evidence item into view. Clicking the summary expands
+      details (computation, reasoning, messages, buttons).
+    - 1440x810: Collapsed ruling card (~160px) + evidence list (~490px) —
+      5+ evidence items visible alongside the ruling summary.
+    - 1024px: Layout switches to stacked (media query). Each panel gets its
+      own section. The ruling card expands fully (no max-height in stacked
+      layout).
+    """
+
+    def _app_js(self, client) -> str:
+        res = client.get("/app.js")
+        assert res.status_code == 200
+        return res.text
+
+    def _style_css(self, client) -> str:
+        res = client.get("/style.css")
+        assert res.status_code == 200
+        return res.text
+
+    def test_ruling_card_has_collapsed_state(self, client):
+        """The ruling card must support a collapsed state so evidence is
+        visible alongside the ruling at 1440x810 and 1920x1080."""
+        js = self._app_js(client)
+        assert "collapsed" in js, (
+            "Ruling card must have a collapsed state so evidence items are "
+            "visible alongside the ruling summary."
+        )
+        css = self._style_css(client)
+        assert ".ruling-card.collapsed" in css, (
+            "CSS must define a .ruling-card.collapsed state."
+        )
+
+    def test_ruling_details_section(self, client):
+        """The ruling card must separate always-visible summary from
+        collapsible details (computation, reasoning, messages, buttons)."""
+        js = self._app_js(client)
+        assert "ruling-details" in js, (
+            "Ruling card must wrap collapsible content in a ruling-details section."
+        )
+        assert "ruling-summary" in js, (
+            "Ruling card must have a ruling-summary section that is always visible."
+        )
+
+    def test_ruling_card_defaults_collapsed(self, client):
+        """The ruling card must default to collapsed so evidence is visible
+        when a case is first displayed."""
+        js = self._app_js(client)
+        assert 'add("collapsed")' in js, (
+            "Ruling card must be collapsed by default on render."
+        )
+
+    def test_ruling_card_toggle(self, client):
+        """The ruling card summary must toggle expand/collapse on click."""
+        js = self._app_js(client)
+        assert "toggle" in js, (
+            "Ruling card summary must toggle the collapsed class on click."
+        )
+        assert "ruling-toggle" in js, (
+            "A toggle indicator must show whether details are expanded or collapsed."
+        )
+
+    def test_highlight_evidence_collapses_ruling(self, client):
+        """Clicking an E# chip must collapse the ruling card so the
+        evidence item is brought into view."""
+        js = self._app_js(client)
+        # highlightEvidence should reference the ruling card and collapsed class.
+        assert "ruling-card" in js, (
+            "highlightEvidence must reference the ruling card."
+        )
+        # The function should collapse the card before scrolling.
+        assert "collapsed" in js, (
+            "highlightEvidence must collapse the ruling card to show the evidence item."
+        )
+
+    def test_evidence_content_min_height(self, client):
+        """The evidence content must have a min-height so it never collapses
+        to near-zero when the ruling card is present."""
+        css = self._style_css(client)
+        assert "min-height: 120px" in css, (
+            "Evidence content must have min-height: 120px so at least a few "
+            "evidence items are always visible."
+        )
+
+    def test_ruling_card_max_height(self, client):
+        """The ruling card must have a max-height so it doesn't push the
+        evidence list out of view."""
+        css = self._style_css(client)
+        assert "max-height" in css, (
+            "Ruling card must have a max-height so the evidence list stays visible."
+        )
+
+    def test_evidence_panel_does_not_scroll_as_whole(self, client):
+        """The evidence panel must not scroll as a whole — children scroll
+        independently."""
+        css = self._style_css(client)
+        # The evidence-panel should use overflow: hidden, not overflow-y: auto.
+        # Find the .evidence-panel rule and check it doesn't use overflow-y: auto.
+        assert "overflow: hidden" in css or "overflow:hidden" in css, (
+            "Evidence panel must use overflow: hidden so children scroll "
+            "independently instead of the whole panel scrolling."
+        )
+
+    def test_ruling_card_flex_shrink(self, client):
+        """The ruling card must allow shrinking (flex-shrink != 0) so the
+        evidence content gets space."""
+        css = self._style_css(client)
+        assert "flex-shrink: 1" in css, (
+            "Ruling card must have flex-shrink: 1 (was flex-shrink: 0) so it "
+            "doesn't push the evidence content to near-zero height."
+        )

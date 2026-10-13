@@ -555,6 +555,14 @@ function highlightQuotes(text) {
 }
 
 function highlightEvidence(eid) {
+  // Collapse the ruling card so the evidence area has room.
+  const card = document.getElementById("ruling-card");
+  if (card && !card.classList.contains("collapsed")) {
+    card.classList.add("collapsed");
+    const toggle = card.querySelector(".ruling-toggle");
+    if (toggle) toggle.textContent = "Show details \u22BE";
+  }
+
   // Scroll to and flash the evidence item.
   const el = document.getElementById(`evidence-${eid}`);
   if (el) {
@@ -699,42 +707,25 @@ function renderRuling(data) {
   const confidencePct = Math.round((ruling.confidence || 0) * 100);
   const confidenceColor = confidencePct >= 70 ? "var(--success)" : "var(--warning)";
 
-  let html = "";
+  // --- Summary (always visible, click to toggle) ---
+  let summaryHtml = `<div class="ruling-summary">`;
 
   // Escalation banner (when escalated but a ruling still exists).
   if (data.escalated) {
-    html += `<div class="ruling-banner escalate">Escalated — ${escapeHtml(data.escalation_reason || "N/A")}</div>`;
+    summaryHtml += `<div class="ruling-banner escalate">Escalated — ${escapeHtml(data.escalation_reason || "N/A")}</div>`;
   }
 
   // Outcome and amount — human words with the code underneath in small text.
-  html += `<div class="ruling-row"><span class="label">Outcome</span><span class="value">${escapeHtml(humanOutcome(ruling.outcome))}<span class="outcome-code">${escapeHtml(ruling.outcome)}</span></span></div>`;
-  html += `<div class="ruling-row"><span class="label">Amount</span><span class="value">${formatMoney(ruling.amount)}</span></div>`;
+  summaryHtml += `<div class="ruling-row"><span class="label">Outcome</span><span class="value">${escapeHtml(humanOutcome(ruling.outcome))}<span class="outcome-code">${escapeHtml(ruling.outcome)}</span></span></div>`;
+  summaryHtml += `<div class="ruling-row"><span class="label">Amount</span><span class="value">${formatMoney(ruling.amount)}</span></div>`;
 
   // Confidence bar.
-  html += `<div class="ruling-row"><span class="label">Confidence</span><span class="value">${confidencePct}%</span></div>`;
-  html += `<div class="confidence-bar"><div class="confidence-fill" style="width:${confidencePct}%;background:${confidenceColor}"></div></div>`;
-
-  // Computation string from policy engine.
-  if (policy && policy.computation) {
-    html += `<div class="ruling-row"><span class="label">Computation</span></div>`;
-    html += `<div class="computation-string">${escapeHtml(policy.computation)}</div>`;
-  }
-
-  // Cited clauses — render all cites as chips (E# as evidence chips,
-  // P-# as policy chips), matching the courtroom's chip styling.
-  if (ruling.cites && ruling.cites.length > 0) {
-    html += `<div class="ruling-row"><span class="label">Citations</span></div>`;
-    html += `<div class="clauses">${ruling.cites.map((c) => {
-      const isPolicy = c.startsWith("P-");
-      const cls = isPolicy ? "chip policy" : "chip";
-      const clickable = !isPolicy ? ` onclick="highlightEvidence('${escapeHtml(c)}')" style="cursor:pointer"` : "";
-      return `<span class="${cls}"${clickable}>${escapeHtml(c)}</span>`;
-    }).join("")}</div>`;
-  }
+  summaryHtml += `<div class="ruling-row"><span class="label">Confidence</span><span class="value">${confidencePct}%</span></div>`;
+  summaryHtml += `<div class="confidence-bar"><div class="confidence-fill" style="width:${confidencePct}%;background:${confidenceColor}"></div></div>`;
 
   // Bad-faith marker (P-BF-1).
   if (ruling.bad_faith_mentioned) {
-    html += `<div class="ruling-marker bad-faith">Credibility lowered (P-BF-1)</div>`;
+    summaryHtml += `<div class="ruling-marker bad-faith">Credibility lowered (P-BF-1)</div>`;
   }
 
   // Precedent consistency.
@@ -744,7 +735,7 @@ function renderRuling(data) {
                   pc === "inconsistent" ? "Inconsistent with precedents" :
                   escapeHtml(pc);
     const cls = pc === "inconsistent" ? "ruling-marker inconsistent" : "ruling-marker consistent";
-    html += `<div class="${cls}">${label}</div>`;
+    summaryHtml += `<div class="${cls}">${label}</div>`;
   }
 
   // Learned from a reviewer override — when the top precedent came from an
@@ -752,31 +743,74 @@ function renderRuling(data) {
   if (data.precedent_matches && data.precedent_matches.length > 0) {
     const topPrec = data.precedent_matches[0];
     if (topPrec.source === "override") {
-      html += `<div class="ruling-marker learned-from-override">Learned from a reviewer override</div>`;
+      summaryHtml += `<div class="ruling-marker learned-from-override">Learned from a reviewer override</div>`;
     }
+  }
+
+  summaryHtml += `<span class="ruling-toggle">Show details \u22BE</span>`;
+  summaryHtml += `</div>`;
+
+  // --- Details (collapsible) ---
+  let detailsHtml = `<div class="ruling-details">`;
+
+  // Computation string from policy engine.
+  if (policy && policy.computation) {
+    detailsHtml += `<div class="ruling-row"><span class="label">Computation</span></div>`;
+    detailsHtml += `<div class="computation-string">${escapeHtml(policy.computation)}</div>`;
+  }
+
+  // Cited clauses — render all cites as chips (E# as evidence chips,
+  // P-# as policy chips), matching the courtroom's chip styling.
+  if (ruling.cites && ruling.cites.length > 0) {
+    detailsHtml += `<div class="ruling-row"><span class="label">Citations</span></div>`;
+    detailsHtml += `<div class="clauses">${ruling.cites.map((c) => {
+      const isPolicy = c.startsWith("P-");
+      const cls = isPolicy ? "chip policy" : "chip";
+      const clickable = !isPolicy ? ` onclick="highlightEvidence('${escapeHtml(c)}')" style="cursor:pointer"` : "";
+      return `<span class="${cls}"${clickable}>${escapeHtml(c)}</span>`;
+    }).join("")}</div>`;
   }
 
   // Judge's reasoning — displayed in full with citation chips.
   if (ruling.reasoning) {
-    html += `<div class="ruling-row"><span class="label">Reasoning</span></div>`;
-    html += `<div class="reasoning-block">${escapeHtml(ruling.reasoning)}</div>`;
+    detailsHtml += `<div class="ruling-row"><span class="label">Reasoning</span></div>`;
+    detailsHtml += `<div class="reasoning-block">${escapeHtml(ruling.reasoning)}</div>`;
   }
 
   // Messages.
   if (ruling.message_to_rider) {
-    html += `<div class="message-block"><div class="message-label">Message to Rider</div>${escapeHtml(ruling.message_to_rider)}</div>`;
+    detailsHtml += `<div class="message-block"><div class="message-label">Message to Rider</div>${escapeHtml(ruling.message_to_rider)}</div>`;
   }
   if (ruling.message_to_driver) {
-    html += `<div class="message-block"><div class="message-label">Message to Driver</div>${escapeHtml(ruling.message_to_driver)}</div>`;
+    detailsHtml += `<div class="message-block"><div class="message-label">Message to Driver</div>${escapeHtml(ruling.message_to_driver)}</div>`;
   }
 
-  // Escalate / Override buttons.
-  html += `<div class="ruling-actions">`;
-  html += `<button class="btn btn-escalate" onclick="escalateCase('${escapeHtml(data.dispute.dispute_id)}')">Escalate</button>`;
-  html += `<button class="btn btn-override" onclick="openOverrideModal()">Override</button>`;
-  html += `</div>`;
+  // Escalate / Override / Run Again buttons.
+  detailsHtml += `<div class="ruling-actions">`;
+  detailsHtml += `<button class="btn btn-escalate" onclick="escalateCase('${escapeHtml(data.dispute.dispute_id)}')">Escalate</button>`;
+  detailsHtml += `<button class="btn btn-override" onclick="openOverrideModal()">Override</button>`;
+  if (data.status === "ruled" || data.status === "escalated") {
+    detailsHtml += `<button class="btn btn-rerun" onclick="rerunCase('${escapeHtml(data.dispute.dispute_id)}')">Run Again</button>`;
+  }
+  detailsHtml += `</div>`;
 
-  body.innerHTML = html;
+  detailsHtml += `</div>`;
+
+  body.innerHTML = summaryHtml + detailsHtml;
+
+  // Default: collapsed so evidence is visible alongside the ruling.
+  card.classList.add("collapsed");
+
+  // Toggle handler on the summary header.
+  body.querySelector(".ruling-summary").addEventListener("click", () => {
+    card.classList.toggle("collapsed");
+    const toggle = body.querySelector(".ruling-toggle");
+    if (toggle) {
+      toggle.textContent = card.classList.contains("collapsed")
+        ? "Show details \u22BE"
+        : "Hide details \u22BD";
+    }
+  });
 }
 
 // ---- Escalate ----
@@ -799,6 +833,39 @@ async function escalateCase(disputeId) {
     }
   } catch (err) {
     console.error("Failed to escalate:", err);
+  }
+}
+
+// ---- Run Again (re-resolve a case, counts toward the cost guard) ----
+async function rerunCase(disputeId) {
+  if (!confirm("Re-run this case live? This consumes a resolve from the daily budget.")) return;
+  try {
+    const res = await fetch(`${API}/disputes/${disputeId}/resolve?force=true`, {
+      method: "POST",
+    });
+    if (res.status === 429) {
+      const err = await res.json();
+      addEventRow("system", err.detail || "Daily resolve limit reached.");
+      return;
+    }
+    if (!res.ok) {
+      const err = await res.json();
+      addEventRow("system", `Error: ${err.detail || res.statusText}`);
+      return;
+    }
+    const data = await res.json();
+    if (data.status === "resolving") {
+      // Clear the courtroom and subscribe to the new live run.
+      document.getElementById("courtroom-timeline").innerHTML = "";
+      document.getElementById("ruling-card").classList.add("hidden");
+      updateStatusBadge("resolving");
+      subscribeToEvents(disputeId);
+    } else {
+      await fetchCase(disputeId);
+    }
+  } catch (err) {
+    console.error("Failed to re-run case:", err);
+    addEventRow("system", "Failed to start re-run.");
   }
 }
 
