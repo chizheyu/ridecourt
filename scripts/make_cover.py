@@ -213,7 +213,7 @@ def render_cover(width: int = 1520, height: int = 864) -> Image.Image:
     tag_y = int(height * 0.82)
     _text_center(
         draw,
-        "Agents argue.  Code computes.  Fair rulings in seconds.",
+        "Agents argue.  Code computes.  Fair, explainable rulings.",
         cx, tag_y, tag_font, SLATE,
     )
 
