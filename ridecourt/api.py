@@ -127,6 +127,26 @@ class RateLimiter:
 _rate_limiter = RateLimiter(max_requests=20, window_seconds=3600)
 
 
+def _client_ip(request: Request) -> str:
+    """Extract the visitor's IP address from a request.
+
+    Behind Cloud Run, ``request.client.host`` is the address of Google's
+    front end, not the visitor.  Cloud Run appends the visitor's address as
+    the **last** entry of ``X-Forwarded-For``; earlier entries can be
+    forged and must be ignored.
+
+    Falls back to ``request.client.host`` when the header is absent.
+    """
+    xff = request.headers.get("x-forwarded-for", "")
+    if xff:
+        parts = [p.strip() for p in xff.split(",") if p.strip()]
+        if parts:
+            return parts[-1]
+    if request.client:
+        return request.client.host
+    return "unknown"
+
+
 # ---------------------------------------------------------------------------
 # Global daily cap on resolves (cost guard for the public demo)
 # ---------------------------------------------------------------------------
@@ -213,52 +233,30 @@ _STATUS_PRIORITY = {
 
 
 def _sla_priority(dispute_id: str) -> int:
-    """Priority score: lower = higher priority.
+    """Return a priority tier for a single dispute (lower = higher priority).
 
-    Formula: safety_first * 1000 + amount_at_stake * 10 + age_hours
-    Safety cases always at the top (priority 0).
-    Then higher amount at stake and older cases get higher priority.
+    0 = safety, then category tier (1-3).  The actual queue ordering and
+    rank assignment happens in ``list_disputes`` which sorts by a
+    multi-key tuple and assigns sequential ranks.
     """
     ds = _ds()
     disp = ds.dispute(dispute_id)
     if disp is None:
         return 99
+    return _CATEGORY_PRIORITY.get(disp.category, 9)
 
-    # Safety cases always at the top.
-    if disp.category == "safety":
-        return 0
 
-    cat_pri = _CATEGORY_PRIORITY.get(disp.category, 9) * 1000
+def _sla_sort_key(disp, amount: float):
+    """Sort key: (safety_first, category_tier, -amount, filed_at).
 
-    # Amount at stake: from ruling/policy if resolved, else trip fare.
-    amount = 0.0
-    trip = ds.trip(disp.trip_id)
-    if dispute_id in _case_files:
-        cf = _case_files[dispute_id]
-        if cf.ruling:
-            amount = cf.ruling.amount
-        elif cf.policy_result:
-            amount = cf.policy_result.amount
-    elif trip:
-        amount = trip.fare.total_charged
-
-    # Age in hours (older = more priority).
-    age_hours = 0.0
-    try:
-        from datetime import datetime, timezone
-        filed = datetime.fromisoformat(disp.filed_at)
-        if filed.tzinfo is None:
-            filed = filed.replace(tzinfo=timezone.utc)
-        now = datetime.now(timezone.utc)
-        age_hours = (now - filed).total_seconds() / 3600.0
-    except Exception:
-        age_hours = 0.0
-
-    # Lower score = higher priority. Safety=0, then category tier * 1000
-    # minus (amount * 10 + age_hours) so higher amount and age push to
-    # the front. We return max(1, ...) so safety stays at 0.
-    score = cat_pri - int(amount * 10 + age_hours)
-    return max(1, min(score, 9999))
+    Lower is higher priority:
+    - Safety cases (tier 0) come first.
+    - Then category tier (route_deviation=1, no_show=2, fare_error=3).
+    - Then higher amount at stake (negated so larger amounts sort first).
+    - Then older filed_at (ascending = older first).
+    """
+    tier = _CATEGORY_PRIORITY.get(disp.category, 9)
+    return (tier, -amount, disp.filed_at)
 
 
 # ---------------------------------------------------------------------------
@@ -331,14 +329,24 @@ def create_app() -> FastAPI:
                 "claim_text": disp.claim_text,
                 "filed_at": disp.filed_at,
                 "status": status,
-                "priority": _sla_priority(did),
+                "priority": 0,  # assigned after sorting
                 "amount": round(amount, 2),
                 "pickup": trip.pickup.model_dump() if trip else None,
                 "dropoff": trip.dropoff.model_dump() if trip else None,
+                "_sort_amount": amount,
             })
 
-        # Sort by SLA priority, then by filed_at (age).
-        items.sort(key=lambda x: (x["priority"], x["filed_at"]))
+        # Sort by: safety first, then category tier, then amount
+        # (higher first), then age (older first).
+        items.sort(key=lambda x: _sla_sort_key(
+            ds.dispute(x["dispute_id"]), x["_sort_amount"],
+        ))
+
+        # Assign sequential ranks as the priority badge value.
+        for rank, item in enumerate(items, start=1):
+            item["priority"] = rank
+            del item["_sort_amount"]
+
         return {"disputes": items, "total": len(items)}
 
     # ------------------------------------------------------------------
@@ -396,7 +404,7 @@ def create_app() -> FastAPI:
             )
 
         # Rate limit per IP.
-        client_ip = request.client.host if request.client else "unknown"
+        client_ip = _client_ip(request)
         if not _rate_limiter.check(client_ip):
             raise HTTPException(
                 status_code=429,

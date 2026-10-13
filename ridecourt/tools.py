@@ -431,24 +431,45 @@ def gps_analysis(trip: Trip) -> list[dict]:
     optimal_min = trip.optimal_route.duration_min
     extra_km = round(actual_km - optimal_km, 4)
     extra_min = round(actual_min - optimal_min, 1)
+    # Normalise negative-zero / tiny-negative to positive-zero so text
+    # never shows "-0.0".  A floating-point difference like -0.001 km
+    # rounds to "-0.00 km" and "-0.0%" which looks wrong to a reader.
+    if abs(extra_km) < 0.005:
+        extra_km = 0.0
+    if abs(extra_min) < 0.05:
+        extra_min = 0.0
     pct = (
         round(extra_km / optimal_km * 100, 2)
         if optimal_km > 0
         else 0.0
     )
+    if abs(pct) < 0.05:
+        pct = 0.0
     detour = _find_detour_segment(trip.gps_trace, trip.pickup, trip.dropoff)
     stops = _detect_unexpected_stops(trip.gps_trace, trip.pickup, trip.dropoff)
 
     items: list[dict] = []
+
+    # Human-readable duration text: never show a negative "extra".
+    if extra_min >= 0:
+        dur_text = f"{extra_min:.1f} min extra"
+    else:
+        dur_text = f"{abs(extra_min):.1f} min shorter than the optimal route"
+
+    # Human-readable distance text: never show a negative "extra".
+    if extra_km >= 0:
+        dist_text = f"{extra_km:.2f} km extra"
+    else:
+        dist_text = f"{abs(extra_km):.2f} km shorter than the optimal route"
 
     items.append({
         "kind": "gps_analysis",
         "summary": (
             f"Actual distance {actual_km:.2f} km vs optimal "
             f"{optimal_km:.2f} km; deviation {pct:.1f}% "
-            f"({extra_km:.2f} km extra). "
+            f"({dist_text}). "
             f"Actual duration {actual_min:.1f} min vs optimal "
-            f"{optimal_min:.1f} min ({extra_min:.1f} min extra)."
+            f"{optimal_min:.1f} min ({dur_text})."
         ),
         "data": {
             "distance_actual_km": round(actual_km, 4),

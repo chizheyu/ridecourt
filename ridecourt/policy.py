@@ -305,12 +305,22 @@ def evaluate(
     Returns a single ``PolicyResult``.  For route deviation the refund
     formula from P-RD-1 is computed here (the clause function only checks
     whether the deviation is significant).
+
+    For every non-safety category, P-BF-1 (bad faith) is also evaluated
+    on the claimant: when the claimant is flagged (3+ upheld disputes of
+    the same type in 90d), ``"P-BF-1"`` is added to ``applicable_clauses``
+    and the credibility note is appended to ``computation``.  This does
+    not change the outcome or the amount — P-BF-1 only lowers credibility,
+    and the Judge must say so explicitly (SPEC section 5).
     """
     category = dispute.category
     fare_params = fare_params or trip.fare
 
     if category == "safety":
         return clause_sf_1(facts)
+
+    # Determine the claimant ID for the bad-faith check.
+    claimant_id = trip.rider_id if dispute.filed_by == "rider" else trip.driver_id
 
     if category == "route_deviation":
         # Check exclusions first (P-RD-2, road closure).
@@ -321,9 +331,9 @@ def evaluate(
                 "P-RD-2 applies: rider requested a route change — "
                 "no deviation refund."
             )
-            return res
-        if facts.road_closure:
-            return PolicyResult(
+            result = res
+        elif facts.road_closure:
+            result = PolicyResult(
                 applicable_clauses=["P-RD-1"],
                 outcome="no_refund_road_closure",
                 amount=0.0,
@@ -332,46 +342,59 @@ def evaluate(
                     "no refund."
                 ),
             )
+        else:
+            # Standard deviation check
+            check = clause_rd_1(facts)
+            if check.outcome == "no_deviation":
+                result = check
+            else:
+                # Deviation is significant — compute refund
+                refund = _route_deviation_refund(facts, fare_params)
+                extra_km = max(0.0, facts.distance_actual_km - facts.distance_optimal_km)
+                extra_min = max(0.0, facts.extra_min)
+                per_km = fare_params.per_km
+                per_min = fare_params.per_min
+                surge = fare_params.surge_multiplier
+                comp = (
+                    f"extra_km=max(0,{facts.distance_actual_km - facts.distance_optimal_km:.2f})"
+                    f"={extra_km:.2f} × S${per_km:.2f}/km = S${extra_km * per_km:.2f}; "
+                    f"extra_min=max(0,{facts.extra_min:.1f})={extra_min:.1f} "
+                    f"× S${per_min:.2f}/min = S${extra_min * per_min:.2f}; "
+                    f"sum × surge {surge:.1f} = S${refund:.2f}"
+                )
+                result = PolicyResult(
+                    applicable_clauses=["P-RD-1"],
+                    outcome="refund_route_deviation",
+                    amount=refund,
+                    computation=comp,
+                )
 
-        # Standard deviation check
-        check = clause_rd_1(facts)
-        if check.outcome == "no_deviation":
-            return check
+    elif category == "no_show_driver":
+        result = clause_ns_1(facts)
 
-        # Deviation is significant — compute refund
-        refund = _route_deviation_refund(facts, fare_params)
-        extra_km = max(0.0, facts.distance_actual_km - facts.distance_optimal_km)
-        extra_min = max(0.0, facts.extra_min)
-        per_km = fare_params.per_km
-        per_min = fare_params.per_min
-        surge = fare_params.surge_multiplier
-        comp = (
-            f"extra_km=max(0,{facts.distance_actual_km - facts.distance_optimal_km:.2f})"
-            f"={extra_km:.2f} × S${per_km:.2f}/km = S${extra_km * per_km:.2f}; "
-            f"extra_min=max(0,{facts.extra_min:.1f})={extra_min:.1f} "
-            f"× S${per_min:.2f}/min = S${extra_min * per_min:.2f}; "
-            f"sum × surge {surge:.1f} = S${refund:.2f}"
+    elif category == "no_show_rider":
+        result = clause_ns_2(facts)
+
+    elif category == "fare_error":
+        result = clause_fa_1(facts)
+
+    else:
+        # Fallback
+        result = PolicyResult(
+            applicable_clauses=[],
+            outcome="unknown_category",
+            amount=0.0,
+            computation=f"Unknown category: {category}",
         )
-        return PolicyResult(
-            applicable_clauses=["P-RD-1"],
-            outcome="refund_route_deviation",
-            amount=refund,
-            computation=comp,
+
+    # --- Apply P-BF-1 (bad faith) to the claimant for non-safety categories ---
+    bf = clause_bf_1(profiles, claimant_id)
+    if bf.outcome == "bad_faith_flagged":
+        if "P-BF-1" not in result.applicable_clauses:
+            result.applicable_clauses = list(result.applicable_clauses) + ["P-BF-1"]
+        result.computation = (
+            result.computation
+            + " " + bf.computation
         )
 
-    if category == "no_show_driver":
-        return clause_ns_1(facts)
-
-    if category == "no_show_rider":
-        return clause_ns_2(facts)
-
-    if category == "fare_error":
-        return clause_fa_1(facts)
-
-    # Fallback
-    return PolicyResult(
-        applicable_clauses=[],
-        outcome="unknown_category",
-        amount=0.0,
-        computation=f"Unknown category: {category}",
-    )
+    return result

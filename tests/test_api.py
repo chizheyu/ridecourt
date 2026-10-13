@@ -131,6 +131,57 @@ class TestListDisputes:
         priorities = [d["priority"] for d in disputes]
         assert priorities == sorted(priorities)
 
+    def test_priority_differs_between_cases(self, client):
+        """SLA priority must not be the same value for every case.
+
+        Defect 2: the old formula clamped every non-safety case to 1
+        because age_hours dominated the category tier. The synthetic
+        disputes have filed_at dates far in the past, so the badge showed
+        "1" on every non-safety row.
+        """
+        res = client.get("/api/disputes")
+        disputes = res.json()["disputes"]
+        non_safety = [d for d in disputes if d["category"] != "safety"]
+        priorities = [d["priority"] for d in non_safety]
+        # There should be more than one distinct priority value.
+        assert len(set(priorities)) > 1, (
+            f"All non-safety cases have priority {priorities[0]} — "
+            "the SLA badge is meaningless."
+        )
+
+    def test_safety_has_lowest_priority_number(self, client):
+        """Safety cases must have the smallest priority numbers (top of queue)."""
+        res = client.get("/api/disputes")
+        disputes = res.json()["disputes"]
+        safety_pris = [d["priority"] for d in disputes if d["category"] == "safety"]
+        non_safety_pris = [d["priority"] for d in disputes if d["category"] != "safety"]
+        if safety_pris and non_safety_pris:
+            assert max(safety_pris) < min(non_safety_pris), (
+                f"Safety priorities {safety_pris} must all be below "
+                f"non-safety {non_safety_pris[:5]}..."
+            )
+
+    def test_sort_order_is_safety_then_category_then_amount_then_age(self, client):
+        """The queue must be sorted: safety first, then category tier,
+        then amount (higher first), then age (older first)."""
+        res = client.get("/api/disputes")
+        disputes = res.json()["disputes"]
+        # Build expected sort key.
+        cat_tier = {
+            "safety": 0,
+            "route_deviation": 1,
+            "no_show_driver": 2,
+            "no_show_rider": 2,
+            "fare_error": 3,
+        }
+        keys = []
+        for d in disputes:
+            tier = cat_tier.get(d["category"], 9)
+            keys.append((tier, -d["amount"], d["filed_at"]))
+        assert keys == sorted(keys), (
+            "Disputes are not sorted by (safety, category, -amount, filed_at)"
+        )
+
 
 # ---------------------------------------------------------------------------
 # Resolve
@@ -448,8 +499,77 @@ class TestDailyResolveCap:
 
 
 # ---------------------------------------------------------------------------
-# File dispute
+# Per-IP rate limit behind Cloud Run (X-Forwarded-For)
 # ---------------------------------------------------------------------------
+
+
+class TestRateLimitForwardedFor:
+    def test_uses_last_xff_entry_as_client_ip(self, client):
+        """Cloud Run appends the visitor's address as the last entry of
+        X-Forwarded-For. Earlier entries can be forged and must be ignored.
+
+        A header "1.2.3.4, 203.0.113.9" must count as 203.0.113.9.
+        """
+        from ridecourt.api import _client_ip
+
+        # Simulate a request with a forged X-Forwarded-For.
+        class _Req:
+            class client:
+                host = "10.0.0.1"  # Cloud Run frontend IP
+            headers = {"x-forwarded-for": "1.2.3.4, 203.0.113.9"}
+
+        ip = _client_ip(_Req())
+        assert ip == "203.0.113.9", (
+            f"Expected 203.0.113.9 (last entry), got {ip}"
+        )
+
+    def test_falls_back_to_client_host_without_xff(self, client):
+        from ridecourt.api import _client_ip
+
+        class _Req:
+            class client:
+                host = "10.0.0.1"
+            headers = {}
+
+        ip = _client_ip(_Req())
+        assert ip == "10.0.0.1"
+
+    def test_forged_xff_counts_as_last_ip(self, client, first_dispute_id):
+        """Two resolves with a forged header "1.2.3.4, 203.0.113.9" must
+        rate-limit the 21st request from that IP (203.0.113.9), not from
+        1.2.3.4 or the frontend IP.
+
+        This fails on the current code: request.client.host is the same
+        for all visitors behind Cloud Run, so they share one bucket.
+        """
+        _daily_cap.cap = 300  # ensure cap doesn't interfere
+        list_res = client.get("/api/disputes")
+        all_ids = [d["dispute_id"] for d in list_res.json()["disputes"]]
+
+        # Reset state to avoid "already resolved" — use fresh disputes.
+        _case_files.clear()
+        _case_status.clear()
+        _rate_limiter._hits.clear()
+
+        headers = {"X-Forwarded-For": "1.2.3.4, 203.0.113.9"}
+        for i, did in enumerate(all_ids):
+            res = client.post(
+                f"/api/disputes/{did}/resolve",
+                headers=headers,
+            )
+            # The rate limiter allows 20 requests; the 21st must be blocked.
+            if i < 20:
+                assert res.status_code == 200, (
+                    f"Request {i+1} from 203.0.113.9 should be allowed, "
+                    f"got {res.status_code}"
+                )
+            else:
+                assert res.status_code == 429, (
+                    f"Request {i+1} from 203.0.113.9 should be rate-limited, "
+                    f"got {res.status_code}"
+                )
+                assert "Rate limit" in res.json().get("detail", "")
+                break
 
 
 class TestFileDispute:
