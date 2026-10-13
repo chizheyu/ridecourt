@@ -26,6 +26,7 @@ EscalationReason = Literal[
     "outcome_mismatch",
     "safety_category",
     "agent_policy_disagreement",
+    "model_unavailable",
     "system_error",
     "unknown",
 ]

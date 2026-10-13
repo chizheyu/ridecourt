@@ -308,9 +308,57 @@ class Orchestrator:
             driver_result = driver_future.result()
             fraud_result = fraud_future.result()
 
-        rider_case, rider_meta, rider_problems = rider_result
-        driver_case, driver_meta, driver_problems = driver_result
-        risk_output, risk_meta, risk_assessment = fraud_result
+        rider_case, rider_meta, rider_problems, rider_err = rider_result
+        driver_case, driver_meta, driver_problems, driver_err = driver_result
+        risk_output, risk_meta, risk_assessment, fraud_err = fraud_result
+
+        # --- Required step: advocate claims ------------------------------
+        # If an advocate's LLM call failed after retries, escalate with
+        # reason ``model_unavailable`` instead of crashing the case.
+        if rider_err is not None or driver_err is not None:
+            reason = "model_unavailable"
+            errors: dict[str, str] = {}
+            if rider_err is not None:
+                errors["rider_advocate"] = str(rider_err)
+            if driver_err is not None:
+                errors["driver_advocate"] = str(driver_err)
+            summary = neutral_case_summary(
+                dispute.claim_text, pack, policy_result,
+                reason=reason,
+            )
+            esc = Escalation(
+                case_id=dispute.dispute_id,
+                reason=reason,
+                summary=summary,
+            )
+            self.escalation_queue.add(esc)
+            log.emit(
+                "ESCALATION",
+                from_agent="orchestrator",
+                content={
+                    "reason": reason,
+                    "summary": summary,
+                    "errors": errors,
+                },
+            )
+            cf = CaseFile(
+                dispute_id=dispute.dispute_id,
+                dispute=dispute,
+                evidence_pack=pack,
+                rider_case=rider_case,
+                driver_case=driver_case,
+                policy_result=policy_result,
+                escalated=True,
+                escalation_reason=reason,
+                risk_output=risk_output,
+                risk_assessment=risk_assessment,
+                precedent_matches=precedent_matches,
+                escalation=esc,
+                events=log,
+                total_tokens=budget.spent,
+                total_latency_ms=log.total_latency_ms(),
+            )
+            return cf
 
         # Record CLAIM events.
         if rider_case is not None:
@@ -344,6 +392,40 @@ class Orchestrator:
                 cites=risk_cites,
                 tokens=getattr(risk_meta, "tokens", 0),
                 latency_ms=getattr(risk_meta, "latency_ms", 0),
+            )
+        elif risk_assessment is not None:
+            # The Fraud agent's LLM explanation failed, but the
+            # deterministic risk level still reaches the Judge.
+            risk_cites: list[str] = []
+            for s in risk_assessment.signals:
+                risk_cites.extend(s.cites)
+            log.emit(
+                "RISK_SIGNAL",
+                from_agent="fraud_agent",
+                to_agent="judge",
+                content={
+                    "risk": risk_assessment.risk,
+                    "signals": [
+                        {"text": s.text, "cites": s.cites}
+                        for s in risk_assessment.signals
+                    ],
+                    "claimant_id": claimant_id,
+                    "source": "deterministic_only",
+                },
+                cites=risk_cites,
+            )
+        # If the Fraud agent failed (fraud_err is not None), emit a
+        # STEP_SKIPPED event so the case log records what happened.
+        if fraud_err is not None:
+            log.emit(
+                "STEP_SKIPPED",
+                from_agent="orchestrator",
+                content={
+                    "step": "fraud_agent",
+                    "reason": "model_unavailable",
+                    "error": str(fraud_err),
+                    "deterministic_assessment": "retained",
+                },
             )
 
         # If either advocate failed the guard after re-ask, escalate.
@@ -402,13 +484,25 @@ class Orchestrator:
             rider_reb = rider_reb_future.result()
             driver_reb = driver_reb_future.result()
 
-        rider_rebuttal, rider_reb_meta, rider_reb_problems = rider_reb
-        driver_rebuttal, driver_reb_meta, driver_reb_problems = driver_reb
+        rider_rebuttal, rider_reb_meta, rider_reb_problems, rider_reb_err = rider_reb
+        driver_rebuttal, driver_reb_meta, driver_reb_problems, driver_reb_err = driver_reb
 
         if rider_rebuttal is not None:
             self._emit_advocate_event(
                 log, "REBUTTAL", "rider_advocate", "judge",
                 rider_rebuttal, rider_reb_meta, rider_reb_problems,
+            )
+        elif rider_reb_err is not None:
+            # Rebuttal dropped: model unavailable after retries.
+            log.emit(
+                "STEP_SKIPPED",
+                from_agent="orchestrator",
+                content={
+                    "agent": "rider_advocate",
+                    "stage": "rebuttal",
+                    "reason": "model_unavailable",
+                    "error": str(rider_reb_err),
+                },
             )
         else:
             # Rebuttal guard failed after re-ask — drop it and continue.
@@ -425,6 +519,18 @@ class Orchestrator:
             self._emit_advocate_event(
                 log, "REBUTTAL", "driver_advocate", "judge",
                 driver_rebuttal, driver_reb_meta, driver_reb_problems,
+            )
+        elif driver_reb_err is not None:
+            # Rebuttal dropped: model unavailable after retries.
+            log.emit(
+                "STEP_SKIPPED",
+                from_agent="orchestrator",
+                content={
+                    "agent": "driver_advocate",
+                    "stage": "rebuttal",
+                    "reason": "model_unavailable",
+                    "error": str(driver_reb_err),
+                },
             )
         else:
             # Rebuttal guard failed after re-ask — drop it and continue.
@@ -443,14 +549,59 @@ class Orchestrator:
         # only on initial-claim guard failure or Judge ruling guard failure.
 
         # --- 6. Judge ----------------------------------------------------
+        # The Judge is a required step.  If the LLM fails after retries,
+        # escalate with reason ``model_unavailable`` instead of raising.
         t0 = time.monotonic()
-        judge_output, judge_meta = self.judge.build(
-            dispute.claim_text, pack,
-            rider_case, driver_case,
-            policy_result,
-            risk=risk_output,
-            precedents=precedent_matches,
-        )
+        try:
+            judge_output, judge_meta = self.judge.build(
+                dispute.claim_text, pack,
+                rider_case, driver_case,
+                policy_result,
+                risk=risk_output if risk_output is not None else risk_assessment,
+                precedents=precedent_matches,
+            )
+        except LLMError as exc:
+            reason = "model_unavailable"
+            summary = neutral_case_summary(
+                dispute.claim_text, pack, policy_result,
+                reason=reason,
+            )
+            esc = Escalation(
+                case_id=dispute.dispute_id,
+                reason=reason,
+                summary=summary,
+            )
+            self.escalation_queue.add(esc)
+            log.emit(
+                "ESCALATION",
+                from_agent="orchestrator",
+                content={
+                    "reason": reason,
+                    "summary": summary,
+                    "step": "judge",
+                    "error": str(exc),
+                },
+            )
+            cf = CaseFile(
+                dispute_id=dispute.dispute_id,
+                dispute=dispute,
+                evidence_pack=pack,
+                rider_case=rider_case,
+                driver_case=driver_case,
+                rider_rebuttal=rider_rebuttal,
+                driver_rebuttal=driver_rebuttal,
+                policy_result=policy_result,
+                escalated=True,
+                escalation_reason=reason,
+                risk_output=risk_output,
+                risk_assessment=risk_assessment,
+                precedent_matches=precedent_matches,
+                escalation=esc,
+                events=log,
+                total_tokens=budget.spent,
+                total_latency_ms=log.total_latency_ms(),
+            )
+            return cf
         judge_latency = monotonic_ms(t0)
 
         # Guard check on judge output — the Judge sees the whole pack,
@@ -463,13 +614,56 @@ class Orchestrator:
         if judge_problems:
             # Re-ask the Judge once.
             t0 = time.monotonic()
-            judge_output, judge_meta = self.judge.build(
-                dispute.claim_text, pack,
-                rider_case, driver_case,
-                policy_result,
-                risk=risk_output,
-                precedents=precedent_matches,
-            )
+            try:
+                judge_output, judge_meta = self.judge.build(
+                    dispute.claim_text, pack,
+                    rider_case, driver_case,
+                    policy_result,
+                    risk=risk_output if risk_output is not None else risk_assessment,
+                    precedents=precedent_matches,
+                )
+            except LLMError as exc:
+                reason = "model_unavailable"
+                summary = neutral_case_summary(
+                    dispute.claim_text, pack, policy_result,
+                    reason=reason,
+                )
+                esc = Escalation(
+                    case_id=dispute.dispute_id,
+                    reason=reason,
+                    summary=summary,
+                )
+                self.escalation_queue.add(esc)
+                log.emit(
+                    "ESCALATION",
+                    from_agent="orchestrator",
+                    content={
+                        "reason": reason,
+                        "summary": summary,
+                        "step": "judge_reask",
+                        "error": str(exc),
+                    },
+                )
+                cf = CaseFile(
+                    dispute_id=dispute.dispute_id,
+                    dispute=dispute,
+                    evidence_pack=pack,
+                    rider_case=rider_case,
+                    driver_case=driver_case,
+                    rider_rebuttal=rider_rebuttal,
+                    driver_rebuttal=driver_rebuttal,
+                    policy_result=policy_result,
+                    escalated=True,
+                    escalation_reason=reason,
+                    risk_output=risk_output,
+                    risk_assessment=risk_assessment,
+                    precedent_matches=precedent_matches,
+                    escalation=esc,
+                    events=log,
+                    total_tokens=budget.spent,
+                    total_latency_ms=log.total_latency_ms(),
+                )
+                return cf
             judge_latency += monotonic_ms(t0)
             judge_problems_2 = _guard_check(
                 judge_output, pack, policy_ids, policy_result=policy_result,
@@ -633,14 +827,20 @@ class Orchestrator:
         pack: EvidencePack,
         policy_result: PolicyResult,
         policy_ids: list[str],
-    ) -> tuple[AdvocateOutput | None, Any, list[Problem]]:
+    ) -> tuple[AdvocateOutput | None, Any, list[Problem], LLMError | None]:
         """Call an advocate, run the guard, re-ask once, return result.
 
-        Returns ``(output_or_None, meta, problems)``.
-        If the output is None, the guard failed twice.
+        Returns ``(output_or_None, meta, problems, model_error)``.
+        If *output* is None, the guard failed twice or the model was
+        unavailable.  When *model_error* is not None, the advocate's LLM
+        call failed after retries and the case should escalate with
+        reason ``model_unavailable``.
         """
         t0 = time.monotonic()
-        output, meta = advocate.build(claim_text, pack, policy_result)
+        try:
+            output, meta = advocate.build(claim_text, pack, policy_result)
+        except LLMError as exc:
+            return None, None, [], exc
         problems = _guard_check(output, pack, policy_ids, policy_result=policy_result)
         # Record latency on the first call.
         meta.latency_ms += monotonic_ms(t0)  # accumulate for re-ask if any
@@ -648,16 +848,19 @@ class Orchestrator:
         if problems:
             # Re-ask once.
             t0 = time.monotonic()
-            output2, meta2 = advocate.build(claim_text, pack, policy_result)
+            try:
+                output2, meta2 = advocate.build(claim_text, pack, policy_result)
+            except LLMError as exc:
+                return None, meta, problems, exc
             problems2 = _guard_check(
                 output2, pack, policy_ids, policy_result=policy_result,
             )
             meta2.latency_ms += monotonic_ms(t0)
             if problems2:
-                return None, meta2, problems2
-            return output2, meta2, problems2
+                return None, meta2, problems2, None
+            return output2, meta2, problems2, None
 
-        return output, meta, problems
+        return output, meta, problems, None
 
     def _rebuttal_guarded(
         self,
@@ -667,29 +870,40 @@ class Orchestrator:
         opponent: AdvocateOutput,
         policy_result: PolicyResult,
         policy_ids: list[str],
-    ) -> tuple[AdvocateOutput | None, Any, list[Problem]]:
-        """Call rebuttal, run the guard, re-ask once, return result."""
+    ) -> tuple[AdvocateOutput | None, Any, list[Problem], LLMError | None]:
+        """Call rebuttal, run the guard, re-ask once, return result.
+
+        Rebuttals are optional: if the model is unavailable after retries,
+        the rebuttal is dropped (output=None) and *model_error* carries
+        the exception so the caller can emit a STEP_SKIPPED event.
+        """
         t0 = time.monotonic()
-        output, meta = advocate.rebut(
-            claim_text, pack, opponent, policy_result,
-        )
+        try:
+            output, meta = advocate.rebut(
+                claim_text, pack, opponent, policy_result,
+            )
+        except LLMError as exc:
+            return None, None, [], exc
         problems = _guard_check(output, pack, policy_ids, policy_result=policy_result)
         meta.latency_ms += monotonic_ms(t0)
 
         if problems:
             t0 = time.monotonic()
-            output2, meta2 = advocate.rebut(
-                claim_text, pack, opponent, policy_result,
-            )
+            try:
+                output2, meta2 = advocate.rebut(
+                    claim_text, pack, opponent, policy_result,
+                )
+            except LLMError as exc:
+                return None, meta, problems, exc
             problems2 = _guard_check(
                 output2, pack, policy_ids, policy_result=policy_result,
             )
             meta2.latency_ms += monotonic_ms(t0)
             if problems2:
-                return None, meta2, problems2
-            return output2, meta2, problems2
+                return None, meta2, problems2, None
+            return output2, meta2, problems2, None
 
-        return output, meta, problems
+        return output, meta, problems, None
 
     # -- Fraud agent helper -----------------------------------------------
 
@@ -701,14 +915,35 @@ class Orchestrator:
         claimant_id: str,
         claimant_party: str,
         category: str,
-    ) -> tuple[FraudOutput | None, Any, FraudAssessment]:
-        """Run the fraud agent. The assessment is deterministic so the
-        guard is not needed — the signals cite real evidence IDs."""
-        output, meta, assessment = self.fraud_agent.build(
-            claim_text, pack, facts, self.dataset.profiles,
-            claimant_id, claimant_party, category,
-        )
-        return output, meta, assessment
+    ) -> tuple[FraudOutput | None, Any, FraudAssessment, LLMError | None]:
+        """Run the fraud agent.
+
+        The deterministic assessment is computed first so the risk level
+        always reaches the Judge even if the LLM explanation fails.  The
+        guard is not needed — the signals cite real evidence IDs.
+
+        Returns ``(output_or_None, meta, assessment, model_error)``.  If
+        the LLM call fails after retries, *output* is None and
+        *model_error* carries the exception; *assessment* is still
+        populated so the Judge receives the deterministic risk level.
+        """
+        try:
+            output, meta, assessment = self.fraud_agent.build(
+                claim_text, pack, facts, self.dataset.profiles,
+                claimant_id, claimant_party, category,
+            )
+            return output, meta, assessment, None
+        except LLMError as exc:
+            # The deterministic assessment may or may not have been
+            # computed before the LLM call failed.  Re-compute it so the
+            # Judge always gets the risk level.
+            from .fraud import compute_fraud_signals
+            assessment = compute_fraud_signals(
+                pack, facts, self.dataset.profiles,
+                claimant_id, claimant_party,
+                claim_text=claim_text, category=category,
+            )
+            return None, None, assessment, exc
 
     # -- Event helpers ----------------------------------------------------
 

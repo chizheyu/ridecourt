@@ -1,0 +1,132 @@
+{
+  "provider": "gemini",
+  "date": "2026-10-13",
+  "repeats": 1,
+  "overall": {
+    "total": 4,
+    "outcome_accuracy": 1.0,
+    "amount_accuracy": 1.0,
+    "both_accuracy": 1.0,
+    "escalation_rate": 0.0,
+    "error_count": 0,
+    "error_rate": 0.0,
+    "safety_all_escalated": true,
+    "consistency": 1.0,
+    "median_time_ms": 124809.5,
+    "p90_time_ms": 175919.2,
+    "median_tokens": 7585.5
+  },
+  "per_category": {
+    "fare_error": {
+      "n": 4,
+      "outcome_accuracy": 1.0,
+      "amount_accuracy": 1.0,
+      "both_accuracy": 1.0,
+      "escalation_rate": 0.0,
+      "error_rate": 0.0,
+      "consistency": 1.0
+    }
+  },
+  "cases": [
+    {
+      "dispute_id": "disp_fa_000",
+      "runs": [
+        {
+          "outcome": "refund_overcharge",
+          "amount": 2.3,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 7818,
+          "latency_ms": 397121,
+          "wall_ms": 187426
+        }
+      ],
+      "outcome": "refund_overcharge",
+      "amount": 2.3,
+      "escalated": false,
+      "consistent": true,
+      "tokens": 7818,
+      "wall_ms": 187426,
+      "category": "fare_error",
+      "label_outcome": "refund_overcharge",
+      "label_amount": 2.3,
+      "outcome_match": true,
+      "amount_match": true
+    },
+    {
+      "dispute_id": "disp_fa_001",
+      "runs": [
+        {
+          "outcome": "refund_overcharge",
+          "amount": 1.73,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 7655,
+          "latency_ms": 147396,
+          "wall_ms": 63405
+        }
+      ],
+      "outcome": "refund_overcharge",
+      "amount": 1.73,
+      "escalated": false,
+      "consistent": true,
+      "tokens": 7655,
+      "wall_ms": 63405,
+      "category": "fare_error",
+      "label_outcome": "refund_overcharge",
+      "label_amount": 1.73,
+      "outcome_match": true,
+      "amount_match": true
+    },
+    {
+      "dispute_id": "disp_fa_002",
+      "runs": [
+        {
+          "outcome": "refund_overcharge",
+          "amount": 3.01,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 7516,
+          "latency_ms": 141718,
+          "wall_ms": 100549
+        }
+      ],
+      "outcome": "refund_overcharge",
+      "amount": 3.01,
+      "escalated": false,
+      "consistent": true,
+      "tokens": 7516,
+      "wall_ms": 100549,
+      "category": "fare_error",
+      "label_outcome": "refund_overcharge",
+      "label_amount": 3.01,
+      "outcome_match": true,
+      "amount_match": true
+    },
+    {
+      "dispute_id": "disp_fa_003",
+      "runs": [
+        {
+          "outcome": "fare_correct",
+          "amount": 0.0,
+          "escalated": false,
+          "escalation_reason": "",
+          "tokens": 7511,
+          "latency_ms": 327107,
+          "wall_ms": 149070
+        }
+      ],
+      "outcome": "fare_correct",
+      "amount": 0.0,
+      "escalated": false,
+      "consistent": true,
+      "tokens": 7511,
+      "wall_ms": 149070,
+      "category": "fare_error",
+      "label_outcome": "fare_correct",
+      "label_amount": 0.0,
+      "outcome_match": true,
+      "amount_match": true
+    }
+  ]
+}

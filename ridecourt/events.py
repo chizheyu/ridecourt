@@ -47,6 +47,7 @@ EventType = Literal[
     "GUARD_CHECK",
     "GUARD_REJECTED",
     "POLICY_EVAL",
+    "STEP_SKIPPED",
 ]
 
 

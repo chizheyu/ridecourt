@@ -374,7 +374,7 @@ class TestRebuttalGuardRejection:
                     kind="forbidden_word",
                     detail="guaranteed found",
                     field="position",
-                )]
+                )], None
             return original_rebuttal(
                 self, advocate, claim_text, pack, opponent,
                 policy_result, policy_ids,

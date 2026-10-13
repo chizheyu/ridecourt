@@ -12,10 +12,13 @@ Providers (selected by ``LLM_PROVIDER`` env var):
 * ``mock``: deterministic outputs keyed by agent name, built from the
   evidence pack so they always cite real IDs; used by all tests.
 
-Retries with exponential backoff on 429 / 5xx responses.  A per-case token
-budget (``CASE_TOKEN_BUDGET``, default 60000) accumulates across calls; when
-exceeded a ``TokenBudgetExceeded`` error is raised so the orchestrator can
-escalate.
+Retries with exponential backoff and jitter on transport failures
+(disconnects, connection resets, timeouts), HTTP 429 and 5xx — at least
+5 attempts spanning about 30 seconds.  Permanent failures (400 bad
+request, 401/403 auth, schema/validation errors) fail immediately.  A
+per-case token budget (``CASE_TOKEN_BUDGET``, default 60000) accumulates
+across calls; when exceeded a ``TokenBudgetExceeded`` error is raised so
+the orchestrator can escalate.
 """
 
 from __future__ import annotations
@@ -23,6 +26,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import random
 import re
 import time
 from typing import Any, TypeVar
@@ -94,7 +98,20 @@ class TokenBudgetExceeded(Exception):
 
 
 class LLMError(Exception):
-    """Raised when the LLM provider fails after retries."""
+    """Raised when the LLM provider fails after retries (retriable by default).
+
+    The retry loop in ``_retry`` treats a bare ``LLMError`` as retriable.
+    Raise ``PermanentLLMError`` instead when the error cannot be fixed by
+    retrying (400 bad request, 401/403 auth, schema/validation errors).
+    """
+
+
+class PermanentLLMError(LLMError):
+    """An LLM error that a retry cannot fix.
+
+    Raised for HTTP 400, 401, 403, and for schema/validation failures.
+    ``_retry`` re-raises these immediately without sleeping or retrying.
+    """
 
 
 # ---------------------------------------------------------------------------
@@ -145,28 +162,78 @@ def _pydantic_to_json_schema(model: type[BaseModel]) -> dict[str, Any]:
 # Retry helper
 # ---------------------------------------------------------------------------
 
-_MAX_RETRIES = 3
+# At least 5 attempts; total backoff about 30 s with exponential growth
+# plus up to 25% jitter per delay.  ``_INITIAL_BACKOFF`` * 2^(n-1) with
+# jitter gives roughly: 1, 2, 4, 8, 16 → ~31 s before the final attempt.
+_MAX_ATTEMPTS = 5
 _INITIAL_BACKOFF = 1.0  # seconds
+_MAX_BACKOFF = 16.0  # cap any single delay
+
+
+def _backoff_delay(attempt: int) -> float:
+    """Exponential backoff with full jitter for *attempt* (0-based)."""
+    base = min(_INITIAL_BACKOFF * (2 ** attempt), _MAX_BACKOFF)
+    # Full jitter: uniform random in [0, base], capped.
+    return random.uniform(0, base)
+
+
+def _is_retriable(exc: Exception) -> bool:
+    """Return True if *exc* represents a transient error worth retrying."""
+    if isinstance(exc, PermanentLLMError):
+        return False
+    if isinstance(exc, LLMError):
+        # Bare LLMError from the provider wrappers is retriable (transport
+        # errors, 429, 5xx).  The provider wrapper decides what to raise;
+        # anything it wraps in a plain LLMError is considered transient.
+        return True
+    # httpx transport errors raised directly (not wrapped in LLMError).
+    if isinstance(exc, (
+        httpx.RemoteProtocolError,
+        httpx.ConnectError,
+        httpx.ReadError,
+        httpx.WriteError,
+        httpx.PoolTimeout,
+        httpx.ConnectTimeout,
+        httpx.ReadTimeout,
+        httpx.WriteTimeout,
+        ConnectionError,
+        TimeoutError,
+    )):
+        return True
+    return False
 
 
 def _retry(fn, *args, **kwargs):
-    """Retry *fn* on LLMError up to ``_MAX_RETRIES`` times with backoff."""
+    """Retry *fn* on transient errors up to ``_MAX_ATTEMPTS`` times.
+
+    Permanent failures (``PermanentLLMError``) are re-raised immediately.
+    Retries use exponential backoff with full jitter; the total sleep
+    budget across all attempts is about 30 seconds.
+    """
     last_exc: Exception | None = None
-    for attempt in range(_MAX_RETRIES):
+    for attempt in range(_MAX_ATTEMPTS):
         try:
             return fn(*args, **kwargs)
-        except LLMError as exc:
+        except Exception as exc:
+            if not _is_retriable(exc):
+                raise
             last_exc = exc
-            if attempt < _MAX_RETRIES - 1:
-                backoff = _INITIAL_BACKOFF * (2**attempt)
+            if attempt < _MAX_ATTEMPTS - 1:
+                delay = _backoff_delay(attempt)
                 logger.warning(
                     "LLM call failed (attempt %d/%d): %s — retrying in %.1fs",
                     attempt + 1,
-                    _MAX_RETRIES,
+                    _MAX_ATTEMPTS,
                     exc,
-                    backoff,
+                    delay,
                 )
-                time.sleep(backoff)
+                time.sleep(delay)
+            else:
+                logger.error(
+                    "LLM call failed after %d attempts: %s",
+                    _MAX_ATTEMPTS,
+                    exc,
+                )
     raise last_exc  # type: ignore[misc]
 
 
@@ -216,6 +283,95 @@ def complete_json(
 # ---------------------------------------------------------------------------
 # Gemini provider (Vertex AI mode)
 # ---------------------------------------------------------------------------
+
+# Status codes that are permanent — a retry cannot fix them.
+_PERMANENT_STATUS_CODES = {400, 401, 403}
+# Status codes that are transient — retrying may succeed.
+_RETRIABLE_STATUS_CODES = {429, 500, 502, 503, 504}
+
+
+def _classify_gemini_error(exc: Exception) -> LLMError:
+    """Classify a google-genai SDK exception as retriable or permanent.
+
+    The SDK may raise:
+    * ``google.genai.errors.ClientError`` (and similar) carrying a
+      ``response`` with a status code;
+    * httpx transport errors (``RemoteProtocolError``, ``ConnectError``,
+      ``ReadTimeout``, etc.) when the connection drops;
+    * Generic ``Exception`` wrappers with the original error in the
+      message.
+
+    We inspect the exception's attributes and message to decide.
+    """
+    # Check for an HTTP status code on the exception or its cause.
+    status = _extract_status(exc)
+    if status is not None:
+        if status in _PERMANENT_STATUS_CODES:
+            return PermanentLLMError(f"gemini API error: status {status}: {exc}")
+        if status in _RETRIABLE_STATUS_CODES:
+            return LLMError(f"gemini API error: status {status}: {exc}")
+        # Unknown status — treat as retriable (safer default for a
+        # transient-looking failure).
+        return LLMError(f"gemini API error: status {status}: {exc}")
+
+    # Transport errors (disconnect, connection reset, timeout).
+    cause = exc.__cause__ or exc
+    if isinstance(cause, (
+        httpx.RemoteProtocolError,
+        httpx.ConnectError,
+        httpx.ReadError,
+        httpx.WriteError,
+        httpx.PoolTimeout,
+        httpx.ConnectTimeout,
+        httpx.ReadTimeout,
+        httpx.WriteTimeout,
+        ConnectionError,
+        TimeoutError,
+    )):
+        return LLMError(f"gemini transport error: {exc}")
+
+    # If the message looks like a known permanent condition, mark it so.
+    msg = str(exc).lower()
+    permanent_markers = [
+        "400 ", "bad request", "invalid argument",
+        "401 ", "unauthenticated",
+        "403 ", "permission denied",
+    ]
+    for marker in permanent_markers:
+        if marker in msg:
+            return PermanentLLMError(f"gemini API error: {exc}")
+
+    # Default: treat as retriable (disconnects, 500s, timeouts).
+    return LLMError(f"gemini API error: {exc}")
+
+
+def _extract_status(exc: Exception) -> int | None:
+    """Try to pull an HTTP status code out of an SDK exception."""
+    for obj in (exc, exc.__cause__):
+        if obj is None:
+            continue
+        # google-genai errors may carry a ``response`` (httpx.Response).
+        resp = getattr(obj, "response", None)
+        if resp is not None:
+            code = getattr(resp, "status_code", None)
+            if isinstance(code, int):
+                return code
+        # Some SDK errors expose ``code`` or ``status``.
+        for attr in ("code", "status"):
+            val = getattr(obj, attr, None)
+            if isinstance(val, int):
+                return val
+            if isinstance(val, str) and val.isdigit():
+                return int(val)
+        # The httpx.Response may be nested under ``cause``.
+        cause = getattr(obj, "__cause__", None)
+        if cause is not None:
+            resp = getattr(cause, "response", None)
+            if resp is not None:
+                code = getattr(resp, "status_code", None)
+                if isinstance(code, int):
+                    return code
+    return None
 
 
 def _complete_gemini(
@@ -269,9 +425,9 @@ def _complete_gemini(
             config=config,
         )
     except Exception as exc:
-        # Distinguish retriable status codes from permanent failures.
-        msg = str(exc)
-        raise LLMError(f"gemini API error: {msg}") from exc
+        # Distinguish retriable transport errors / status codes from
+        # permanent failures (400, 401, 403).
+        raise _classify_gemini_error(exc) from exc
     latency_ms = int((time.monotonic() - start) * 1000)
 
     raw_text = response.text or ""
@@ -290,7 +446,7 @@ def _complete_gemini(
     try:
         parsed = schema.model_validate(parsed_dict)
     except ValidationError as exc:
-        raise LLMError(f"gemini response failed validation: {exc}") from exc
+        raise PermanentLLMError(f"gemini response failed validation: {exc}") from exc
 
     meta = LLMMeta(
         provider="gemini",
@@ -348,12 +504,17 @@ def _complete_openai(
             timeout=60.0,
         )
     except httpx.HTTPError as exc:
-        raise LLMError(f"openai_compatible HTTP error: {exc}") from exc
+        # Transport errors are retriable.
+        raise LLMError(f"openai_compatible transport error: {exc}") from exc
     latency_ms = int((time.monotonic() - start) * 1000)
 
     if resp.status_code == 429 or resp.status_code >= 500:
         raise LLMError(
             f"openai_compatible retriable status {resp.status_code}: {resp.text[:200]}"
+        )
+    if resp.status_code in _PERMANENT_STATUS_CODES:
+        raise PermanentLLMError(
+            f"openai_compatible status {resp.status_code}: {resp.text[:200]}"
         )
     if resp.status_code >= 400:
         raise LLMError(
@@ -372,7 +533,7 @@ def _complete_openai(
     try:
         parsed = schema.model_validate(parsed_dict)
     except ValidationError as exc:
-        raise LLMError(f"openai_compatible response failed validation: {exc}") from exc
+        raise PermanentLLMError(f"openai_compatible response failed validation: {exc}") from exc
 
     meta = LLMMeta(
         provider="openai_compatible",
@@ -410,7 +571,7 @@ def _complete_mock(
     try:
         parsed = schema.model_validate(data)
     except ValidationError as exc:
-        raise LLMError(f"mock payload failed validation for {agent_name}: {exc}") from exc
+        raise PermanentLLMError(f"mock payload failed validation for {agent_name}: {exc}") from exc
 
     meta = LLMMeta(
         provider="mock",
