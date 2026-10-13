@@ -12,9 +12,10 @@ set -euo pipefail
 REGION="asia-southeast1"
 SERVICE="ridecourt"
 SA="${SERVICE}-sa"
-# With STATE_BACKEND=firestore, case state is externalised to Firestore so
-# multiple instances can serve in parallel. Override to 1 for single-instance.
-MAX_INSTANCES="${MAX_INSTANCES:-3}"
+# One instance. Firestore keeps case files, overrides and the daily counter across restarts,
+# but the live event stream (/api/disputes/{id}/events) reads the event log that the resolving
+# instance writes to its own disk, so a resolve and its stream must reach the same instance.
+MAX_INSTANCES="${MAX_INSTANCES:-1}"
 SA_EMAIL="${SA}@${PROJECT_ID}.iam.gserviceaccount.com"
 
 echo "=== RideCourt Cloud Run deployment ==="
