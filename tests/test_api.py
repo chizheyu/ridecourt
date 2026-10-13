@@ -603,6 +603,62 @@ class TestFileDispute:
         )
         assert res.status_code == 404
 
+    def test_file_and_resolve_dispute_with_claim_numbers_no_guard_failure(
+        self, client
+    ):
+        """File a dispute whose claim text contains numbers in every unit
+        the guard knows (S$, km, m, min, %), resolve it with the mock
+        provider, and assert the case is NOT escalated for a guard
+        failure.
+
+        Before the CLAIM citation source was added, the advocates saw
+        the claim numbers in their prompt and the guard rejected them,
+        escalating every custom dispute with ``guard_failure_advocate``.
+        """
+        disputes_res = client.get("/api/disputes")
+        trip_id = disputes_res.json()["disputes"][0]["trip_id"]
+
+        claim = (
+            "The driver overcharged me S$10 and drove 5 km out of the way. "
+            "I waited 15 min at the pickup and the detour added 800 m to "
+            "the trip. The fare was 20% higher than quoted."
+        )
+        res = client.post(
+            "/api/disputes",
+            json={
+                "trip_id": trip_id,
+                "category": "route_deviation",
+                "claim_text": claim,
+            },
+        )
+        assert res.status_code == 200
+        did = res.json()["dispute_id"]
+
+        # Resolve it.
+        resolve_res = client.post(f"/api/disputes/{did}/resolve")
+        assert resolve_res.status_code == 200
+
+        # Poll until done.
+        deadline = time.time() + 30
+        data = {}
+        while time.time() < deadline:
+            case_res = client.get(f"/api/disputes/{did}")
+            data = case_res.json()
+            if data["status"] in ("ruled", "escalated", "error"):
+                break
+            time.sleep(0.5)
+
+        # The case must not have escalated due to a guard failure.
+        # (It may escalate for other reasons — low confidence, outcome
+        # mismatch — but never ``guard_failure_advocate`` or
+        # ``guard_failure_judge``.)
+        escalation_reason = data.get("escalation_reason", "")
+        assert "guard_failure" not in escalation_reason, (
+            f"Dispute with claim numbers escalated with guard failure: "
+            f"{escalation_reason}. The CLAIM citation source should let "
+            f"agents quote claim numbers without guard rejection."
+        )
+
 
 # ---------------------------------------------------------------------------
 # Static files

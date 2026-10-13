@@ -72,7 +72,7 @@ def _user_prompt(
     assessment: FraudAssessment,
 ) -> str:
     lines: list[str] = []
-    lines.append(f"Dispute claim: {claim_text}\n")
+    lines.append(f"Claim [CLAIM]: {claim_text}\n")
     lines.append(f"Claimant: {assessment.claimant_id}")
     lines.append(f"Computed risk level: {assessment.risk}\n")
 

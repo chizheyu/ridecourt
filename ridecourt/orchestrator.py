@@ -96,6 +96,7 @@ def _guard_check(
     policy_result: PolicyResult | None = None,
     agent_role: str = "advocate",
     precedents: list[Any] | None = None,
+    claim_text: str | None = None,
 ) -> list[Problem]:
     """Run the guard on an agent output."""
     return guard_check(
@@ -103,6 +104,7 @@ def _guard_check(
         policy_result=policy_result,
         agent_role=agent_role,
         precedents=precedents,
+        claim_text=claim_text,
     )
 
 
@@ -613,6 +615,7 @@ class Orchestrator:
         judge_problems = _guard_check(
             judge_output, pack, policy_ids, policy_result=policy_result,
             agent_role="judge", precedents=precedent_matches,
+            claim_text=dispute.claim_text,
         )
 
         if judge_problems:
@@ -672,6 +675,7 @@ class Orchestrator:
             judge_problems_2 = _guard_check(
                 judge_output, pack, policy_ids, policy_result=policy_result,
                 agent_role="judge", precedents=precedent_matches,
+                claim_text=dispute.claim_text,
             )
             if judge_problems_2:
                 # Guard failed twice — escalate.
@@ -845,7 +849,10 @@ class Orchestrator:
             output, meta = advocate.build(claim_text, pack, policy_result)
         except LLMError as exc:
             return None, None, [], exc
-        problems = _guard_check(output, pack, policy_ids, policy_result=policy_result)
+        problems = _guard_check(
+            output, pack, policy_ids, policy_result=policy_result,
+            claim_text=claim_text,
+        )
         # Record latency on the first call.
         meta.latency_ms += monotonic_ms(t0)  # accumulate for re-ask if any
 
@@ -858,6 +865,7 @@ class Orchestrator:
                 return None, meta, problems, exc
             problems2 = _guard_check(
                 output2, pack, policy_ids, policy_result=policy_result,
+                claim_text=claim_text,
             )
             meta2.latency_ms += monotonic_ms(t0)
             if problems2:
@@ -888,7 +896,10 @@ class Orchestrator:
             )
         except LLMError as exc:
             return None, None, [], exc
-        problems = _guard_check(output, pack, policy_ids, policy_result=policy_result)
+        problems = _guard_check(
+            output, pack, policy_ids, policy_result=policy_result,
+            claim_text=claim_text,
+        )
         meta.latency_ms += monotonic_ms(t0)
 
         if problems:
@@ -901,6 +912,7 @@ class Orchestrator:
                 return None, meta, problems, exc
             problems2 = _guard_check(
                 output2, pack, policy_ids, policy_result=policy_result,
+                claim_text=claim_text,
             )
             meta2.latency_ms += monotonic_ms(t0)
             if problems2:

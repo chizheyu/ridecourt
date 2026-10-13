@@ -111,6 +111,8 @@ _CITE_E_RE = re.compile(r"\bE(\d+)\b")
 _CITE_P_RE = re.compile(r"\bP-[A-Z]+-\d+\b")
 # PC-2025-004, PC-2026-001, etc. (precedent IDs)
 _CITE_PC_RE = re.compile(r"\bPC-\d{4}-\d{3}\b")
+# CLAIM — the dispute's claim text, treated as an attributable source.
+_CITE_CLAIM_RE = re.compile(r"\bCLAIM\b")
 
 
 # ---------------------------------------------------------------------------
@@ -126,6 +128,7 @@ def check(
     policy_result: Any | None = None,
     agent_role: str = "advocate",
     precedents: Sequence[Any] | None = None,
+    claim_text: str | None = None,
 ) -> list[Problem]:
     """Validate *output* against the evidence pack and policy clause list.
 
@@ -152,6 +155,15 @@ def check(
         ``summary``).  Precedent IDs (``PC-YYYY-NNN``) are valid citations,
         and numbers from a precedent's summary are accepted **only** in a
         text block that cites that precedent's ID.
+    claim_text
+        The dispute's free-text claim written by the claimant.  It is
+        treated as an attributable source with citation ID ``CLAIM``:
+        numbers that appear in the claim text are accepted **only** in a
+        text block that cites ``CLAIM``.  This lets an advocate quote the
+        claimant's own numbers ("the rider says … S$10 …", citing
+        ``CLAIM``) without the guard treating them as unverified case
+        facts.  A claim number stated as a fact of the case without
+        citing ``CLAIM`` is still rejected.
     """
     problems: list[Problem] = []
 
@@ -181,15 +193,28 @@ def check(
                     pairs.append((float(amount), "money"))
                 precedent_numbers[pid] = pairs
 
+    # The dispute's claim text is an attributable source with ID "CLAIM".
+    # Numbers that appear in the claim are accepted only in a text block
+    # that cites "CLAIM" (same per-block rule as precedents).
+    claim_numbers: list[tuple[float, str]] = []
+    if claim_text:
+        for num in _extract_numbers(claim_text, ""):
+            claim_numbers.append((num.value, num.unit))
+
     # Collect all text fields from the output.
     texts = _collect_text(output)
     # Also collect any field named "cites" or lists of cites.
     cite_fields = _collect_cites(output)
 
     # --- 1. Citation check ---
+    # "CLAIM" is a valid citation when claim_text is provided.
+    valid_claim = claim_text is not None
     for field_name, text in texts:
         for cite in _find_cites(text):
-            if not _cite_exists(cite, valid_eids, valid_pids, valid_precedent_ids):
+            if not _cite_exists(
+                cite, valid_eids, valid_pids, valid_precedent_ids,
+                valid_claim=valid_claim,
+            ):
                 problems.append(
                     Problem(
                         kind="unknown_cite",
@@ -200,7 +225,10 @@ def check(
                 )
     for field_name, cites in cite_fields:
         for cite in cites:
-            if not _cite_exists(cite, valid_eids, valid_pids, valid_precedent_ids):
+            if not _cite_exists(
+                cite, valid_eids, valid_pids, valid_precedent_ids,
+                valid_claim=valid_claim,
+            ):
                 problems.append(
                     Problem(
                         kind="unknown_cite",
@@ -226,9 +254,16 @@ def check(
         block_precedent_numbers: list[tuple[float, str]] = []
         for pid in block_precedent_ids:
             block_precedent_numbers.extend(precedent_numbers.get(pid, []))
+        # Claim numbers are valid only in a block that cites "CLAIM".
+        block_claim_numbers: list[tuple[float, str]] = []
+        if claim_text and _find_claim_cite(text):
+            block_claim_numbers = claim_numbers
 
         for num in extracted:
-            if not _number_verified(num, valid_numbers, block_precedent_numbers):
+            if not _number_verified(
+                num, valid_numbers,
+                block_precedent_numbers, block_claim_numbers,
+            ):
                 problems.append(
                     Problem(
                         kind="unverified_number",
@@ -277,7 +312,10 @@ def _cite_exists(
     valid_eids: set[str],
     valid_pids: set[str],
     valid_precedent_ids: set[str] | None = None,
+    valid_claim: bool = False,
 ) -> bool:
+    if valid_claim and cite == "CLAIM":
+        return True
     if valid_precedent_ids and cite in valid_precedent_ids:
         return True
     return cite in valid_eids or cite in valid_pids
@@ -364,12 +402,18 @@ def _find_cites(text: str) -> list[str]:
     cites.extend(m.group(0) for m in _CITE_E_RE.finditer(text))
     cites.extend(m.group(0) for m in _CITE_P_RE.finditer(text))
     cites.extend(m.group(0) for m in _CITE_PC_RE.finditer(text))
+    cites.extend(m.group(0) for m in _CITE_CLAIM_RE.finditer(text))
     return cites
 
 
 def _find_precedent_cites(text: str) -> list[str]:
     """Find precedent IDs (PC-YYYY-NNN) cited in *text*."""
     return [m.group(0) for m in _CITE_PC_RE.finditer(text)]
+
+
+def _find_claim_cite(text: str) -> list[str]:
+    """Find the CLAIM citation token in *text*."""
+    return [m.group(0) for m in _CITE_CLAIM_RE.finditer(text)]
 
 
 def _cited_eids(texts: list[tuple[str, str]], cite_fields: list[tuple[str, list[str]]]) -> set[str]:
@@ -523,6 +567,7 @@ def _number_verified(
     num: ExtractedNumber,
     valid: list[tuple[float, str]],
     precedent_valid: list[tuple[float, str]] | None = None,
+    claim_valid: list[tuple[float, str]] | None = None,
 ) -> bool:
     """Check whether *num* matches some valid (value, unit) pair.
 
@@ -535,8 +580,9 @@ def _number_verified(
 
     Units must match exactly — money never backs kilometres.
 
-    *precedent_valid* adds additional (value, unit) pairs from cited
-    precedents; these are checked the same way.
+    *precedent_valid* adds (value, unit) pairs from cited precedents;
+    *claim_valid* adds pairs from the claim text (valid only in a block
+    that cites ``CLAIM``).  Both are checked the same way.
     """
     k = _decimal_places(num.raw)
     for value, unit in valid:
@@ -546,6 +592,12 @@ def _number_verified(
             return True
     if precedent_valid:
         for value, unit in precedent_valid:
+            if unit != num.unit:
+                continue
+            if round(value, k) == num.value:
+                return True
+    if claim_valid:
+        for value, unit in claim_valid:
             if unit != num.unit:
                 continue
             if round(value, k) == num.value:

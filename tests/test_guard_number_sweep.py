@@ -58,9 +58,12 @@ from ridecourt.tools import build_evidence_pack, facts_from_evidence_pack
 
 EXCLUSIONS: set[tuple[str, str, float, str]] = set()
 
-# Claim text numbers: claim texts are generic ("The driver took a longer
-# route", "I was charged a cancellation fee") and contain no unit-tagged
-# numbers, so no exclusions are needed for claim text.
+# Claim text numbers: synthetic claim texts are generic ("The driver took a
+# longer route", "I was charged a cancellation fee") and contain no
+# unit-tagged numbers, so no exclusions are needed for synthetic claim
+# text.  A separate test suite (tests/test_guard_claim_numbers.py) adds
+# claim texts with numbers in every unit to verify the CLAIM citation
+# path works for live (user-filed) disputes.
 
 # Policy clause IDs in system prompts contain numbers (e.g. "P-RD-1",
 # "P-BF-1") but these are IDs, not unit-tagged numbers — the guard's
@@ -131,7 +134,7 @@ def _all_prompt_pieces_for_rebuttal(disp, pack, pr, opponent_output, side):
     )
     # User prompt is built inline; reconstruct the relevant text.
     lines = []
-    lines.append(f"Dispute claim: {disp.claim_text}\n")
+    lines.append(f"Claim [CLAIM]: {disp.claim_text}\n")
     lines.append("Evidence pack:")
     for item in pack.items:
         lines.append(f"  {item.id} [{item.kind}]: {item.summary}")

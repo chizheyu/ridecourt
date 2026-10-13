@@ -80,7 +80,11 @@ def _system_prompt() -> str:
         "and set bad_faith_mentioned=true.\n"
         "6. If precedents are provided, you MUST say whether your ruling is "
         "consistent with them (precedent_consistency: 'consistent' or "
-        "'inconsistent'; 'no_precedents' if none provided).\n\n"
+        "'inconsistent'; 'no_precedents' if none provided).\n"
+        "7. The dispute's claim text has citation ID \"CLAIM\". You may "
+        "quote a number from the claim only in a sentence that cites CLAIM "
+        "and attributes it to the claimant. Do not state a claim number as "
+        "a fact of the case without citing CLAIM.\n\n"
         "Your messages to the rider and driver must be in plain English, "
         "polite, and specific (cite the clause and the key fact).\n\n"
         "Return JSON matching the provided schema."
@@ -97,7 +101,7 @@ def _user_prompt(
     precedents: list[Any] | None = None,
 ) -> str:
     lines: list[str] = []
-    lines.append(f"Dispute claim: {claim_text}\n")
+    lines.append(f"Claim [CLAIM]: {claim_text}\n")
 
     lines.append("Evidence pack:")
     for item in pack.items:

@@ -56,6 +56,16 @@ The guard (`ridecourt/guard.py`) performs three checks on every agent output:
      same class of defect as P-BF-1 (the system asks an agent to use
      information the guard will not accept), but for numbers instead of
      clause IDs.
+   - **Claim numbers**: the dispute's claim text (written by the
+     claimant) is treated as an attributable source with citation ID
+     `CLAIM`. A number from the claim (e.g. `S$10` or `5 km` in *"The
+     driver overcharged me S$10 and drove 5 km out of the way"*) is
+     accepted **only** in a text block that cites `CLAIM` and attributes
+     the number to the claimant ("the rider says …", citing `CLAIM`). A
+     claim number stated as a fact of the case without citing `CLAIM` is
+     rejected, so an advocate cannot present the claimant's allegation as
+     an established fact. The Judge's amount still comes only from the
+     policy engine — `CLAIM` numbers never enter the ruling amount.
 
    Precision-aware: a number written with *k* decimal places matches an
    evidence value *v* when `round(v, k) == num.value`.
@@ -67,7 +77,11 @@ A machine-check sweep test (`tests/test_guard_number_sweep.py`) verifies
 over all 48 cases that every number in every piece of text the prompt
 builder shows an agent (claim text, evidence, policy computation,
 precedents, risk signals, opponent's case) is either accepted by the guard
-for that agent or deliberately excluded with a stated reason.
+for that agent or deliberately excluded with a stated reason. A second
+suite (`tests/test_guard_claim_numbers.py`) adds claim texts with numbers
+in every unit the guard knows (`S$`, `km`, `m`, `min`, `%`) for each
+category, and checks that every agent's prompt numbers are accepted when
+attributed via `CLAIM` and rejected when stated as fact.
 
 ## 3. Pipeline
 

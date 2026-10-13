@@ -66,10 +66,16 @@ def _system_prompt(side: Side) -> str:
         "extra minutes, fare difference), cite the evidence item that "
         "already states it — the evidence pack includes derived quantities "
         "and a policy computation item for this purpose.\n"
-        "3. Briefly acknowledge evidence that cuts against your side. "
+        "3. The dispute's claim text is shown with the citation ID "
+        "\"CLAIM\". You may quote a number from the claim only in a "
+        "sentence that cites CLAIM and attributes it to the claimant "
+        "(e.g. \"The rider says the driver overcharged a certain amount "
+        "(CLAIM)\"). Do not state a claim number as a fact of the case "
+        "without citing CLAIM — the guard will reject it.\n"
+        "4. Briefly acknowledge evidence that cuts against your side. "
         "Judges reward candour.\n"
-        f"4. Your position and requested_outcome should favour {target}.\n"
-        "5. Be concise and specific.\n\n"
+        f"5. Your position and requested_outcome should favour {target}.\n"
+        "6. Be concise and specific.\n\n"
         "Return JSON matching the provided schema."
     )
 
@@ -83,7 +89,7 @@ def _user_prompt(
     """Build the user prompt with the evidence pack and policy context."""
     # Evidence pack summary
     lines: list[str] = []
-    lines.append(f"Dispute claim: {claim_text}\n")
+    lines.append(f"Claim [CLAIM]: {claim_text}\n")
     lines.append("Evidence pack:")
     for item in pack.items:
         lines.append(f"  {item.id} [{item.kind}]: {item.summary}")
@@ -170,11 +176,13 @@ class Advocate:
             "opponent's argument and reinforce your side's position. "
             "Cite E# and P-.. IDs. Be brief (2-3 arguments max). "
             "Copy numbers exactly as shown in the evidence — never compute, "
-            "round, or estimate new numbers. "
+            "round, or estimate new numbers. The claim text has citation "
+            "ID \"CLAIM\"; you may quote a number from the claim only in a "
+            "sentence that cites CLAIM and attributes it to the claimant. "
             "Return JSON matching the provided schema."
         )
         lines: list[str] = []
-        lines.append(f"Dispute claim: {claim_text}\n")
+        lines.append(f"Claim [CLAIM]: {claim_text}\n")
         lines.append("Evidence pack:")
         for item in pack.items:
             lines.append(f"  {item.id} [{item.kind}]: {item.summary}")
