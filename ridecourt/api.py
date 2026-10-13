@@ -666,6 +666,10 @@ def create_app(store: Store | None = None) -> FastAPI:
     # SSE event stream — polls the JSONL file written by the orchestrator's
     # EventLog in real-time. Replays past events, streams live ones, then
     # sends a final "done" event.
+    #
+    # When the case was resolved by another process (or by preresolve) and
+    # the local JSONL file doesn't exist, the SSE stream replays stored
+    # events from the store and then sends ``done``.
     # ------------------------------------------------------------------
     @app.get("/api/disputes/{dispute_id}/events")
     async def dispute_events(dispute_id: str, request: Request):
@@ -684,7 +688,8 @@ def create_app(store: Store | None = None) -> FastAPI:
                 status = _get_merged_status(dispute_id)
                 done = status in ("ruled", "escalated", "error", "overridden")
 
-                # Read all lines from the JSONL file.
+                # Read all lines from the JSONL file (live stream from
+                # the orchestrator's EventLog on this instance).
                 lines_read = 0
                 if jsonl_path.exists():
                     try:
@@ -705,6 +710,22 @@ def create_app(store: Store | None = None) -> FastAPI:
                     except OSError:
                         pass
 
+                # If the case is done and we haven't sent any events yet
+                # (no JSONL file on this instance — the case was resolved
+                # by another process or by preresolve), replay stored
+                # events from the store.
+                if done and sent_count == 0:
+                    store = _get_store()
+                    if store is not None:
+                        try:
+                            stored_events = store.load_events(dispute_id)
+                            for ev in stored_events:
+                                ev_type = ev.get("type", "UNKNOWN")
+                                yield f"event: {ev_type}\ndata: {json.dumps(ev, default=str)}\n\n"
+                            sent_count = len(stored_events)
+                        except Exception:
+                            pass
+
                 if done:
                     # Send the final "done" event.
                     done_data = {
@@ -719,6 +740,15 @@ def create_app(store: Store | None = None) -> FastAPI:
                             done_data["ruling"] = cf.ruling.model_dump()
                         if cf.policy_result:
                             done_data["policy"] = cf.policy_result.model_dump()
+                    else:
+                        # Case not in memory — try the store for ruling data.
+                        stored = _load_case_from_store(dispute_id)
+                        if stored:
+                            done_data["escalated"] = stored.get("escalated", False)
+                            if stored.get("ruling"):
+                                done_data["ruling"] = stored["ruling"]
+                            if stored.get("policy_result"):
+                                done_data["policy"] = stored["policy_result"]
                     yield f"event: done\ndata: {json.dumps(done_data, default=str)}\n\n"
                     break
 
@@ -819,6 +849,7 @@ def create_app(store: Store | None = None) -> FastAPI:
                     "total_tokens", "total_latency_ms",
                     "risk_output", "risk_assessment",
                     "precedent_matches", "escalation",
+                    "events",
                 ):
                     if key in stored:
                         result[key] = stored[key]
