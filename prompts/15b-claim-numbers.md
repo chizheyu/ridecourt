@@ -1,0 +1,7 @@
+Read CODEBUDDY.md and docs/SPEC.md (guard section). Step 15's number sweep (tests/test_guard_number_sweep.py) says claim texts "contain no unit-tagged numbers, so no exclusions are needed". That holds only for the synthetic data. The live app has "File a Dispute", where a person types their own claim, for example "The driver overcharged me S$10 and drove 5 km out of the way". The advocates are shown the claim text and will naturally quote it, and the guard will reject those numbers, so a custom dispute escalates with a guard failure.
+
+1. Treat the claim as an attributable source, the same way step 15 treats precedents: give it a citation ID (for example "CLAIM"), show it to the agents with that ID, and accept a number from the claim text only in a sentence that cites the claim and attributes it to the claimant ("the rider says ..."); a claim number stated as a fact of the case without citing the claim is still rejected. The Judge's amount still comes only from the policy engine. Document it in the SPEC guard section.
+2. Extend the sweep so it does not rely on the synthetic data: add claim texts with numbers in every unit the guard knows (S$, km, m, min, %) for each category, and check that every agent's prompt numbers are accepted when attributed and rejected when stated as fact. The test must fail on the current code.
+3. Check end to end with the mock provider: file a new dispute through the API with a claim that contains numbers, resolve it, and assert there is no guard failure.
+
+Do not run real Gemini. Commit and summarize.
