@@ -8,7 +8,7 @@ Tencent Cloud AI CAN DO IT Hackathon Singapore 2026 (Ryde challenge).
 RideCourt resolves rider–driver disputes — route deviation, no-show,
 fare errors, and safety incidents — by gathering evidence, building both
 sides of the case, applying company policy, and issuing a fair ruling with
-a plain-English explanation, in seconds instead of 24–72 hours.
+a plain-English explanation, in about half a minute (median 26.5 s in the evaluation) instead of 24–72 hours.
 
 **Principle: agents argue, code computes.** Language models gather, argue,
 and explain. Every number in a ruling (distances, minutes, dollars) is
@@ -208,74 +208,71 @@ dispute through the full pipeline and reports:
 
 Results are written to `eval/results-<date>-<provider>.json`.
 
-### Gemini 3.8 Flash results (11 October 2026)
+### Gemini 3.8 Flash results (13 October 2026)
 
 Run with: `LLM_PROVIDER=gemini python scripts/evaluate.py --provider gemini --repeats 2`
-(48 labelled cases, each run twice; full rows in `eval/results-2026-10-11-gemini.json`).
+(48 labelled cases, each run twice; full rows, including the guard problems of any escalated run, in `eval/results-2026-10-13-gemini.json`).
 
-| Category | N | Outcome acc. | Amount acc. | Both acc. | Escalation rate | Consistency |
-|:--|:--:|:--:|:--:|:--:|:--:|:--:|
-| route_deviation | 16 | 100.0% | 100.0% | 100.0% | 0.0% | 100.0% |
-| no_show_driver | 10 | 100.0% | 100.0% | 100.0% | 0.0% | 100.0% |
-| no_show_rider | 10 | 90.0% | 100.0% | 90.0% | 10.0% | 100.0% |
-| fare_error | 6 | 83.3% | 100.0% | 83.3% | 16.7% | 100.0% |
-| safety | 6 | 100.0% | 100.0% | 100.0% | 100.0% | 100.0% |
-| **Overall** | 48 | **95.8%** | **100.0%** | **95.8%** | **16.7%** | **100.0%** |
+| Category | N | Outcome acc. | Amount acc. | Both acc. | Escalation rate | Errored runs | Consistency |
+|:--|:--:|:--:|:--:|:--:|:--:|:--:|:--:|
+| route_deviation | 16 | 100.0% | 100.0% | 100.0% | 0.0% | 0.0% | 100.0% |
+| no_show_driver | 10 | 100.0% | 100.0% | 100.0% | 0.0% | 0.0% | 100.0% |
+| no_show_rider | 10 | 100.0% | 100.0% | 100.0% | 0.0% | 0.0% | 100.0% |
+| fare_error | 6 | 100.0% | 100.0% | 100.0% | 0.0% | 0.0% | 83.3% |
+| safety | 6 | 100.0% | 100.0% | 100.0% | 100.0% | 0.0% | 100.0% |
+| **Overall** | 48 | **100.0%** | **100.0%** | **100.0%** | **12.5%** | **0.0%** | **97.9%** |
 
-- Every safety case escalated, as the policy requires.
-- The two other escalations (one rider no-show, one fare case) are the guard rejecting agent text in both runs; the system handed those cases to a person rather than let an unsupported number through.
-- Median time to ruling 17.1 s (p90 24.1 s); median 8,505 tokens per case.
-- What this measures: the labels come from the same policy clauses the system applies, so the evaluation tests whether the multi-agent pipeline reaches the policy result without inventing numbers or escalating needlessly. It is not an independent human labelling. An earlier run of this evaluation found a real policy bug (the rider no-show clause read the minutes past the ETA instead of the minutes waited within 150 m); it was fixed in step 11 of the build log.
+- Every safety case escalated, as the policy requires, and no other case did in its first run.
+- Both runs agreed on 47 of 48 cases. In one run of disp_fa_003, Vertex AI kept returning `429 RESOURCE_EXHAUSTED` through the retries, so the case went to a person as `model_unavailable`; its other run was correct. No run errored.
+- Median time to ruling 26.5 s (p90 85.9 s); median 9,118 tokens per case. The times include waiting while Vertex AI was busy; when it was not, a case took 15 to 20 s.
+- The machine running the evaluation restarted after 36 cases; the other 12 ran with `--resume` on the same code (the evaluation saves after every case).
+- What this measures: the labels come from the same policy clauses the system applies, so the evaluation tests whether the multi-agent pipeline reaches the policy result without inventing numbers or escalating needlessly. It is not an independent human labelling. Reading every escalation of earlier runs found real defects, each fixed in the build log: the rider no-show clause read the minutes past the ETA instead of the minutes waited within 150 m (step 11); the Judge was told to cite the bad-faith clause P-BF-1 but the policy engine never applied it, so every high-risk claimant escalated (step 12); the Judge quoted a precedent's distance, which the guard accepted only from this case's evidence (step 15).
+- An earlier full run on 11 October (before steps 11 to 16) gave 95.8% outcome accuracy; it is kept in `eval/results-2026-10-11-gemini.json`.
 
 ### Mock provider results
 
-Run with: `LLM_PROVIDER=mock python scripts/evaluate.py --provider mock`
+Run with: `LLM_PROVIDER=mock python scripts/evaluate.py --provider mock --repeats 2` (offline, a few seconds; it writes `eval/results-<date>-mock.json`).
 
-| Category | N | Outcome acc. | Amount acc. | Both acc. | Escalation rate | Consistency |
-|:--|:--:|:--:|:--:|:--:|:--:|:--:|
-| route_deviation | 16 | 87.5% | 100.0% | 87.5% | 12.5% | 100.0% |
-| no_show_driver | 10 | 100.0% | 100.0% | 100.0% | 0.0% | 100.0% |
-| no_show_rider | 10 | 100.0% | 100.0% | 100.0% | 0.0% | 100.0% |
-| fare_error | 6 | 0.0% | 50.0% | 0.0% | 100.0% | 100.0% |
-| safety | 6 | 100.0% | 100.0% | 100.0% | 100.0% | 100.0% |
-| **Overall** | 48 | **83.3%** | **93.8%** | **83.3%** | **29.2%** | **100.0%** |
+| Category | N | Outcome acc. | Amount acc. | Both acc. | Escalation rate | Errored runs | Consistency |
+|:--|:--:|:--:|:--:|:--:|:--:|:--:|:--:|
+| route_deviation | 16 | 100.0% | 100.0% | 100.0% | 0.0% | 0.0% | 100.0% |
+| no_show_driver | 10 | 100.0% | 100.0% | 100.0% | 0.0% | 0.0% | 100.0% |
+| no_show_rider | 10 | 100.0% | 100.0% | 100.0% | 0.0% | 0.0% | 100.0% |
+| fare_error | 6 | 100.0% | 100.0% | 100.0% | 0.0% | 0.0% | 100.0% |
+| safety | 6 | 100.0% | 100.0% | 100.0% | 100.0% | 0.0% | 100.0% |
+| **Overall** | 48 | **100.0%** | **100.0%** | **100.0%** | **12.5%** | **0.0%** | **100.0%** |
 
-- Safety cases all escalated: **yes**
-- Median time to ruling: 1.0 ms
-- p90 time to ruling: 1.0 ms
-- Median tokens per case: 500
-
-**Note on fare_error escalation:** the mock provider's canned advocate
-output triggers the guard (it generates text containing "0.00 km" which
-does not match any cited evidence value), causing all fare_error cases to
-escalate. With a real LLM provider, advocates cite the correct evidence
-and the guard passes.
+The mock provider only checks that the pipeline, the guard and the policy engine fit together; it states numbers only from the evidence items it cites (step 14b).
 
 ## How CodeBuddy was used to build it
 
-The entire project was built spec-first using **CodeBuddy Code** in
-headless mode. The build was divided into spec-driven tasks (matching the
-build order in `docs/SPEC.md`), each run as a separate CodeBuddy session:
+The whole project was built spec-first with **CodeBuddy Code** in headless mode. Each build step is one prompt, run as its own CodeBuddy session; CodeBuddy wrote the code and the tests. Between steps a reviewer ran the tests, real Gemini cases and the UI, and wrote what it found into the next prompt, which is why the later steps exist.
 
-| Task | Prompt | Transcript |
+| Step | Task | Prompt |
 |:--|:--|:--|
-| 1 — Foundation: scaffold, data, policy | `prompts/01-foundation.md` | `devlog/20261011-161337-01-foundation.jsonl` |
-| 2 — Evidence tools | `prompts/02-evidence-tools.md` | `devlog/20261011-162623-02-evidence-tools.jsonl` |
-| 3 — LLM layer + guard | `prompts/03-llm-and-guard.md` | `devlog/20261011-163333-03-llm-and-guard.jsonl` |
-| 4 — Agents + orchestrator | `prompts/04-agents-orchestrator.md` | `devlog/20261011-164018-04-agents-orchestrator.jsonl` |
-| 4b — Real-run fixes | `prompts/04b-real-run-fixes.md` | `devlog/20261011-165259-04b-real-run-fixes.jsonl` |
-| 4c — Finish rebuttal | `prompts/04c-finish-rebuttal.md` | `devlog/20261011-185727-04c-finish-rebuttal.jsonl` |
-| 5 — API + UI | `prompts/05-api-ui.md` | `devlog/20261011-190303-05-api-ui.jsonl` |
-| 6 — Evaluation | `prompts/06-evaluation.md` | `devlog/20261011-191307-06-evaluation.jsonl` |
-| 7 — Stretch agents | `prompts/07-stretch-agents.md` | `devlog/20261011-191736-07-stretch-agents.jsonl` |
-| 8 — Deploy + docs | `prompts/08-deploy-docs.md` | `devlog/20261011-193355-08-deploy-docs.jsonl` |
+| 01 | Foundation: scaffold, data, policy | `prompts/01-foundation.md` |
+| 02 | Evidence tools | `prompts/02-evidence-tools.md` |
+| 03 | LLM layer + guard | `prompts/03-llm-and-guard.md` |
+| 04 | Agents + orchestrator | `prompts/04-agents-orchestrator.md` |
+| 04b | Real-run fixes | `prompts/04b-real-run-fixes.md` |
+| 04c | Finish rebuttal | `prompts/04c-finish-rebuttal.md` |
+| 05 | API + UI | `prompts/05-api-ui.md` |
+| 06 | Evaluation | `prompts/06-evaluation.md` |
+| 07 | Stretch agents | `prompts/07-stretch-agents.md` |
+| 08 | Deploy + docs | `prompts/08-deploy-docs.md` |
+| 09 | Polish from UI review | `prompts/09-polish.md` |
+| 10 | Docs polish | `prompts/10-docs-polish.md` |
+| 11 | Fixes from the real-Gemini evaluation | `prompts/11-eval-findings.md` |
+| 12 | Fixes found while recording the demo (P-BF-1, SLA rank, negative extra, visitor IP) | `prompts/12-review-findings.md` |
+| 13 | Retry transient model errors; evaluation saves after every case | `prompts/13-resilience.md` |
+| 13b | Retry malformed model answers | `prompts/13b-validation-retry.md` |
+| 14 | Show the Judge's reasoning and the bad-faith finding | `prompts/14-show-judge-reasoning.md` |
+| 14b | Show learning from overrides; mock numbers only from evidence | `prompts/14b-learning-visible-and-mock.md` |
+| 15 | Precedent numbers and the guard | `prompts/15-precedent-numbers.md` |
+| 15b | Numbers in a claim a person types | `prompts/15b-claim-numbers.md` |
+| 16 | Evidence panel layout; Firestore persistence | `prompts/16-layout-and-persistence.md` |
 
-Each prompt contains the full task specification (what to build, what
-constraints to follow, what tests must pass). The `CODEBUDDY.md` file
-enforces project rules across all sessions: agents argue / code computes,
-Python 3.12 + FastAPI + pydantic v2, tests must pass with `LLM_PROVIDER=mock`,
-English for all code and docs, commit after each task. The prompts are in
-`prompts/` and the session transcripts are in `devlog/`.
+`docs/BUILD_LOG.md` lists every session with its duration, turns, result and test count (from 55 tests after step 1 to 337 after step 16), including the three times CodeBuddy credits ran out. The `CODEBUDDY.md` file enforces the project rules across all sessions: agents argue, code computes; Python 3.12, FastAPI and pydantic v2; tests must pass with `LLM_PROVIDER=mock`; English for all code and docs; commit after each task. The raw session transcripts are kept privately and were submitted with the entry as the CodeBuddy conversation history.
 
 ## Stretch goals
 
@@ -286,7 +283,7 @@ English for all code and docs, commit after each task. The prompts are in
 | Escalation Protocol | Done | Triggers: low confidence, guard failure, outcome mismatch, safety; neutral case summary; `GET /api/escalations` queue |
 | Learning Feedback Loop | Done | Override stored as precedent (`source="override"`); retrieved for similar cases; "learned from override" in timeline |
 | SLA & Routing | Done | Priority = safety first, then amount at stake and age; queue sorts by it |
-| Cloud Run deployment | Done | `Dockerfile` + `scripts/deploy.sh`; dedicated SA with `roles/aiplatform.user` + `roles/datastore.user`; Firestore persistence via `STATE_BACKEND=firestore`; multi-instance |
+| Cloud Run deployment | Done | `Dockerfile` + `scripts/deploy.sh`; dedicated SA with `roles/aiplatform.user` + `roles/datastore.user`; Firestore persistence via `STATE_BACKEND=firestore`; one instance, because the live event stream is served by the instance that runs the case |
 
 ## Limits
 
@@ -302,6 +299,9 @@ English for all code and docs, commit after each task. The prompts are in
   automatically.
 - Single rebuttal round. A production system might allow more rounds with
   a token budget.
+- Gemini 3.8 Flash runs on Vertex AI's shared capacity. When it is busy, Vertex AI returns
+  429 and RideCourt retries, so a ruling that normally takes 15 to 20 seconds can take a few
+  minutes; if the model stays unavailable, the case goes to a person (`model_unavailable`).
 
 ## Licence
 
