@@ -746,6 +746,7 @@ def _mock_field(
         return _mock_str_field(
             name, agent_name, cite_pool, numbers, amount,
             policy_result=policy_result, context=context,
+            evidence_pack=evidence_pack,
         )
 
     # Numeric fields.
@@ -795,18 +796,23 @@ def _mock_list_field(
     # Arguments / signals / matches — list of objects with text + cites.
     if name in ("arguments", "signals", "cites", "matches"):
         if name == "arguments":
+            # The first argument cites the first two E# IDs; the second
+            # cites only the first.  The text must only state numbers that
+            # appear in those cited evidence items so the guard accepts.
+            cited_1 = [c for c in cite_pool[:2] if c.startswith("E")]
+            cited_2 = [c for c in cite_pool[:1] if c.startswith("E")]
             return [
                 {
-                    "text": _mock_str_field(
-                        "argument_text", agent_name, cite_pool, numbers, amount,
-                        context=context,
+                    "text": _mock_argument_text(
+                        agent_name, cite_pool, cited_1,
+                        evidence_pack, policy_result, context,
                     ),
                     "cites": cite_pool[:2],
                 },
                 {
-                    "text": _mock_str_field(
-                        "argument_text_2", agent_name, cite_pool, numbers, amount,
-                        context=context,
+                    "text": _mock_argument_text(
+                        agent_name, cite_pool, cited_2,
+                        evidence_pack, policy_result, context,
                     ),
                     "cites": [cite_pool[0]] if cite_pool else ["E1"],
                 },
@@ -848,6 +854,102 @@ def _mock_list_field(
     return [cite_pool[0]] if cite_pool else []
 
 
+def _unit_for_key(key: str) -> str:
+    """Infer the unit for a data-dict key (mirrors guard._unit_from_key)."""
+    low = key.lower()
+    if low.endswith("_km"):
+        return "km"
+    if low.endswith("_m") or "distance_to_pickup" in low or "_metres" in low:
+        return "m"
+    if low.endswith("_min") or "minutes" in low:
+        return "min"
+    if "pct" in low or "percent" in low or low.endswith("_pct"):
+        return "percent"
+    if any(w in low for w in ("fare", "charged", "total", "amount", "fee", "credit", "discount")):
+        return "money"
+    return ""
+
+
+def _format_number(val: float, unit: str) -> str:
+    """Format a value+unit the same way the guard regexes expect to see it."""
+    if unit == "money":
+        return f"S${val:.2f}"
+    if unit == "km":
+        return f"{val:.2f} km"
+    if unit == "m":
+        return f"{val:.2f} m"
+    if unit == "min":
+        return f"{val:.1f} min"
+    if unit == "percent":
+        return f"{val:.1f}%"
+    return f"{val:.2f}"
+
+
+def _cited_items_data(
+    evidence_pack: Any | None,
+    cited_eids: list[str],
+) -> dict[str, list[tuple[float, str]]]:
+    """Return ``{eid: [(value, unit), ...]}`` for each cited evidence item."""
+    result: dict[str, list[tuple[float, str]]] = {}
+    if evidence_pack is None:
+        return result
+    for item in getattr(evidence_pack, "items", []):
+        eid = getattr(item, "id", "")
+        if eid not in cited_eids:
+            continue
+        pairs: list[tuple[float, str]] = []
+        data = getattr(item, "data", {})
+        for key, val in data.items():
+            if isinstance(val, (int, float)) and not isinstance(val, bool):
+                unit = _unit_for_key(key)
+                if unit:
+                    pairs.append((float(val), unit))
+        if pairs:
+            result[eid] = pairs
+    return result
+
+
+def _mock_argument_text(
+    agent_name: str,
+    cite_pool: list[str],
+    cited_eids: list[str],
+    evidence_pack: Any | None,
+    policy_result: Any | None,
+    context: dict[str, Any] | None,
+) -> str:
+    """Build argument text that only states numbers from cited evidence.
+
+    The guard checks every number in the text against the **cited** evidence
+    items' data (with matching unit).  So we pick a number+unit pair that
+    exists in one of the cited items and write a sentence around it.
+
+    If no suitable number is found, the text cites evidence without stating
+    any number — the guard only checks numbers, not their absence.
+    """
+    cite_str = ", ".join(cite_pool[:3])
+    cited_data = _cited_items_data(evidence_pack, cited_eids)
+
+    # Collect all (value, unit, eid) triples from cited evidence.
+    candidates: list[tuple[float, str, str]] = []
+    for eid, pairs in cited_data.items():
+        for val, unit in pairs:
+            candidates.append((val, unit, eid))
+
+    if not candidates:
+        # No numeric data in cited evidence — cite without numbers.
+        return f"Evidence {cite_str} supports the claim."
+
+    # Pick the first candidate (deterministic).
+    val, unit, eid = candidates[0]
+    formatted = _format_number(val, unit)
+
+    side = "rider" if agent_name == "rider_advocate" else "driver"
+    return (
+        f"Evidence {cite_str} shows {formatted}, "
+        f"supporting the {side}'s position."
+    )
+
+
 def _mock_str_field(
     name: str,
     agent_name: str,
@@ -857,8 +959,13 @@ def _mock_str_field(
     *,
     policy_result: Any | None = None,
     context: dict[str, Any] | None = None,
+    evidence_pack: Any | None = None,
 ) -> str:
-    """Deterministic string content that cites real IDs and uses real numbers."""
+    """Deterministic string content that cites real IDs and uses real numbers.
+
+    Every number in the generated text must appear in the **cited** evidence
+    items' data (with a matching unit) so the guard never rejects it.
+    """
     context = context or {}
     cite_str = ", ".join(cite_pool[:3])
 
@@ -903,11 +1010,22 @@ def _mock_str_field(
             if matches:
                 return f"Retrieved {len(matches)} similar precedents."
             return "No similar precedents found."
-        extra_km = numbers.get("extra_km", 0.0)
-        return (
-            f"Evidence {cite_str} shows the route deviation of "
-            f"{extra_km:.2f} km, supporting the claim."
-        )
+        # Cite evidence without stating a number that might not be in the
+        # cited items.  The guard checks every number in agent text against
+        # the cited evidence, so we only state a number if we can pull one
+        # from the cited items with a matching unit.
+        cited_eids = [c for c in cite_pool[:2] if c.startswith("E")]
+        cited_data = _cited_items_data(evidence_pack, cited_eids)
+        candidates: list[tuple[float, str]] = []
+        for pairs in cited_data.values():
+            candidates.extend(pairs)
+        if candidates:
+            val, unit = candidates[0]
+            return (
+                f"Evidence {cite_str} shows {_format_number(val, unit)}, "
+                "supporting the claim."
+            )
+        return f"Evidence {cite_str} supports the claim."
 
     if name in ("risk",):
         # This is a str field on FraudOutput.

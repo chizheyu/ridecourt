@@ -557,6 +557,42 @@ body {
   border: 1px solid #fca5a5;
 }
 
+.ruling-marker.learned-from-override,
+.learned-from-override {
+  background: #ede9fe;
+  color: #5b21b6;
+  border: 1px solid #c4b5fd;
+}
+
+.precedent-match {
+  font-size: 11px;
+  margin: 2px 0;
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.precedent-case {
+  font-weight: 600;
+}
+
+.precedent-sim {
+  color: var(--text-muted);
+}
+
+.precedent-source.override {
+  background: #ede9fe;
+  color: #5b21b6;
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-size: 10px;
+}
+
+.precedent-summary {
+  color: var(--text-muted);
+}
+
 .ruling-row {
   display: flex;
   justify-content: space-between;

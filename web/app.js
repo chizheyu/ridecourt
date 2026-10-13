@@ -404,6 +404,25 @@ function addEventBubble(ev) {
       if (content.summary) {
         html += `<div>${escapeHtml(content.summary)}</div>`;
       }
+      // Precedent matches — render each with source label and similarity.
+      if (content.matches) {
+        for (const m of content.matches) {
+          const simPct = Math.round((m.similarity || 0) * 100);
+          let matchLine = `<div class="precedent-match">`;
+          matchLine += `<span class="precedent-case">${escapeHtml(m.case_id)}</span>`;
+          matchLine += ` <span class="precedent-sim">${simPct}%</span>`;
+          if (m.source === "override") {
+            matchLine += ` <span class="precedent-source override">Reviewer override of ${escapeHtml(m.case_id)}</span>`;
+          }
+          matchLine += ` <span class="precedent-summary">${escapeHtml(m.summary || "")}</span>`;
+          matchLine += `</div>`;
+          html += matchLine;
+        }
+      }
+      // Learned-from-override flag on the PRECEDENT event.
+      if (content.learned_from_override) {
+        html += `<div class="learned-from-override">Learned from a reviewer override</div>`;
+      }
     }
   }
 
@@ -725,6 +744,15 @@ function renderRuling(data) {
                   escapeHtml(pc);
     const cls = pc === "inconsistent" ? "ruling-marker inconsistent" : "ruling-marker consistent";
     html += `<div class="${cls}">${label}</div>`;
+  }
+
+  // Learned from a reviewer override — when the top precedent came from an
+  // override, say so explicitly on the ruling card.
+  if (data.precedent_matches && data.precedent_matches.length > 0) {
+    const topPrec = data.precedent_matches[0];
+    if (topPrec.source === "override") {
+      html += `<div class="ruling-marker learned-from-override">Learned from a reviewer override</div>`;
+    }
   }
 
   // Judge's reasoning — displayed in full with citation chips.

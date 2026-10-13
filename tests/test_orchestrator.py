@@ -569,3 +569,39 @@ class TestJudgeRules:
         cf = orc.resolve("disp_rd_000")
         assert cf.ruling is not None
         assert cf.ruling.confidence >= 0.7
+
+
+# ---------------------------------------------------------------------------
+# Full-suite mock sweep — no guard failures across all 48 cases
+# ---------------------------------------------------------------------------
+
+
+class TestMockFullSuiteNoGuardFailures:
+    """Resolve every case in the dataset with ``LLM_PROVIDER=mock`` and fail
+    if any case escalates due to a guard problem.
+
+    Safety cases escalate by design (P-SF-1) and are excluded.  Every other
+    case must either rule or escalate for a non-guard reason (e.g.
+    low_confidence).  A guard failure means the mock provider wrote a number
+    or citation that is not backed by the evidence — a bug in the mock.
+
+    This test fails on the pre-fix code where all six ``fare_error`` cases
+    escalate with ``guard_failure_advocate`` because the mock wrote
+    "0.00 km" for cases that have no GPS evidence.
+    """
+
+    def test_no_guard_failures_all_48_cases(self, ds):
+        orc = Orchestrator(ds)
+        guard_failures: list[tuple[str, str, str]] = []
+        for did in sorted(ds.disputes.keys()):
+            cf = orc.resolve(did)
+            d = ds.dispute(did)
+            if cf.escalated and "guard_failure" in (cf.escalation_reason or ""):
+                guard_failures.append(
+                    (did, d.category, cf.escalation_reason)
+                )
+        assert guard_failures == [], (
+            f"{len(guard_failures)} case(s) have guard failures with the mock "
+            "provider — the mock wrote numbers or citations not in the evidence:\n  "
+            + "\n  ".join(f"{did} [{cat}]: {reason}" for did, cat, reason in guard_failures)
+        )

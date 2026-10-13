@@ -694,3 +694,44 @@ class TestUIFieldCoverage:
         assert 'ruling.cites.map' in js or 'ruling.cites.forEach' in js, (
             "Ruling card must render all citations as chips (E# and P-#)."
         )
+
+    def test_precedent_source_rendered(self, client):
+        """The PRECEDENT bubble must show each precedent's ``source`` so a
+        reviewer can see when a ruling was learned from a reviewer override.
+
+        The learning loop stores overrides as new precedents with
+        ``source: "override"``.  If the UI never renders ``source``, the
+        learning loop is invisible — the demo had to show it through the
+        case-file API.
+        """
+        js = self._app_js(client)
+        assert 'm.source' in js or 'source' in js, (
+            "Precedent source is not rendered in the PRECEDENT bubble. "
+            "When a precedent came from a reviewer override, the UI must "
+            "say so (e.g. 'Reviewer override of disp_fa_005')."
+        )
+        assert '"override"' in js, (
+            "The UI does not check for source === 'override' on precedents. "
+            "Override-sourced precedents must be marked."
+        )
+
+    def test_precedent_similarity_rendered(self, client):
+        """Each precedent in the PRECEDENT bubble must show its similarity
+        as a percentage."""
+        js = self._app_js(client)
+        assert 'similarity' in js, (
+            "Precedent similarity is not rendered in the PRECEDENT bubble. "
+            "Each precedent must show its similarity as a percentage."
+        )
+
+    def test_learned_from_override_on_ruling_card(self, client):
+        """When the top precedent came from an override, the ruling card
+        must say 'Learned from a reviewer override'."""
+        js = self._app_js(client)
+        assert 'Learned from a reviewer override' in js, (
+            "The ruling card does not show 'Learned from a reviewer override' "
+            "when the top precedent came from an override."
+        )
+        assert 'precedent_matches' in js, (
+            "The ruling card does not check precedent_matches for override source."
+        )
