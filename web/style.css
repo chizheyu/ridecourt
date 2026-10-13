@@ -487,6 +487,7 @@ body {
   padding: 14px;
   background: var(--surface);
   flex-shrink: 0;
+  overflow-y: auto;
 }
 
 .ruling-card.hidden {
@@ -502,6 +503,58 @@ body {
 
 .ruling-body {
   font-size: 13px;
+}
+
+.ruling-banner {
+  padding: 6px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.ruling-banner.escalate {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fca5a5;
+}
+
+.reasoning-block {
+  font-size: 12px;
+  line-height: 1.5;
+  background: var(--bg);
+  padding: 8px 10px;
+  border-radius: 4px;
+  margin: 4px 0;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+.ruling-marker {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 4px;
+  margin: 4px 0;
+}
+
+.ruling-marker.bad-faith {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fcd34d;
+}
+
+.ruling-marker.consistent {
+  background: #dcfce7;
+  color: #166534;
+  border: 1px solid #86efac;
+}
+
+.ruling-marker.inconsistent {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fca5a5;
 }
 
 .ruling-row {

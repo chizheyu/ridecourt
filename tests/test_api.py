@@ -625,3 +625,72 @@ class TestStaticFiles:
         res = client.get("/style.css")
         assert res.status_code == 200
         assert "css" in res.headers.get("content-type", "")
+
+
+# ---------------------------------------------------------------------------
+# UI rendering coverage — SPEC-required fields must appear in web/
+# ---------------------------------------------------------------------------
+
+
+class TestUIFieldCoverage:
+    """Verify that fields the SPEC requires the system to state explicitly
+    are rendered somewhere in the web UI (``app.js``).
+
+    The SPEC says (section 5, P-BF-1): "the Judge **must say so explicitly**"
+    for bad-faith findings. If ``bad_faith_mentioned`` is true but the UI
+    never renders it, a reviewer cannot see the finding — the system has
+    not *stated* it in any visible way.
+
+    Similarly, ``reasoning`` and ``precedent_consistency`` are Judge output
+    fields that the SPEC requires the Judge to produce (section 6 table);
+    they must be visible to a reviewer.
+    """
+
+    def _app_js(self, client) -> str:
+        res = client.get("/app.js")
+        assert res.status_code == 200
+        return res.text
+
+    def test_bad_faith_mentioned_rendered(self, client):
+        """P-BF-1: the Judge must say so explicitly — the UI must render
+        the ``bad_faith_mentioned`` field so a reviewer can see it."""
+        js = self._app_js(client)
+        assert "bad_faith_mentioned" in js, (
+            "bad_faith_mentioned is not rendered in the web UI. "
+            "SPEC P-BF-1 requires the Judge to state bad-faith findings "
+            "explicitly, and a reviewer must be able to see them."
+        )
+
+    def test_reasoning_rendered(self, client):
+        """The Judge's ``reasoning`` field must be displayed on the ruling
+        card so the rationale is visible to a reviewer."""
+        js = self._app_js(client)
+        assert "reasoning" in js, (
+            "reasoning is not rendered in the web UI. "
+            "The SPEC requires the Judge to issue a ruling with reasoning; "
+            "it must be visible to a reviewer."
+        )
+
+    def test_precedent_consistency_rendered(self, client):
+        """The ``precedent_consistency`` field must be displayed so a
+        reviewer can see whether the ruling aligns with past precedents."""
+        js = self._app_js(client)
+        assert "precedent_consistency" in js, (
+            "precedent_consistency is not rendered in the web UI. "
+            "The SPEC requires the Judge to state consistency with precedents."
+        )
+
+    def test_all_cites_rendered_as_chips(self, client):
+        """Both E# and P-# citations must be rendered as chips in the
+        ruling card (not just P-#). The SPEC says every claim cites E#
+        and P-# — the ruling card must show both."""
+        js = self._app_js(client)
+        # The ruling card must not filter out E# cites.
+        # Check that the chip class is used in the ruling rendering.
+        assert "chip policy" in js, "Policy chips must use the 'chip policy' class"
+        # The ruling card must render all cites, not just P-# ones.
+        # Previously it filtered with .filter(c => c.startsWith("P-")).
+        # Now it should render all cites as chips.
+        assert 'ruling.cites.map' in js or 'ruling.cites.forEach' in js, (
+            "Ruling card must render all citations as chips (E# and P-#)."
+        )

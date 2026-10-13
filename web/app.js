@@ -681,6 +681,11 @@ function renderRuling(data) {
 
   let html = "";
 
+  // Escalation banner (when escalated but a ruling still exists).
+  if (data.escalated) {
+    html += `<div class="ruling-banner escalate">Escalated — ${escapeHtml(data.escalation_reason || "N/A")}</div>`;
+  }
+
   // Outcome and amount — human words with the code underneath in small text.
   html += `<div class="ruling-row"><span class="label">Outcome</span><span class="value">${escapeHtml(humanOutcome(ruling.outcome))}<span class="outcome-code">${escapeHtml(ruling.outcome)}</span></span></div>`;
   html += `<div class="ruling-row"><span class="label">Amount</span><span class="value">${formatMoney(ruling.amount)}</span></div>`;
@@ -695,13 +700,37 @@ function renderRuling(data) {
     html += `<div class="computation-string">${escapeHtml(policy.computation)}</div>`;
   }
 
-  // Cited clauses.
+  // Cited clauses — render all cites as chips (E# as evidence chips,
+  // P-# as policy chips), matching the courtroom's chip styling.
   if (ruling.cites && ruling.cites.length > 0) {
-    const policyCites = ruling.cites.filter((c) => c.startsWith("P-"));
-    if (policyCites.length > 0) {
-      html += `<div class="ruling-row"><span class="label">Cited clauses</span></div>`;
-      html += `<div class="clauses">${policyCites.map((c) => `<span class="clause-chip">${escapeHtml(c)}</span>`).join("")}</div>`;
-    }
+    html += `<div class="ruling-row"><span class="label">Citations</span></div>`;
+    html += `<div class="clauses">${ruling.cites.map((c) => {
+      const isPolicy = c.startsWith("P-");
+      const cls = isPolicy ? "chip policy" : "chip";
+      const clickable = !isPolicy ? ` onclick="highlightEvidence('${escapeHtml(c)}')" style="cursor:pointer"` : "";
+      return `<span class="${cls}"${clickable}>${escapeHtml(c)}</span>`;
+    }).join("")}</div>`;
+  }
+
+  // Bad-faith marker (P-BF-1).
+  if (ruling.bad_faith_mentioned) {
+    html += `<div class="ruling-marker bad-faith">Credibility lowered (P-BF-1)</div>`;
+  }
+
+  // Precedent consistency.
+  if (ruling.precedent_consistency && ruling.precedent_consistency !== "no_precedents") {
+    const pc = ruling.precedent_consistency;
+    const label = pc === "consistent" ? "Consistent with precedents" :
+                  pc === "inconsistent" ? "Inconsistent with precedents" :
+                  escapeHtml(pc);
+    const cls = pc === "inconsistent" ? "ruling-marker inconsistent" : "ruling-marker consistent";
+    html += `<div class="${cls}">${label}</div>`;
+  }
+
+  // Judge's reasoning — displayed in full with citation chips.
+  if (ruling.reasoning) {
+    html += `<div class="ruling-row"><span class="label">Reasoning</span></div>`;
+    html += `<div class="reasoning-block">${escapeHtml(ruling.reasoning)}</div>`;
   }
 
   // Messages.
