@@ -29,6 +29,7 @@ from ridecourt.api import (
 )
 from ridecourt.data import load_dataset, Precedent
 from ridecourt.precedent import retrieve_precedents
+from ridecourt.store import InMemoryStore, reset_store
 
 
 # ---------------------------------------------------------------------------
@@ -44,7 +45,9 @@ def client():
     _overrides.clear()
     _rate_limiter._hits.clear()
 
-    app = create_app()
+    store = InMemoryStore()
+    reset_store()
+    app = create_app(store=store)
     with TestClient(app) as c:
         yield c
 

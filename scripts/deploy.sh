@@ -12,9 +12,9 @@ set -euo pipefail
 REGION="asia-southeast1"
 SERVICE="ridecourt"
 SA="${SERVICE}-sa"
-# One instance: case state and the live event stream are kept in memory, so a resolve and its
-# event stream must reach the same instance.
-MAX_INSTANCES="${MAX_INSTANCES:-1}"
+# With STATE_BACKEND=firestore, case state is externalised to Firestore so
+# multiple instances can serve in parallel. Override to 1 for single-instance.
+MAX_INSTANCES="${MAX_INSTANCES:-3}"
 SA_EMAIL="${SA}@${PROJECT_ID}.iam.gserviceaccount.com"
 
 echo "=== RideCourt Cloud Run deployment ==="
@@ -55,6 +55,32 @@ for attempt in $(seq 1 10); do
 done
 
 # ------------------------------------------------------------------
+# 2b. Create Firestore database (idempotent).
+# ------------------------------------------------------------------
+echo "Creating Firestore database (if not exists)..."
+gcloud firestore databases create \
+  --location="${REGION}" \
+  --project="${PROJECT_ID}" 2>/dev/null || \
+  echo "  Firestore database already exists."
+
+# ------------------------------------------------------------------
+# 2c. Grant roles/datastore.user for Firestore read/write.
+# ------------------------------------------------------------------
+echo "Granting roles/datastore.user to ${SA_EMAIL}..."
+for attempt in $(seq 1 10); do
+  if gcloud projects add-iam-policy-binding "${PROJECT_ID}" \
+       --member="serviceAccount:${SA_EMAIL}" \
+       --role="roles/datastore.user" \
+       --condition=None \
+       --quiet >/dev/null 2>&1; then
+    break
+  fi
+  if [ "${attempt}" = "10" ]; then echo "Could not grant roles/datastore.user to ${SA_EMAIL}." >&2; exit 1; fi
+  echo "  retrying roles/datastore.user in 10s (${attempt}/10)"
+  sleep 10
+done
+
+# ------------------------------------------------------------------
 # 3. Deploy to Cloud Run (builds from source via the Dockerfile).
 # ------------------------------------------------------------------
 echo "Deploying ${SERVICE} to Cloud Run..."
@@ -65,7 +91,7 @@ gcloud run deploy "${SERVICE}" \
   --allow-unauthenticated \
   --service-account "${SA_EMAIL}" \
   --max-instances "${MAX_INSTANCES}" \
-  --set-env-vars "LLM_PROVIDER=gemini,GOOGLE_GENAI_USE_VERTEXAI=true,GOOGLE_CLOUD_PROJECT=${PROJECT_ID},GOOGLE_CLOUD_LOCATION=global,MODEL=gemini-3.8-flash" \
+  --set-env-vars "LLM_PROVIDER=gemini,GOOGLE_GENAI_USE_VERTEXAI=true,GOOGLE_CLOUD_PROJECT=${PROJECT_ID},GOOGLE_CLOUD_LOCATION=global,MODEL=gemini-3.8-flash,STATE_BACKEND=firestore" \
   --quiet
 
 # ------------------------------------------------------------------

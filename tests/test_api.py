@@ -27,6 +27,7 @@ from ridecourt.api import (
     _overrides,
     _rate_limiter,
 )
+from ridecourt.store import InMemoryStore, reset_store
 
 
 # ---------------------------------------------------------------------------
@@ -36,7 +37,11 @@ from ridecourt.api import (
 
 @pytest.fixture()
 def client():
-    """Fresh app + client for each test (clean state)."""
+    """Fresh app + client for each test (clean state).
+
+    Uses a fresh ``InMemoryStore`` so state from previous tests doesn't
+    leak through the store.
+    """
     _case_files.clear()
     _case_logs.clear()
     _case_status.clear()
@@ -46,10 +51,14 @@ def client():
     # Reset daily cap counter (so prior tests don't leak budget into this one).
     _daily_cap._day = None
     _daily_cap._count = 0
+    _daily_cap._loaded_from_store = False
     # Pin the cap to a small value for deterministic behavior in cap tests.
     _daily_cap.cap = 300
 
-    app = create_app()
+    # Fresh store for each test.
+    store = InMemoryStore()
+    reset_store()
+    app = create_app(store=store)
     with TestClient(app) as c:
         yield c
 

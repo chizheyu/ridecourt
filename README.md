@@ -150,11 +150,13 @@ export DAILY_RESOLVE_CAP=300
 ./scripts/deploy.sh
 ```
 
-The deploy script creates a dedicated service account with only
-`roles/aiplatform.user`, deploys via `gcloud run deploy ridecourt --source .`,
-sets the Gemini env vars, caps at 2 max instances, and waits for IAM
-propagation with a retry loop. See `Dockerfile` for the container image
-(python:3.12-slim, non-root user, uvicorn on `$PORT`).
+The deploy script creates a dedicated service account with
+`roles/aiplatform.user` and `roles/datastore.user`, creates a Firestore
+database, deploys via `gcloud run deploy ridecourt --source .`, sets
+`STATE_BACKEND=firestore` so case state survives instance restarts, allows
+up to 3 max instances, and waits for IAM propagation with a retry loop.
+See `Dockerfile` for the container image (python:3.12-slim, non-root user,
+uvicorn on `$PORT`).
 
 #### Cost guard for the public demo
 
@@ -167,6 +169,31 @@ remaining budget is exposed in `GET /api/metrics` as
 per-IP limit (20/hour) still applies — the daily cap is the outer one.
 
 See `.env.example` for all configuration options.
+
+### Pre-resolve cases (warm the store)
+
+`scripts/preresolve.py` resolves labelled cases in the current process
+and writes results to the configured store. This is useful for populating
+the store before a demo or for batch processing.
+
+```bash
+# Mock, offline (writes to the in-memory store — useful for testing)
+LLM_PROVIDER=mock .venv/bin/python scripts/preresolve.py --provider mock
+
+# Gemini (writes to Firestore when STATE_BACKEND=firestore)
+LLM_PROVIDER=gemini \
+GOOGLE_GENAI_USE_VERTEXAI=true \
+GOOGLE_CLOUD_PROJECT=your-project \
+GOOGLE_CLOUD_LOCATION=global \
+MODEL=gemini-3.8-flash \
+STATE_BACKEND=firestore \
+.venv/bin/python scripts/preresolve.py --provider gemini
+```
+
+Options: `--limit N` (only first N cases), `--force` (re-resolve even if
+already in the store), or pass specific dispute IDs as positional args.
+The script prints one progress line per case to stderr and continues after
+failures.
 
 ## Evaluation
 
@@ -259,7 +286,7 @@ English for all code and docs, commit after each task. The prompts are in
 | Escalation Protocol | Done | Triggers: low confidence, guard failure, outcome mismatch, safety; neutral case summary; `GET /api/escalations` queue |
 | Learning Feedback Loop | Done | Override stored as precedent (`source="override"`); retrieved for similar cases; "learned from override" in timeline |
 | SLA & Routing | Done | Priority = safety first, then amount at stake and age; queue sorts by it |
-| Cloud Run deployment | Ready | `Dockerfile` + `scripts/deploy.sh`; dedicated SA with `roles/aiplatform.user`; max 2 instances; IAM retry loop |
+| Cloud Run deployment | Done | `Dockerfile` + `scripts/deploy.sh`; dedicated SA with `roles/aiplatform.user` + `roles/datastore.user`; Firestore persistence via `STATE_BACKEND=firestore`; multi-instance |
 
 ## Limits
 
@@ -268,9 +295,11 @@ English for all code and docs, commit after each task. The prompts are in
   the organiser's real dataset.
 - The mock provider is deterministic but limited — it does not produce
   real natural-language arguments; its purpose is offline testing.
-- In-memory state (single process). The Cloud Run deployment caps at 2
-  max instances; a production deployment would need external state
-  (Redis or a database) for multi-instance consistency.
+- State is in-memory by default. Set `STATE_BACKEND=firestore` to persist
+  case files, events, statuses, overrides, precedents, and the daily
+  resolve counter to Firestore so they survive instance restarts and are
+  visible across processes. The Cloud Run deploy script enables this
+  automatically.
 - Single rebuttal round. A production system might allow more rounds with
   a token budget.
 

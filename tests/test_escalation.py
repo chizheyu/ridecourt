@@ -192,7 +192,9 @@ class TestApiEscalations:
         _overrides.clear()
         _rate_limiter._hits.clear()
 
-        app = create_app()
+        from ridecourt.store import InMemoryStore, reset_store
+        reset_store()
+        app = create_app(store=InMemoryStore())
         with TestClient(app) as client:
             res = client.get("/api/escalations")
             assert res.status_code == 200
@@ -220,7 +222,9 @@ class TestApiEscalations:
         _overrides.clear()
         _rate_limiter._hits.clear()
 
-        app = create_app()
+        from ridecourt.store import InMemoryStore, reset_store
+        reset_store()
+        app = create_app(store=InMemoryStore())
         with TestClient(app) as client:
             # Find a safety dispute.
             res = client.get("/api/disputes")

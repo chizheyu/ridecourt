@@ -32,6 +32,7 @@ from typing import Any
 from fastapi import (
     FastAPI,
     HTTPException,
+    Query,
     Request,
     UploadFile,
 )
@@ -46,6 +47,8 @@ from pydantic import BaseModel, Field
 from .data import Dataset, Dispute, Precedent, load_dataset
 from .events import Event, EventLog, RUNS_DIR
 from .orchestrator import CaseFile, Orchestrator
+from .serialize import serialize_case_file, serialize_events
+from .store import Store, InMemoryStore, get_store, reset_store, set_store
 
 
 # ---------------------------------------------------------------------------
@@ -71,6 +74,16 @@ _case_status: dict[str, str] = {}  # "new" | "resolving" | "ruled" | "escalated"
 # Human overrides stored as precedents (in-memory; persisted to JSON on disk).
 _overrides: list[dict] = []
 
+# The store for persistence (None until create_app sets it).
+_store: Store | None = None
+
+# Queue cache for cross-process status visibility (short TTL so another
+# process's resolved cases appear quickly without hitting the store on
+# every poll).
+_queue_status_cache: dict[str, str] | None = None
+_queue_cache_ts: float = 0.0
+_QUEUE_CACHE_TTL = 5.0  # seconds
+
 
 def _ds() -> Dataset:
     global _dataset
@@ -87,8 +100,41 @@ def _orc() -> Orchestrator:
 
 
 def _init_status() -> None:
-    """Seed case status for all known disputes as ``new``."""
+    """Seed case status for all known disputes as ``new``.
+
+    Also loads stored statuses, overrides, and learned precedents from the
+    store so a restarted instance sees cases another process resolved.
+    """
+    global _overrides, _queue_status_cache, _queue_cache_ts
     ds = _ds()
+
+    # Invalidate the queue cache so a new app instance sees fresh statuses
+    # from the store instead of stale values from a previous instance.
+    _queue_status_cache = None
+    _queue_cache_ts = 0.0
+
+    # Load stored statuses (cases resolved by another process).
+    if _store is not None:
+        stored_statuses = _store.list_statuses()
+        for did, status in stored_statuses.items():
+            if did in ds.disputes:
+                _case_status[did] = status
+
+        # Load stored overrides + precedents into the dataset so they are
+        # retrievable for future cases (learning loop survives restarts).
+        for override in _store.load_overrides():
+            _overrides.append(override)
+
+        for prec_data in _store.load_precedents():
+            # Don't duplicate precedents already in the dataset.
+            existing_ids = {p.case_id for p in ds.precedents}
+            if prec_data.get("case_id") not in existing_ids:
+                try:
+                    ds.precedents.append(Precedent(**prec_data))
+                except Exception:
+                    pass
+
+    # Seed all known disputes as "new" if no status is set.
     for did in ds.disputes:
         if did not in _case_status:
             _case_status[did] = "new"
@@ -158,19 +204,34 @@ class DailyCap:
     Each successful ``record()`` increments the count. ``remaining()`` returns
     how many resolves are left today. When the count reaches the cap, the
     ``is_exhausted()`` check returns True and the API responds with 429.
+
+    When a ``Store`` is attached, the counter is loaded from the store on
+    first access and written through on every ``record()`` so the cost
+    guard survives instance restarts.
     """
 
-    def __init__(self, cap: int | None = None):
+    def __init__(self, cap: int | None = None, store: Store | None = None):
         # Read from env at construction time so tests can override.
         env_cap = os.getenv("DAILY_RESOLVE_CAP")
         if cap is None:
             cap = int(env_cap) if env_cap else 300
         self.cap = cap
+        self._store: Store | None = store
         self._lock = threading.Lock()
         self._day: date | None = None
         self._count: int = 0
+        self._loaded_from_store = False
+
+    def _ensure_loaded(self) -> None:
+        """Load the counter from the store on first access."""
+        if not self._loaded_from_store and self._store is not None:
+            day, count = self._store.get_daily_count()
+            self._day = day
+            self._count = count
+            self._loaded_from_store = True
 
     def _maybe_rollover(self, today: date) -> None:
+        self._ensure_loaded()
         if self._day != today:
             self._day = today
             self._count = 0
@@ -193,6 +254,8 @@ class DailyCap:
         with self._lock:
             self._maybe_rollover(today)
             self._count += 1
+            if self._store is not None:
+                self._store.set_daily_count(today, self._count)
             return self._count
 
     def snapshot(self) -> dict[str, Any]:
@@ -210,6 +273,102 @@ class DailyCap:
 
 
 _daily_cap = DailyCap()
+
+
+def _get_store() -> Store | None:
+    """Return the configured store, or None if not yet set."""
+    global _store
+    if _store is not None:
+        return _store
+    # Try the module-level get_store (respects STATE_BACKEND env var).
+    try:
+        _store = get_store()
+        return _store
+    except Exception:
+        return None
+
+
+def _store_case(cf: CaseFile) -> None:
+    """Write-through: persist a case file + events + status to the store."""
+    store = _get_store()
+    if store is None:
+        return
+    try:
+        store.save_case(cf.dispute_id, serialize_case_file(cf))
+        store.save_events(cf.dispute_id, serialize_events(cf))
+        if cf.escalated:
+            store.set_status(cf.dispute_id, "escalated")
+        else:
+            store.set_status(cf.dispute_id, "ruled")
+    except Exception:
+        # Store failures must not crash the resolve.
+        pass
+
+
+def _load_case_from_store(dispute_id: str) -> dict[str, Any] | None:
+    """Read-through: load a case file from the store when not in memory."""
+    store = _get_store()
+    if store is None:
+        return None
+    try:
+        case_data = store.load_case(dispute_id)
+        if case_data is None:
+            return None
+        events = store.load_events(dispute_id)
+        case_data["events"] = events
+        return case_data
+    except Exception:
+        return None
+
+
+def _get_merged_status(dispute_id: str) -> str:
+    """Get the status for a dispute, checking memory first, then the store.
+
+    This gives cross-process visibility: a case resolved by another process
+    shows as ruled/escalated in the queue.
+    """
+    status = _case_status.get(dispute_id)
+    if status is not None:
+        return status
+    store = _get_store()
+    if store is not None:
+        try:
+            stored = store.get_status(dispute_id)
+            if stored is not None:
+                return stored
+        except Exception:
+            pass
+    return "new"
+
+
+def _get_queue_statuses() -> dict[str, str]:
+    """Return statuses for all disputes, merging memory and store.
+
+    Uses a short cache so the queue endpoint doesn't hit the store on every
+    poll from the UI.
+    """
+    global _queue_status_cache, _queue_cache_ts
+    now = time.time()
+    if _queue_status_cache is not None and (now - _queue_cache_ts) < _QUEUE_CACHE_TTL:
+        return _queue_status_cache
+
+    merged: dict[str, str] = {}
+    # Memory first.
+    merged.update(_case_status)
+    # Store fills in any missing (cases resolved by another process).
+    store = _get_store()
+    if store is not None:
+        try:
+            stored = store.list_statuses()
+            for did, status in stored.items():
+                # Don't overwrite "resolving" (in-progress) with stored.
+                if merged.get(did) not in ("resolving",):
+                    merged[did] = status
+        except Exception:
+            pass
+    _queue_status_cache = merged
+    _queue_cache_ts = now
+    return merged
 
 
 # ---------------------------------------------------------------------------
@@ -282,8 +441,23 @@ class OverrideRequest(BaseModel):
 # ---------------------------------------------------------------------------
 
 
-def create_app() -> FastAPI:
-    """Build the FastAPI application."""
+def create_app(store: Store | None = None) -> FastAPI:
+    """Build the FastAPI application.
+
+    Args:
+        store: Optional ``Store`` instance for persistence. If ``None``,
+            uses ``get_store()`` (which respects ``STATE_BACKEND``).
+    """
+    global _store, _daily_cap
+
+    # Wire the store.
+    if store is not None:
+        _store = store
+        set_store(store)
+    else:
+        _store = _get_store()
+    _daily_cap._store = _store
+
     app = FastAPI(title="RideCourt", version="0.1.0")
 
     # Initialise dataset + status at startup.
@@ -307,10 +481,11 @@ def create_app() -> FastAPI:
     @app.get("/api/disputes")
     async def list_disputes():
         ds = _ds()
+        queue_statuses = _get_queue_statuses()
         items = []
         for did, disp in ds.disputes.items():
             trip = ds.trip(disp.trip_id)
-            status = _case_status.get(did, "new")
+            status = queue_statuses.get(did, "new")
             amount = 0.0
             if did in _case_files:
                 cf = _case_files[did]
@@ -385,7 +560,11 @@ def create_app() -> FastAPI:
     # Resolve a dispute (background)
     # ------------------------------------------------------------------
     @app.post("/api/disputes/{dispute_id}/resolve")
-    async def resolve_dispute(dispute_id: str, request: Request):
+    async def resolve_dispute(
+        dispute_id: str,
+        request: Request,
+        force: bool = Query(False, description="Re-run even if already resolved (counts toward cost guard)"),
+    ):
         ds = _ds()
         if dispute_id not in ds.disputes:
             raise HTTPException(status_code=404, detail="Dispute not found")
@@ -419,13 +598,19 @@ def create_app() -> FastAPI:
                 "message": "Already resolving. Subscribe to /events for updates.",
             }
 
-        # If already done, return the cached result.
-        if dispute_id in _case_files:
+        # If already done and not forced, return the cached result.
+        if not force and dispute_id in _case_files:
             return {
                 "dispute_id": dispute_id,
                 "status": _case_status.get(dispute_id, "done"),
                 "message": "Already resolved. Fetch /api/disputes/{id} for the case file.",
             }
+
+        # If forced (Run Again), clear the in-memory cache so the new run
+        # replaces the old result.
+        if force:
+            _case_files.pop(dispute_id, None)
+            _case_logs.pop(dispute_id, None)
 
         # Count this resolve against the daily cap. We only record here so
         # that 404s, rate-limit rejects, "already resolving", and "already
@@ -451,6 +636,9 @@ def create_app() -> FastAPI:
                     _case_status[dispute_id] = "escalated"
                 else:
                     _case_status[dispute_id] = "ruled"
+                # Write-through: persist to the store so the result survives
+                # restarts and is visible to other processes.
+                _store_case(cf)
             except Exception as exc:
                 _case_status[dispute_id] = "error"
                 # Emit an error event to the JSONL file so SSE can pick it up.
@@ -493,7 +681,7 @@ def create_app() -> FastAPI:
 
             while time.time() < deadline:
                 # Check if the case is done.
-                status = _case_status.get(dispute_id, "new")
+                status = _get_merged_status(dispute_id)
                 done = status in ("ruled", "escalated", "error", "overridden")
 
                 # Read all lines from the JSONL file.
@@ -564,7 +752,7 @@ def create_app() -> FastAPI:
             "dispute": disp.model_dump(),
             "trip": trip.model_dump() if trip else None,
             "chat": chat.model_dump() if chat else None,
-            "status": _case_status.get(dispute_id, "new"),
+            "status": _get_merged_status(dispute_id),
         }
 
         cf = _case_files.get(dispute_id)
@@ -617,13 +805,35 @@ def create_app() -> FastAPI:
             result["escalation"] = (
                 cf.escalation.to_dict() if cf.escalation else None
             )
+        else:
+            # Read-through: if the case isn't in memory, try the store
+            # (it may have been resolved by another process or by
+            # preresolve). This gives cross-process visibility.
+            stored = _load_case_from_store(dispute_id)
+            if stored:
+                # Copy the stored case fields into the result.
+                for key in (
+                    "evidence_pack", "rider_case", "driver_case",
+                    "rider_rebuttal", "driver_rebuttal", "policy_result",
+                    "ruling", "escalated", "escalation_reason",
+                    "total_tokens", "total_latency_ms",
+                    "risk_output", "risk_assessment",
+                    "precedent_matches", "escalation",
+                ):
+                    if key in stored:
+                        result[key] = stored[key]
 
-        # Include events if available — from the in-memory log or the JSONL file.
+        # Include events if available — from the in-memory log, the JSONL
+        # file, or the store.
         log = _case_logs.get(dispute_id)
         if log:
             result["events"] = [e.model_dump() for e in log.events]
+        elif "events" in result and result["events"]:
+            # Events were loaded from the store above.
+            pass
         else:
-            # Fallback: read events from the JSONL file (during/after resolution).
+            # Fallback: read events from the JSONL file (during/after
+            # resolution in this process).
             jsonl_path = RUNS_DIR / f"{dispute_id}.jsonl"
             if jsonl_path.exists():
                 events_list = []
@@ -678,6 +888,17 @@ def create_app() -> FastAPI:
         )
         ds.precedents.append(new_precedent)
 
+        # Persist the override and precedent to the store so the learning
+        # loop survives restarts and is visible to other processes.
+        store = _get_store()
+        if store is not None:
+            try:
+                store.save_override(override_record)
+                store.save_precedent(new_precedent.model_dump())
+                store.set_status(dispute_id, "overridden")
+            except Exception:
+                pass
+
         # Also persist to the overrides list for the escalation queue.
         # Resolve the escalation if one exists.
         orc = _orc()
@@ -727,6 +948,16 @@ def create_app() -> FastAPI:
         escalated = sum(1 for cf in _case_files.values() if cf.escalated)
         ruled = sum(1 for cf in _case_files.values() if not cf.escalated)
         overridden = len(_overrides)
+
+        # Also count cases resolved by another process (in the store but
+        # not in this process's memory).
+        store = _get_store()
+        if store is not None:
+            try:
+                stored_ids = set(store.list_resolved_ids())
+                resolved = max(resolved, len(stored_ids))
+            except Exception:
+                pass
 
         # Per-category breakdown.
         by_category: dict[str, dict[str, int]] = {}
