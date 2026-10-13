@@ -6,8 +6,13 @@ These tests verify that:
   backoff long enough to ride out a brief outage (at least 5 attempts).
 * A transient error that succeeds on the 3rd attempt returns a valid
   result.
-* Permanent errors (HTTP 400 bad request, 401/403 auth, schema
-  validation) fail fast without retrying.
+* Permanent errors (HTTP 400 bad request, 401/403 auth) fail fast
+  without retrying.
+* Response validation errors (malformed JSON, pydantic validation
+  failure) are retried with a smaller budget (3 attempts total, no long
+  backoff) — a malformed model answer may be fixed by asking again.
+* The mock provider's validation failure is permanent (bug in the
+  mock, not model variance).
 
 Run with: .venv/bin/python -m pytest tests/test_llm_retry.py -q
 """
@@ -27,6 +32,7 @@ os.environ.setdefault("LLM_PROVIDER", "mock")
 from ridecourt.llm import (
     LLMError,
     PermanentLLMError,
+    ResponseValidationError,
     _backoff_delay,
     _classify_gemini_error,
     _is_retriable,
@@ -285,3 +291,154 @@ class TestGeminiErrorClassification:
             )
         assert result.outcome == "refund"
         assert state["i"] == 2
+
+
+# ---------------------------------------------------------------------------
+# Tests: response validation errors (malformed JSON / pydantic failure)
+# ---------------------------------------------------------------------------
+
+
+class TestResponseValidationRetry:
+    """Tests that a malformed or invalid model response is retried with
+    a smaller budget (3 attempts total) and no long backoff.
+
+    * A fake Gemini client that returns invalid JSON once then a valid
+      answer should succeed.
+    * One that always returns invalid JSON should fail after 3 attempts
+      in total.
+    * A 400 still fails on the first attempt.
+    """
+
+    @staticmethod
+    def _make_gemini_call(responses):
+        """Build a fake ``_complete_gemini``-shaped function.
+
+        *responses* is a list whose elements are either:
+        * a string starting with ``"INVALID:"`` — simulates a model
+          response that cannot be parsed as JSON;
+        * a dict — simulates a valid parsed response.
+        """
+        state = {"i": 0}
+
+        def fake_gemini_call(system, user, schema, agent_name):
+            from pydantic import ValidationError
+
+            from ridecourt.llm import LLMMeta, ResponseValidationError, _parse_json
+
+            idx = state["i"]
+            state["i"] += 1
+            item = responses[idx] if idx < len(responses) else responses[-1]
+            if isinstance(item, str) and item.startswith("INVALID:"):
+                # Simulate a model response that is not valid JSON.
+                raw_text = item[len("INVALID:"):]
+                # This will raise ResponseValidationError via _parse_json.
+                parsed_dict = _parse_json(raw_text)
+            elif isinstance(item, str):
+                parsed_dict = _parse_json(item)
+            else:
+                parsed_dict = item
+
+            try:
+                parsed = schema.model_validate(parsed_dict)
+            except ValidationError as exc:
+                raise ResponseValidationError(
+                    f"response failed validation: {exc}"
+                ) from exc
+
+            return parsed, LLMMeta(
+                provider="gemini", model="fake", agent_name=agent_name,
+            )
+
+        return fake_gemini_call, state
+
+    def test_invalid_json_once_then_valid_succeeds(self):
+        """A Gemini client that returns invalid JSON once and then a
+        valid answer should succeed (3rd attempt is valid)."""
+        responses = [
+            "INVALID:this is not json at all",
+            '{"outcome": "refund", "amount": 5.0}',
+        ]
+        fake_call, state = self._make_gemini_call(responses)
+
+        with patch.object(llm_mod.time, "sleep") as mock_sleep:
+            result, meta = _retry(
+                fake_call, "s", "u", SimpleOutput, "test_agent"
+            )
+        assert result.outcome == "refund"
+        assert result.amount == 5.0
+        assert state["i"] == 2
+        # No long backoff for validation errors — sleep should not be
+        # called with a large value.
+        if mock_sleep.call_count > 0:
+            for call in mock_sleep.call_args_list:
+                assert call.args[0] == 0.0
+
+    def test_always_invalid_json_fails_after_three_attempts(self):
+        """A Gemini client that always returns invalid JSON should fail
+        after 3 attempts in total (1 initial + 2 retries)."""
+        responses = [
+            "INVALID:completely broken",
+            "INVALID:still broken",
+            "INVALID:always broken",
+        ]
+        fake_call, state = self._make_gemini_call(responses)
+
+        with patch.object(llm_mod.time, "sleep") as mock_sleep:
+            with pytest.raises(ResponseValidationError):
+                _retry(fake_call, "s", "u", SimpleOutput, "test_agent")
+        # Exactly 3 attempts — not the full 5 reserved for transport errors.
+        assert state["i"] == 3
+        # No long backoff for validation errors.
+        for call in mock_sleep.call_args_list:
+            assert call.args[0] == 0.0
+
+    def test_pydantic_validation_failure_is_retried(self):
+        """A response that is valid JSON but fails pydantic validation
+        is also retried with the smaller budget."""
+        # Valid JSON, but missing the required "outcome" field.
+        responses = [
+            '{"amount": 5.0}',
+            '{"outcome": "refund", "amount": 5.0}',
+        ]
+        fake_call, state = self._make_gemini_call(responses)
+
+        with patch.object(llm_mod.time, "sleep"):
+            result, _ = _retry(
+                fake_call, "s", "u", SimpleOutput, "test_agent"
+            )
+        assert result.outcome == "refund"
+        assert state["i"] == 2
+
+    def test_400_still_fails_on_first_attempt(self):
+        """A 400 bad request is permanent — fails immediately, no
+        retry, even when validation errors are retriable."""
+        class FakeResponse400:
+            status_code = 400
+            text = "Bad Request: invalid argument"
+
+        class ClientError(Exception):
+            def __init__(self):
+                self.response = FakeResponse400()
+                super().__init__("400 Bad Request")
+
+        state = {"i": 0}
+
+        def fake_gemini_call(system, user, schema, agent_name):
+            state["i"] += 1
+            raise _classify_gemini_error(ClientError())
+
+        with patch.object(llm_mod.time, "sleep") as mock_sleep:
+            with pytest.raises(PermanentLLMError):
+                _retry(fake_gemini_call, "s", "u", SimpleOutput, "test_agent")
+        assert state["i"] == 1
+        mock_sleep.assert_not_called()
+
+    def test_validation_error_is_retriable(self):
+        """``_is_retriable`` returns True for ResponseValidationError."""
+        err = ResponseValidationError("malformed JSON")
+        assert _is_retriable(err)
+
+    def test_validation_error_not_permanent(self):
+        """ResponseValidationError is not a PermanentLLMError."""
+        err = ResponseValidationError("validation failed")
+        assert not isinstance(err, PermanentLLMError)

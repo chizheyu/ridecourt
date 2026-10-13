@@ -12,11 +12,20 @@ Providers (selected by ``LLM_PROVIDER`` env var):
 * ``mock``: deterministic outputs keyed by agent name, built from the
   evidence pack so they always cite real IDs; used by all tests.
 
-Retries with exponential backoff and jitter on transport failures
-(disconnects, connection resets, timeouts), HTTP 429 and 5xx — at least
-5 attempts spanning about 30 seconds.  Permanent failures (400 bad
-request, 401/403 auth, schema/validation errors) fail immediately.  A
-per-case token budget (``CASE_TOKEN_BUDGET``, default 60000) accumulates
+Retry policy:
+
+* **Transport errors** (disconnects, connection resets, timeouts),
+  HTTP 429 and 5xx — retried with exponential backoff, at least 5
+  attempts spanning about 30 seconds.
+* **Response validation errors** (malformed JSON, pydantic
+  validation failure) — retried with a smaller budget: at most 2
+  more attempts (3 total) and no long backoff.  A malformed or
+  incomplete answer from the model is often fixed by asking again.
+* **Permanent failures** (HTTP 400 bad request, 401/403 auth) — fail
+  immediately.  The mock provider's validation failure is also
+  permanent (it is a bug in the mock, not model variance).
+
+A per-case token budget (``CASE_TOKEN_BUDGET``, default 60000) accumulates
 across calls; when exceeded a ``TokenBudgetExceeded`` error is raised so
 the orchestrator can escalate.
 """
@@ -100,17 +109,32 @@ class TokenBudgetExceeded(Exception):
 class LLMError(Exception):
     """Raised when the LLM provider fails after retries (retriable by default).
 
-    The retry loop in ``_retry`` treats a bare ``LLMError`` as retriable.
+    The retry loop in ``_retry`` treats a bare ``LLMError`` as retriable
+    with the full transport-error budget (5 attempts, ~30 s backoff).
     Raise ``PermanentLLMError`` instead when the error cannot be fixed by
-    retrying (400 bad request, 401/403 auth, schema/validation errors).
+    retrying (400 bad request, 401/403 auth).  Raise
+    ``ResponseValidationError`` when the model returned malformed JSON or
+    a response that failed pydantic validation — these are retriable but
+    with a smaller budget (3 attempts total, no long backoff).
     """
 
 
 class PermanentLLMError(LLMError):
     """An LLM error that a retry cannot fix.
 
-    Raised for HTTP 400, 401, 403, and for schema/validation failures.
+    Raised for HTTP 400, 401, 403, and for mock-provider validation
+    failures (a bug in the mock, not model variance).
     ``_retry`` re-raises these immediately without sleeping or retrying.
+    """
+
+
+class ResponseValidationError(LLMError):
+    """The model returned malformed JSON or failed pydantic validation.
+
+    A malformed or incomplete answer from the model is often fixed by
+    asking again, so this is retriable — but with a smaller budget than
+    transport errors: at most 2 more attempts (3 total) and no long
+    backoff.  See ``_retry``.
     """
 
 
@@ -169,6 +193,13 @@ _MAX_ATTEMPTS = 5
 _INITIAL_BACKOFF = 1.0  # seconds
 _MAX_BACKOFF = 16.0  # cap any single delay
 
+# Validation/parse errors (malformed JSON, pydantic validation failure)
+# are retriable but with a smaller budget: the model may produce a
+# different answer on the next try, but we don't want to wait through
+# long backoffs for what is often a one-off formatting slip.
+_VALIDATION_MAX_ATTEMPTS = 3
+_VALIDATION_BACKOFF = 0.0  # no sleep between validation retries
+
 
 def _backoff_delay(attempt: int) -> float:
     """Exponential backoff with full jitter for *attempt* (0-based)."""
@@ -183,8 +214,8 @@ def _is_retriable(exc: Exception) -> bool:
         return False
     if isinstance(exc, LLMError):
         # Bare LLMError from the provider wrappers is retriable (transport
-        # errors, 429, 5xx).  The provider wrapper decides what to raise;
-        # anything it wraps in a plain LLMError is considered transient.
+        # errors, 429, 5xx).  ResponseValidationError is also retriable
+        # but with a smaller budget — handled in ``_retry``.
         return True
     # httpx transport errors raised directly (not wrapped in LLMError).
     if isinstance(exc, (
@@ -204,19 +235,45 @@ def _is_retriable(exc: Exception) -> bool:
 
 
 def _retry(fn, *args, **kwargs):
-    """Retry *fn* on transient errors up to ``_MAX_ATTEMPTS`` times.
+    """Retry *fn* on transient errors.
 
-    Permanent failures (``PermanentLLMError``) are re-raised immediately.
-    Retries use exponential backoff with full jitter; the total sleep
-    budget across all attempts is about 30 seconds.
+    * **Transport errors** (disconnects, 429, 5xx) — retried up to
+      ``_MAX_ATTEMPTS`` (5) times with exponential backoff (~30 s total).
+    * **Response validation errors** (malformed JSON, pydantic
+      validation failure) — retried up to ``_VALIDATION_MAX_ATTEMPTS``
+      (3) times with no sleep between attempts.  The model may produce
+      a valid answer on the next try.
+    * **Permanent failures** (``PermanentLLMError`` — HTTP 400, 401,
+      403, mock validation bug) — re-raised immediately, no retry.
     """
     last_exc: Exception | None = None
+    validation_attempts = 0
     for attempt in range(_MAX_ATTEMPTS):
         try:
             return fn(*args, **kwargs)
         except Exception as exc:
             if not _is_retriable(exc):
                 raise
+            # Validation errors have their own (smaller) budget.
+            if isinstance(exc, ResponseValidationError):
+                validation_attempts += 1
+                if validation_attempts >= _VALIDATION_MAX_ATTEMPTS:
+                    logger.error(
+                        "LLM call failed validation %d/%d times: %s",
+                        validation_attempts,
+                        _VALIDATION_MAX_ATTEMPTS,
+                        exc,
+                    )
+                    raise
+                # No long backoff — just retry immediately.
+                logger.warning(
+                    "LLM response failed validation (attempt %d/%d): %s",
+                    validation_attempts,
+                    _VALIDATION_MAX_ATTEMPTS,
+                    exc,
+                )
+                last_exc = exc
+                continue
             last_exc = exc
             if attempt < _MAX_ATTEMPTS - 1:
                 delay = _backoff_delay(attempt)
@@ -446,7 +503,9 @@ def _complete_gemini(
     try:
         parsed = schema.model_validate(parsed_dict)
     except ValidationError as exc:
-        raise PermanentLLMError(f"gemini response failed validation: {exc}") from exc
+        raise ResponseValidationError(
+            f"gemini response failed validation: {exc}"
+        ) from exc
 
     meta = LLMMeta(
         provider="gemini",
@@ -533,7 +592,9 @@ def _complete_openai(
     try:
         parsed = schema.model_validate(parsed_dict)
     except ValidationError as exc:
-        raise PermanentLLMError(f"openai_compatible response failed validation: {exc}") from exc
+        raise ResponseValidationError(
+            f"openai_compatible response failed validation: {exc}"
+        ) from exc
 
     meta = LLMMeta(
         provider="openai_compatible",
@@ -916,5 +977,10 @@ def _parse_json(text: str) -> dict[str, Any]:
         # Try to extract the first {...} block.
         match = re.search(r"\{.*\}", text, re.DOTALL)
         if match:
-            return json.loads(match.group(0))
-        raise LLMError(f"could not parse JSON from LLM response: {text[:200]}")
+            try:
+                return json.loads(match.group(0))
+            except json.JSONDecodeError:
+                pass
+        raise ResponseValidationError(
+            f"could not parse JSON from LLM response: {text[:200]}"
+        )
