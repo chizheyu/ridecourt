@@ -174,6 +174,7 @@ def evaluate_case(
                 "amount": _ruling_amount(cf),
                 "escalated": cf.escalated,
                 "escalation_reason": cf.escalation_reason,
+                "guard_problems": cf.guard_problems,
                 "tokens": cf.total_tokens,
                 "latency_ms": cf.total_latency_ms,
                 "wall_ms": wall_ms,

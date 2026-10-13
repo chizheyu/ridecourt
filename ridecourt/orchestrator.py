@@ -95,12 +95,14 @@ def _guard_check(
     policy_ids: list[str],
     policy_result: PolicyResult | None = None,
     agent_role: str = "advocate",
+    precedents: list[Any] | None = None,
 ) -> list[Problem]:
     """Run the guard on an agent output."""
     return guard_check(
         output, pack, policy_ids,
         policy_result=policy_result,
         agent_role=agent_role,
+        precedents=precedents,
     )
 
 
@@ -606,9 +608,11 @@ class Orchestrator:
 
         # Guard check on judge output — the Judge sees the whole pack,
         # so numbers may come from any evidence item (agent_role="judge").
+        # Precedents are passed so the guard can accept precedent numbers
+        # when the Judge cites the precedent's ID.
         judge_problems = _guard_check(
             judge_output, pack, policy_ids, policy_result=policy_result,
-            agent_role="judge",
+            agent_role="judge", precedents=precedent_matches,
         )
 
         if judge_problems:
@@ -667,7 +671,7 @@ class Orchestrator:
             judge_latency += monotonic_ms(t0)
             judge_problems_2 = _guard_check(
                 judge_output, pack, policy_ids, policy_result=policy_result,
-                agent_role="judge",
+                agent_role="judge", precedents=precedent_matches,
             )
             if judge_problems_2:
                 # Guard failed twice — escalate.

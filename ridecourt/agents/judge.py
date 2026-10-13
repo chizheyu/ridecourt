@@ -151,14 +151,21 @@ def _user_prompt(
     if precedents:
         lines.append(f"Precedents ({len(precedents)}):")
         for p in precedents[:3]:
+            pid = getattr(p, "case_id", str(p))
             summary = getattr(p, "summary", str(p))
             outcome = getattr(p, "outcome", "")
             amount = getattr(p, "amount", 0.0)
             source = getattr(p, "source", "seed")
-            lines.append(f"  {summary} → {outcome} S${amount:.2f} (source={source})")
+            lines.append(
+                f"  {pid}: {summary} → {outcome} S${amount:.2f} "
+                f"(source={source})"
+            )
         lines.append(
             "  You must state whether your ruling is consistent with these "
-            "precedents (precedent_consistency)."
+            "precedents (precedent_consistency). You may cite a precedent's "
+            f"ID (e.g. PC-2025-004) and refer to its facts. Numbers that come "
+            "from a precedent are accepted only when you cite that "
+            "precedent's ID."
         )
         lines.append("")
 

@@ -31,6 +31,44 @@ A guard rejects agent output that cites unknown IDs or states a number that is n
 evidence pack, and the agent is asked to try again once; if it fails again the case escalates to a
 human. This is our answer to "fairness and transparency" and to "inconsistent rulings".
 
+### Guard
+
+The guard (`ridecourt/guard.py`) performs three checks on every agent output:
+
+1. **Citation check** — every ID mentioned in agent text must exist: `E#`
+   in the evidence pack, `P-..` in the applicable policy clauses, or
+   `PC-YYYY-NNN` in the precedent list. Unknown IDs are rejected.
+
+2. **Number check** — every number with a unit (money `S$3.25`, distance
+   `3.25 km`, metres `150 m`, minutes `5 min`, percent `15%`) must be
+   backed by a value of the same unit from a valid source:
+
+   - **Advocates**: numbers must come from evidence items the advocate
+     cited (`E#`). The advocate cited E3, so only E3's data is valid.
+   - **Judge**: the Judge sees the whole pack, so numbers may come from
+     any evidence item or the policy computation.
+   - **Precedent numbers**: the Judge is shown precedents with their IDs
+     (`PC-2025-004`). A number from a precedent's summary (e.g. `400 m`
+     from `PC-2025-004`) is accepted **only** in a text block that cites
+     that precedent's ID. A precedent number in a text block that does
+     not cite the precedent is rejected, so the Judge cannot accidentally
+     present a precedent fact as a fact of the current case. This is the
+     same class of defect as P-BF-1 (the system asks an agent to use
+     information the guard will not accept), but for numbers instead of
+     clause IDs.
+
+   Precision-aware: a number written with *k* decimal places matches an
+   evidence value *v* when `round(v, k) == num.value`.
+
+3. **Forbidden-words check** — no promise or certainty words
+   (`"guaranteed"`, `"definitely fraud"`, etc.).
+
+A machine-check sweep test (`tests/test_guard_number_sweep.py`) verifies
+over all 48 cases that every number in every piece of text the prompt
+builder shows an agent (claim text, evidence, policy computation,
+precedents, risk signals, opponent's case) is either accepted by the guard
+for that agent or deliberately excluded with a stated reason.
+
 ## 3. Pipeline
 
 ```

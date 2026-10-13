@@ -412,7 +412,8 @@ function addEventBubble(ev) {
           matchLine += `<span class="precedent-case">${escapeHtml(m.case_id)}</span>`;
           matchLine += ` <span class="precedent-sim">${simPct}%</span>`;
           if (m.source === "override") {
-            matchLine += ` <span class="precedent-source override">Reviewer override of ${escapeHtml(m.case_id)}</span>`;
+            const origId = m.case_id.replace(/^override-/, "");
+            matchLine += ` <span class="precedent-source override">Reviewer override of ${escapeHtml(origId)}</span>`;
           }
           matchLine += ` <span class="precedent-summary">${escapeHtml(m.summary || "")}</span>`;
           matchLine += `</div>`;
