@@ -21,7 +21,11 @@ RideCourt was built with CodeBuddy Code (Tencent) in headless mode, one task per
 | 20:31 | `prompts/11-eval-findings.md` | 10.8 | 289 | stopped: 429 Credits exhausted (items 1-3 done; the reviewer ran the tests and committed) | 245 passed |
 | 12 Oct 22:21 | `prompts/12-review-findings.md` | 3.7 | 75 | stopped: 429 Credits exhausted while reading the code | (no change) |
 | 13 Oct 10:18 | `prompts/12-review-findings.md` | 12.1 | 209 | done | 256 passed, 1 warning in 5.13s |
+| 13 Oct 11:06 | `prompts/13-resilience.md` | 26.4 | 287 | done | 280 passed |
+| 13 Oct 11:48 | `prompts/13b-validation-retry.md` | 3.3 | 79 | stopped: CodeBuddy lost its own network connection | (uncommitted edits) |
+| 13 Oct 11:53 | same session resumed (`codebuddy -r`) | 1.7 | 140 | done | 286 passed |
+| 13 Oct 12:40 | `prompts/14-show-judge-reasoning.md` | 8.2 | 138 | done | 290 passed, 1 warning in 5.17s |
 
 Sessions stopped three times when CodeBuddy credits ran out ("429 Credits exhausted"): the free credits during step 4b (step 4c finished that work after the hackathon credits were redeemed), the hackathon credits during step 11, and the free daily credits on the first try of step 12 (rerun after upgrading to CodeBuddy Pro).
 
-Between tasks a reviewer ran the tests, ran real Gemini cases and looked at the UI, and wrote the fixes it found into the next prompt (4b, 4c, 9, 10, 11 and 12 exist for that reason). Step 12 came from the demo video: recording it showed that every high-risk claimant escalated, because the Judge was told to cite the bad-faith clause P-BF-1 but the policy engine never applied it, so the guard rejected the citation.
+Between tasks a reviewer ran the tests, ran real Gemini cases and looked at the UI, and wrote the fixes it found into the next prompt (4b, 4c, 9, 10, 11, 12, 13, 13b and 14 exist for that reason). Step 12 came from the demo video: recording it showed that every high-risk claimant escalated, because the Judge was told to cite the bad-faith clause P-BF-1 but the policy engine never applied it, so the guard rejected the citation. Step 13 came from the full evaluation: one dropped connection to the model ended the whole run and lost every result, because a model error in an optional step escaped the orchestrator and the evaluation saved only at the end. Step 14 came from the video as well: the Judge's bad-faith finding was in its reasoning, which the interface did not show.
