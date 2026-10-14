@@ -59,8 +59,15 @@ CATEGORY_ORDER = [
     "no_show_driver",
     "no_show_rider",
     "fare_error",
+    "property_damage",
     "safety",
 ]
+
+# Escalations that v2.1 requires (§5 safety, §6 routing). The case keeps the
+# policy engine's recommended outcome and amount, which are scored against the
+# label; every other escalation (guard rejection, model unavailable, the Judge
+# disagreeing or unsure) is a failure and scores as "escalate".
+POLICY_ROUTED = ("policy_routing_human", "safety_category")
 
 CATEGORY_LABELS = {
     "route_deviation": "route_deviation",
@@ -80,6 +87,8 @@ def _ruling_outcome(cf: CaseFile) -> str:
     can be compared to the label.
     """
     if cf.escalated:
+        if cf.escalation_reason in POLICY_ROUTED and cf.policy_result is not None:
+            return cf.policy_result.outcome
         return "escalate"
     if cf.ruling is not None:
         return cf.ruling.outcome
@@ -89,6 +98,8 @@ def _ruling_outcome(cf: CaseFile) -> str:
 def _ruling_amount(cf: CaseFile) -> float:
     """The effective amount for a resolved case."""
     if cf.escalated:
+        if cf.escalation_reason in POLICY_ROUTED and cf.policy_result is not None:
+            return round(cf.policy_result.amount, 2)
         return 0.0
     if cf.ruling is not None:
         return round(cf.ruling.amount, 2)
@@ -174,6 +185,11 @@ def evaluate_case(
                 "amount": _ruling_amount(cf),
                 "escalated": cf.escalated,
                 "escalation_reason": cf.escalation_reason,
+                "routing": "human" if cf.escalated else "ai_final",
+                "escalation_kind": (
+                    ("policy" if cf.escalation_reason in POLICY_ROUTED else "failure")
+                    if cf.escalated else ""
+                ),
                 "guard_problems": cf.guard_problems,
                 "tokens": cf.total_tokens,
                 "latency_ms": cf.total_latency_ms,
@@ -186,6 +202,8 @@ def evaluate_case(
                 "amount": 0.0,
                 "escalated": False,
                 "escalation_reason": "",
+                "routing": "",
+                "escalation_kind": "",
                 "tokens": 0,
                 "latency_ms": 0,
                 "wall_ms": wall_ms,
@@ -210,6 +228,8 @@ def evaluate_case(
         "outcome": summary_outcome,
         "amount": summary_amount,
         "escalated": summary_escalated,
+        "routing": first_ok["routing"] if first_ok else "",
+        "escalation_kind": first_ok["escalation_kind"] if first_ok else "",
         "consistent": consistent,
         "tokens": summary_tokens,
         "wall_ms": summary_wall,
@@ -313,6 +333,12 @@ def run_evaluation(
             result["amount_match"] = (
                 abs(result["amount"] - label.amount) <= AMOUNT_TOLERANCE
             )
+            result["label_routing"] = getattr(label, "routing", None) or ""
+            result["routing_match"] = (
+                not result["label_routing"]
+                or result.get("routing") == result["label_routing"]
+            )
+            result["ryde_sample"] = did in getattr(ds, "sample_ids", [])
         except Exception as exc:
             # Should not happen — evaluate_case catches per-run errors —
             # but guard against metadata-level failures too.
@@ -384,6 +410,9 @@ def _build_results(
         1 for c in case_results if c["outcome_match"] and c["amount_match"]
     )
     all_escalated = sum(1 for c in case_results if c["escalated"])
+    by_policy = sum(1 for c in case_results if c.get("escalation_kind") == "policy")
+    by_failure = sum(1 for c in case_results if c.get("escalation_kind") == "failure")
+    routing_ok = sum(1 for c in case_results if c.get("routing_match", True))
     all_errored = sum(1 for c in case_results if c["outcome"] == "error")
     all_consistent = sum(1 for c in case_results if c["consistent"])
 
@@ -410,6 +439,9 @@ def _build_results(
         "amount_accuracy": round(all_amount_ok / total, 4) if total else 0.0,
         "both_accuracy": round(all_both_ok / total, 4) if total else 0.0,
         "escalation_rate": round(all_escalated / total, 4) if total else 0.0,
+        "escalations_required_by_policy": by_policy,
+        "escalations_from_failures": by_failure,
+        "routing_accuracy": round(routing_ok / total, 4) if total else 0.0,
         "error_count": all_errored,
         "error_rate": round(all_errored / total, 4) if total else 0.0,
         "safety_all_escalated": safety_all_escalated,
@@ -425,6 +457,19 @@ def _build_results(
         "repeats": repeats,
         "overall": overall,
         "per_category": per_category,
+        "ryde_samples": [
+            {
+                "dispute_id": c["dispute_id"],
+                "outcome": c["outcome"],
+                "amount": c["amount"],
+                "routing": c.get("routing", ""),
+                "label_outcome": c["label_outcome"],
+                "label_amount": c["label_amount"],
+                "label_routing": c.get("label_routing", ""),
+                "match": bool(c["outcome_match"] and c["amount_match"] and c.get("routing_match", True)),
+            }
+            for c in case_results if c.get("ryde_sample")
+        ],
         "cases": case_results,
     }
 
@@ -484,6 +529,18 @@ def markdown_table(results: dict[str, Any]) -> str:
         f"- Errored runs: {o.get('error_count', 0)} "
         f"(neither correct nor an escalation)"
     )
+    if "routing_accuracy" in o:
+        lines.append(
+            f"- Routing (AI final vs human) as labelled: {o['routing_accuracy']:.1%}; "
+            f"escalations required by policy: {o['escalations_required_by_policy']}, "
+            f"from failures: {o['escalations_from_failures']}"
+        )
+    for s in results.get("ryde_samples", []):
+        lines.append(
+            f"- Ryde sample {s['dispute_id']}: {s['outcome']} S${s['amount']:.2f} "
+            f"({s['routing']}); expected {s['label_outcome']} S${s['label_amount']:.2f} "
+            f"({s['label_routing']}): {'match' if s['match'] else 'MISS'}"
+        )
     lines.append(
         f"- Median time to ruling: {o['median_time_ms']} ms"
     )

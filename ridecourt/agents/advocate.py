@@ -3,7 +3,7 @@
 Both advocates share the same output schema and reasoning strategy; they
 differ only in which side they argue for.  The agent's job is to build
 the strongest case for its side using **only** the evidence pack and the
-policy, cite evidence IDs (``E#``) and policy clause IDs (``P-..``) for
+policy, cite evidence IDs (``E#``) and policy sections (``§1.3``) for
 every argument, and briefly acknowledge evidence against its side
 (judges reward candour).
 
@@ -60,7 +60,8 @@ def _system_prompt(side: Side) -> str:
         "policy provided. You must not invent facts or numbers.\n\n"
         "Rules:\n"
         "1. Every argument must cite at least one evidence ID (E#) and/or "
-        "policy clause ID (P-..) that exists in the provided context.\n"
+        "policy section of Ryde Policy v2.1 written exactly as §1.3 (no "
+        "prefix) that exists in the provided context.\n"
         "2. Copy numbers exactly as shown in the evidence. Never compute, "
         "round, or estimate new numbers. If you need a difference (e.g. "
         "extra minutes, fare difference), cite the evidence item that "
@@ -116,7 +117,7 @@ def _user_prompt(
 
     lines.append(
         f"Argue for {'the rider' if side == 'rider' else 'the driver'}. "
-        "Cite E# and P-.. IDs. Acknowledge counter-evidence briefly."
+        "Cite E# IDs and v2.1 sections written as §1.3. Acknowledge counter-evidence briefly."
     )
     return "\n".join(lines)
 
@@ -174,7 +175,7 @@ class Advocate:
             f"You are the {who}. The {opp} has presented their case. "
             "Provide a short rebuttal: identify the weakest point in the "
             "opponent's argument and reinforce your side's position. "
-            "Cite E# and P-.. IDs. Be brief (2-3 arguments max). "
+            "Cite E# IDs and v2.1 sections written as §1.3. Be brief (2-3 arguments max). "
             "Copy numbers exactly as shown in the evidence — never compute, "
             "round, or estimate new numbers. The claim text has citation "
             "ID \"CLAIM\"; you may quote a number from the claim only in a "
@@ -208,7 +209,7 @@ class Advocate:
             lines.append("")
         lines.append(
             f"Argue for {'the rider' if self.side == 'rider' else 'the driver'}. "
-            "Cite E# and P-.. IDs."
+            "Cite E# IDs and v2.1 sections written as §1.3."
         )
         user = "\n".join(lines)
         result, meta = complete_json(

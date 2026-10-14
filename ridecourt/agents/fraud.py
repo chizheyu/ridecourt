@@ -90,7 +90,7 @@ def _user_prompt(
     lines.append("")
 
     lines.append(
-        "Output the risk level and signals. Cite E# and P-.. IDs. "
+        "Output the risk level and signals. Cite E# IDs and v2.1 sections written as §6.3. "
         "Do not invent new numbers or signals."
     )
     return "\n".join(lines)

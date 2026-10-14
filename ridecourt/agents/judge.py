@@ -86,7 +86,7 @@ def _system_prompt() -> str:
         "6. If precedents are provided, you MUST say whether your ruling is "
         "consistent with them (precedent_consistency: 'consistent' or "
         "'inconsistent'; 'no_precedents' if none provided).\n"
-        "7. Cite v2.1 policy sections as §1.3, §2.3, §6.2, etc. Cite "
+        "7. Cite v2.1 policy sections exactly as §1.3, §2.3, §6.2 (no prefix). Cite "
         "precedents as DISP-YYYY-NNNN or PC-YYYY-NNN. Cite evidence as E#.\n"
         "8. The dispute's claim text has citation ID \"CLAIM\". You may "
         "quote a number from the claim only in a sentence that cites CLAIM "
