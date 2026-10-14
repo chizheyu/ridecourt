@@ -6,14 +6,17 @@ Multi-agent autonomous dispute resolution for ride-hailing. Built for the
 Tencent Cloud AI CAN DO IT Hackathon Singapore 2026 (Ryde challenge).
 
 RideCourt resolves rider–driver disputes — route deviation, no-show,
-fare errors, and safety incidents — by gathering evidence, building both
-sides of the case, applying company policy, and issuing a fair ruling with
-a plain-English explanation, in about half a minute (median 26.5 s in the evaluation) instead of 24–72 hours.
+fare and surge, property damage, and safety incidents — under **Ryde Dispute
+Resolution Policy v2.1**: it gathers evidence, builds both sides of the case,
+applies the policy, decides under §6 whether the AI may rule or a person must,
+and issues a ruling with a plain-English explanation, in about half a minute
+instead of 24–72 hours.
 
 **Principle: agents argue, code computes.** Language models gather, argue,
-and explain. Every number in a ruling (distances, minutes, dollars) is
-computed by deterministic Python — never typed by a model. Every claim an
-agent makes must cite evidence IDs (`E#`) and policy clause IDs (`P-..`).
+and explain. Every number in a ruling (distances, minutes, dollars) and the
+confidence that decides routing are computed by deterministic Python — never
+typed by a model. Every claim an agent makes must cite evidence IDs (`E#`) and
+v2.1 policy sections (`§1.3`), as v2.1 requires.
 
 ---
 
@@ -25,25 +28,72 @@ agents handle routine disputes one at a time, costing money and goodwill.
 Safety incidents get queued alongside fare complaints instead of being
 prioritised. Riders and drivers never see *why* a decision was made.
 
+## Ryde Policy v2.1 and Ryde's sample cases
+
+On 13 October Ryde shared its sample dataset with participants: the Ryde
+Dispute Resolution Policy v2.1 and three cases with expected rulings. RideCourt
+applies that policy, section by section, and runs Ryde's three cases in the
+live app (listed first in the queue, marked "Ryde sample").
+
+| Case | Ryde's expected ruling | RideCourt | Routing (§6) |
+|:--|:--|:--|:--|
+| DISP-001 route deviation | Partial refund of the excess distance fare, S$3.44 | Partial refund S$3.44 (§1.3: PIE vehicle fire justified the reroute, but the driver did not tell the rider) | Human sign-off: §6.2 sends route deviations over 2 km to a person; the S$3.44 recommendation is shown for one-click approval |
+| DISP-002 no-show charge | Cancellation fee upheld | Fee upheld S$5.00 (§2.1 free wait expired 6 min after it began; §2.3 driver sent 4 messages and made 1 call) | AI final: the rider's fraud flag raises the bar to 95% (§6.3); confidence 96–100% |
+| DISP-003 fare dispute | (not stated; §3.3 and precedent 7.2 give a full refund of the surge differential) | Refund S$4.50 = surgeable subtotal S$9.00 × (1.5 − 1.0), booking fee exempt (§3.4–3.5) | AI final: under S$10 (§6.1) |
+
+- **Confidence is computed, not asked for.** §6.3 names four factors; RideCourt
+  scores each from the case: evidence completeness (facts the section needs
+  that the data actually has), policy clarity (margin between each measured
+  value and its threshold; facts from system records score higher than facts
+  inferred from chat text), precedent alignment (precedents with the same
+  deciding facts and outcome agree, the same facts with another outcome
+  conflict, different facts are distinguished), and party credibility (lowered
+  only when the ruling favours, or rests on the word of, a party with a fraud
+  flag or a contradicted statement). The ruling card shows each factor with
+  the inputs it read.
+- **Where v2.1 is ambiguous we say how we read it.** `data/policy.md` ends with
+  the interpretations, for example: DISP-001's expected answer rules
+  automatically although §6.2 sends deviations over 2 km to a person, so
+  RideCourt computes the S$3.44 and asks for sign-off; the §1.3 "partial" and
+  "full" refund rows both refund the excess distance fare; the free wait runs
+  from the later of the scheduled pickup and the driver's arrival.
+- **Ryde's answer keys never reach an agent.** The adapter
+  (`ridecourt/ryde_adapter.py`) holds out `expected_ruling`,
+  `recommended_ruling`, the dataset's own analyses and notes; a test builds
+  every agent prompt for the three cases and fails if any of it appears.
+  Another test checks that every number in every evidence item is a raw value
+  from Ryde's file or a computation over raw values.
+- Ryde's files are not redistributed in this repository. To run the three
+  cases locally, put them in `data/ryde_samples/`; without them the app runs
+  on the synthetic cases and the tests that need them are skipped.
+
 ## What it does
 
 RideCourt automates the majority of standard dispute categories — route
-deviation, no-show (rider or driver), fare errors — end-to-end:
+deviation, no-show (rider or driver), fare and surge, property damage —
+end-to-end:
 
 1. **Gathers evidence** — deterministic tools analyse GPS traces, arrival
    distances, wait times, chat logs, fare breakdowns, and account history.
 2. **Builds both sides** — a Rider Advocate and a Driver Advocate argue in
    parallel, each citing evidence and policy. A rebuttal round follows.
-3. **Checks for bad faith** — a Fraud Agent computes deterministic risk
-   signals (dispute rate, upheld rate per P-BF-1, GPS contradictions).
+3. **Checks credibility** — a Fraud Agent computes deterministic risk
+   signals (fraud flags, dispute and upheld rates, GPS contradictions) that
+   feed §6.3 party credibility.
 4. **Retrieves precedents** — the Precedent Agent finds the 3 most similar
    past rulings using TF-IDF keyword similarity.
-5. **Applies policy** — the Policy Engine (pure Python functions) computes
-   the outcome, refund amount, and a human-readable computation string.
-6. **Issues a ruling** — the Judge weighs both cases, applies the policy
-   engine result, considers risk and precedents, and issues a ruling with
-   confidence, plain-English explanations to both parties, and cited
-   clauses. Safety incidents always escalate to a human.
+5. **Applies policy** — the Policy Engine (pure Python functions, §1–§5 of
+   v2.1) computes the outcome, refund amount, and a human-readable computation
+   string.
+6. **Routes under §6** — code computes the dispute value and the §6.3
+   confidence, applies every §6.1 and §6.2 threshold and the fraud-flag rule,
+   and takes the strictest: the AI's ruling is final, or a person signs off a
+   recommended ruling.
+7. **Issues a ruling** — the Judge weighs both cases, applies the policy
+   engine result, considers risk and precedents, and writes the ruling with
+   plain-English explanations to both parties and cited sections. Safety
+   incidents always go to a human with a case file and no recommendation
+   (§5.2).
 
 Every inter-agent message is a typed event on a case log, streamed live to
 the UI via Server-Sent Events — so the entire reasoning chain is visible.
@@ -61,16 +111,16 @@ Feedback Loop (human overrides become precedents).
 
 | Component | Role |
 |:--|:--|
-| **Data sources** | `data/synthetic/`: trips, chats, profiles, disputes, precedents, policy. Adapters for the organiser's real dataset. |
-| **Deterministic tools** (`ridecourt/tools.py`) | GPS analysis, arrival check (150 m), chat scan, fare recompute, history profile. No LLM calls. Pure Python + math. |
+| **Data sources** | `data/synthetic/` (51 cases written for v2.1: trips, chats, profiles, disputes, labels, precedents) plus Ryde's sample cases through `ridecourt/ryde_adapter.py`. |
+| **Deterministic tools** (`ridecourt/tools.py`) | Route and deviation-point analysis, traffic incidents on the recommended route, arrival and free-wait check, contact attempts (chat and call), surge log, photo evidence checks, history profile. No LLM calls. |
 | **Evidence pack** | List of `E#` items, each with a summary, data, and source. Cited by every agent in every claim. |
-| **Advocates** (`ridecourt/agents/advocate.py`) | Rider Advocate and Driver Advocate run in parallel, argue for their side, cite `E#` and `P-#`, then rebut each other. |
-| **Fraud agent** (`ridecourt/agents/fraud.py`) | Deterministic features first (dispute rate, upheld rate P-BF-1, GPS contradiction, prior flags); the LLM only explains the signals. |
+| **Advocates** (`ridecourt/agents/advocate.py`) | Rider Advocate and Driver Advocate run in parallel, argue for their side, cite `E#` and `§x.y`, then rebut each other. |
+| **Fraud agent** (`ridecourt/agents/fraud.py`) | Deterministic features first (fraud flags, dispute and upheld rates, GPS contradiction); the LLM only explains the signals. |
 | **Precedent agent** (`ridecourt/agents/precedent.py`) | TF-IDF keyword similarity over category + claim text; top 3 past rulings; includes override precedents (learning loop). |
-| **Judge** (`ridecourt/agents/judge.py`) | Weighs both cases + risk + precedents; applies the policy engine result; the amount must match; confidence < 0.7 escalates. |
-| **Policy engine** (`ridecourt/policy.py`) | Pure functions, one per clause (P-RD-1, P-NS-1, P-FA-1, etc.). Returns outcome, amount, and computation string. |
+| **Judge** (`ridecourt/agents/judge.py`) | Weighs both cases + risk + precedents; applies the policy engine result; the amount must match; a Judge that disagrees or reports confidence below 0.7 sends the case to a person. |
+| **Policy engine** (`ridecourt/policy.py`) | Pure functions for v2.1 §1–§5, and §6 routing with the computed §6.3 confidence. Returns outcome, amount, computation string, routing and its reason. |
 | **Guard** (`ridecourt/guard.py`) | Validates every agent output: rejects unknown citation IDs or numbers not in the evidence pack. Re-asks once, then escalates. |
-| **Escalation queue** (`ridecourt/escalation.py`) | Triggers: low confidence, guard failure, outcome mismatch, safety. Neutral case summary. `GET /api/escalations`. |
+| **Escalation queue** (`ridecourt/escalation.py`) | Triggers: §6 routing, safety (§5), guard failure, model unavailable, Judge disagreement. Neutral case file. `GET /api/escalations`. |
 | **Feedback loop** | Human override stored as a precedent (`source="override"`); retrieved for similar future cases; "learned from override" in timeline. |
 | **API / SSE / UI** (`ridecourt/api.py`, `web/`) | FastAPI endpoints, Server-Sent Events for live streaming, single-page courtroom timeline UI. |
 
@@ -89,7 +139,7 @@ transparency" and "inconsistent rulings":
   The Judge's amount must equal the policy engine's amount; if the Judge
   disagrees it must escalate, not override.
 - **Every claim cites evidence and policy.** Agent outputs must reference
-  evidence IDs (`E3`) and policy clause IDs (`P-RD-2`). The Guard validates
+  evidence IDs (`E3`) and v2.1 sections (`§1.3`). The Guard validates
   every output: unknown IDs or numbers not in the evidence pack trigger a
   re-ask, then escalation. This prevents hallucinated facts and numbers.
 - **The event log is the audit trail.** Every inter-agent message is a typed
@@ -153,8 +203,10 @@ export DAILY_RESOLVE_CAP=300
 The deploy script creates a dedicated service account with
 `roles/aiplatform.user` and `roles/datastore.user`, creates a Firestore
 database, deploys via `gcloud run deploy ridecourt --source .`, sets
-`STATE_BACKEND=firestore` so case state survives instance restarts, allows
-up to 3 max instances, and waits for IAM propagation with a retry loop.
+`STATE_BACKEND=firestore` so case state survives instance restarts, runs one
+instance (the live event stream is served by the instance that runs the case),
+and waits for IAM propagation with a retry loop. `data/ryde_samples/` is
+git-ignored but uploaded (see `.gcloudignore`).
 See `Dockerfile` for the container image (python:3.12-slim, non-root user,
 uvicorn on `$PORT`).
 
@@ -246,7 +298,7 @@ The mock provider only checks that the pipeline, the guard and the policy engine
 
 ## How CodeBuddy was used to build it
 
-The whole project was built spec-first with **CodeBuddy Code** in headless mode. Each build step is one prompt, run as its own CodeBuddy session; CodeBuddy wrote the code and the tests. Between steps a reviewer ran the tests, real Gemini cases and the UI, and wrote what it found into the next prompt, which is why the later steps exist.
+The project was built spec-first on **CodeBuddy Code** in headless mode, with other tools assisting. Each build step is one prompt, run as its own CodeBuddy session. Between steps a reviewer ran the tests, real Gemini cases and the UI, and wrote what it found into the next prompt, which is why the later steps exist.
 
 | Step | Task | Prompt |
 |:--|:--|:--|
@@ -271,6 +323,10 @@ The whole project was built spec-first with **CodeBuddy Code** in headless mode.
 | 15 | Precedent numbers and the guard | `prompts/15-precedent-numbers.md` |
 | 15b | Numbers in a claim a person types | `prompts/15b-claim-numbers.md` |
 | 16 | Evidence panel layout; Firestore persistence | `prompts/16-layout-and-persistence.md` |
+| 17 | Stored events for cases resolved by another process | `prompts/17-events-from-store.md` |
+| 18 | Ryde Dispute Resolution Policy v2.1 and Ryde's sample cases | `prompts/18-ryde-policy-v2.1.md` |
+| 18b | Evidence faithful to Ryde's data; precedents as v2.1 states them; dispute value; routing labels | `prompts/18b-v2.1-review-findings.md` |
+| 18c | Evidence/source agreement test; §6.3 factors from margins and deciding facts | `prompts/18c-evidence-and-confidence.md` |
 
 `docs/BUILD_LOG.md` lists every session with its duration, turns, result and test count (from 55 tests after step 1 to 337 after step 16), including the three times CodeBuddy credits ran out. The `CODEBUDDY.md` file enforces the project rules across all sessions: agents argue, code computes; Python 3.12, FastAPI and pydantic v2; tests must pass with `LLM_PROVIDER=mock`; English for all code and docs; commit after each task. The raw session transcripts are kept privately and were submitted with the entry as the CodeBuddy conversation history.
 
@@ -278,18 +334,21 @@ The whole project was built spec-first with **CodeBuddy Code** in headless mode.
 
 | Feature | Status | Description |
 |:--|:--|:--|
-| Fraud & Bad-Faith Agent | Done | Runs in parallel with advocates; deterministic features (dispute rate, upheld rate P-BF-1, GPS contradiction, prior flags); Judge mentions high-risk signals explicitly |
+| Fraud & Bad-Faith Agent | Done | Runs in parallel with advocates; deterministic features (fraud flags, dispute and upheld rates, GPS contradiction); feeds §6.3 party credibility; Judge mentions high-risk signals explicitly |
 | Policy & Precedent Agent | Done | TF-IDF keyword similarity over category, facts and claim text; top 3 past rulings; Judge states consistency |
-| Escalation Protocol | Done | Triggers: low confidence, guard failure, outcome mismatch, safety; neutral case summary; `GET /api/escalations` queue |
+| Escalation Protocol | Done | v2.1 §6 routing (value thresholds, route deviation over 2 km, repair claims, fraud flags at 95%) with computed §6.3 confidence; safety (§5); guard failure; model unavailable; neutral case file; "Approve recommended ruling" for one-click sign-off; `GET /api/escalations` queue |
 | Learning Feedback Loop | Done | Override stored as precedent (`source="override"`); retrieved for similar cases; "learned from override" in timeline |
 | SLA & Routing | Done | Priority = safety first, then amount at stake and age; queue sorts by it |
 | Cloud Run deployment | Done | `Dockerfile` + `scripts/deploy.sh`; dedicated SA with `roles/aiplatform.user` + `roles/datastore.user`; Firestore persistence via `STATE_BACKEND=firestore`; one instance, because the live event stream is served by the instance that runs the case |
 
 ## Limits
 
-- 48 synthetic cases (16 route deviation, 10 no-show driver, 10 no-show
-  rider, 6 fare error, 6 safety). The data loader supports an adapter for
-  the organiser's real dataset.
+- 51 synthetic cases written for v2.1 (route deviation, no-show by rider
+  and by driver, fare and surge, property damage, safety, one promo-code case
+  that v2.1 does not cover) plus Ryde's three sample cases. The synthetic labels
+  are written from each scenario's intent, not computed by the policy engine.
+- Photos are judged from their metadata (in-app camera, timestamp, hours
+  after the trip, link to the trip); the images themselves are not analysed.
 - The mock provider is deterministic but limited — it does not produce
   real natural-language arguments; its purpose is offline testing.
 - State is in-memory by default. Set `STATE_BACKEND=firestore` to persist

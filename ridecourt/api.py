@@ -328,7 +328,9 @@ def _get_merged_status(dispute_id: str) -> str:
     shows as ruled/escalated in the queue.
     """
     status = _case_status.get(dispute_id)
-    if status is not None:
+    # "new" is only the startup default: a case another process resolved
+    # after this instance started is in the store, so look there too.
+    if status is not None and status != "new":
         return status
     store = _get_store()
     if store is not None:
@@ -338,7 +340,7 @@ def _get_merged_status(dispute_id: str) -> str:
                 return stored
         except Exception:
             pass
-    return "new"
+    return status or "new"
 
 
 def _get_queue_statuses() -> dict[str, str]:

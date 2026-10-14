@@ -730,3 +730,27 @@ class TestEndToEndPreresolveFreshApp:
 
         # The case file must show events (from in-memory log this time).
         assert len(data.get("events", [])) > 0
+
+
+# ---------------------------------------------------------------------------
+# Status written by another process after this instance started
+# ---------------------------------------------------------------------------
+
+
+class TestStatusWrittenAfterStartup:
+    """Found on the live app on 14 October: preresolve ran after the Cloud Run
+    instance had started, so the instance had seeded every case as "new" in
+    memory. The queue read the store and showed "ruled", but the case file
+    trusted memory and said "new", and the page replayed the case as if it
+    were still resolving."""
+
+    def test_case_file_status_reads_store_when_memory_says_new(self):
+        store = InMemoryStore()
+        client = _make_client(store)
+        did = client.get("/api/disputes").json()["disputes"][0]["dispute_id"]
+        assert client.get(f"/api/disputes/{did}").json()["status"] == "new"
+
+        # Another process (preresolve) writes the status after startup.
+        store.set_status(did, "ruled")
+
+        assert client.get(f"/api/disputes/{did}").json()["status"] == "ruled"

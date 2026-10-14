@@ -553,12 +553,16 @@ function renderEvidence(data) {
     if (fare.promo_code) rows.push(["Promo code", escapeHtml(fare.promo_code)]);
     if (fare.discount > 0) rows.push(["Discount", `−${money(fare.discount)}`]);
     if (fare.booking_fee > 0) rows.push(["Booking fee", money(fare.booking_fee)]);
+    // A cancelled trip (no-show) was charged the cancellation fee, not a fare.
+    const cancelled = trip.status && trip.status !== "completed" && fare.cancellation_fee > 0 && !(fare.total_charged > 0 && fare.distance_km > 0);
     fareSection.innerHTML = `
       <h4>Fare Breakdown</h4>
       <table class="fare-table">
         <tr><th>Component</th><th>Value</th></tr>
         ${rows.map((r) => `<tr><td>${r[0]}</td><td>${r[1]}</td></tr>`).join("")}
-        <tr class="total"><td>Total charged</td><td>${money(fare.total_charged)}</td></tr>
+        ${cancelled
+          ? `<tr class="total"><td>Cancellation fee charged</td><td>${money(fare.cancellation_fee)}</td></tr>`
+          : `<tr class="total"><td>Total charged</td><td>${money(fare.total_charged)}</td></tr>`}
       </table>
     `;
     container.appendChild(fareSection);
