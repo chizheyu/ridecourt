@@ -39,7 +39,7 @@ The guard (`ridecourt/guard.py`) performs three checks on every agent output:
    in the evidence pack, `§N.M` in the valid v2.1 sections set or the
    applicable policy clauses, `PC-YYYY-NNN` (seed precedent) or
    `DISP-YYYY-NNNN` (Ryde precedent) in the precedent list. Legacy `P-..`
-   IDs are accepted for backward compatibility. Unknown IDs are rejected.
+   IDs are **rejected** — they are not part of v2.1. Unknown IDs are rejected.
 
 2. **Number check** — every number with a unit (money `S$3.25`, distance
    `3.25 km`, metres `150 m`, minutes `5 min`, percent `15%`) must be
@@ -76,7 +76,8 @@ Dispute filed
    ▼
 Evidence Collection Agent (stretch) ── calls deterministic tools ──► Evidence pack E1..En
    │                                     (GPS analysis, arrival check, chat scan,
-   │                                      fare recompute, history profile)
+   │                                      fare check, history profile, traffic analysis,
+   │                                      deviation point, no-show contact, no-show timeline)
    ├──────────────► Rider Advocate  ──┐   (parallel, each sees the whole pack,
    ├──────────────► Driver Advocate ──┤    argues for its side, cites E# and §N.M)
    ├──────────────► Fraud & Bad-Faith Agent (parallel) ── risk signals (§6.3)
@@ -134,6 +135,8 @@ seed, and write a loader interface so the organiser's data can be plugged in wit
   prior_flags `["fraud_flag"]`, fraud_flags `int`
 - `disputes.json`: dispute_id, trip_id, filed_by (rider|driver), category, claim_text, filed_at,
   and for evaluation only, `label: {outcome, amount}` computed from policy (hidden from agents)
+- `labels.json`: `{dispute_id, outcome, amount, applicable_clauses, routing, deciding_section}`
+  — routing is `ai_final` or `human`; deciding_section is the §6 clause that decided routing
 - `policy.md`: v2.1 sections the agents must cite (see section 5)
 - `precedents.json`: past rulings with short summaries, for the Precedent Agent.
   Ryde precedents use `DISP-YYYY-NNNN` IDs (source `ryde`); seed precedents use `PC-YYYY-NNN`
@@ -188,24 +191,37 @@ into seven sections. Agents cite sections as `§1.3`, `§2.3`, `§6.2`, etc.
   (§4.2). Rider disputing a damage charge → human review (§4.4).
 - **§5 Safety Incident**: always escalated to human review (§5.1). AI agents
   gather evidence and summarise but cannot rule (§5.2).
-- **§6 Ruling Thresholds**: §6.1 monetary — under S$10 AI-final, S$10–S$50
-  needs 80%+ confidence, above S$50 human. §6.2 category — safety always
-  human, route deviation >2 km human, repair >S$50 human, no-show AI-final.
+- **§6 Ruling Thresholds**: §6.1 monetary — dispute value is the amount at
+  stake (actual fare minus upfront quote for route/fare disputes, not the
+  engine's refund amount). Under S$10 AI-final, S$10–S$50 needs 80%+
+  confidence, above S$50 human. §6.2 category — safety always human, route
+  deviation >2 km human, repair >S$50 human, no-show AI-final.
   §6.3 confidence calibration — fraud flag ≥1 raises the threshold to 95%.
   Strictest rule wins.
 - **§7 Precedent Rulings**: past rulings on similar cases are referenced for
   consistency. Ryde precedents use `DISP-YYYY-NNNN`; seed precedents use
-  `PC-YYYY-NNN`.
+  `PC-YYYY-NNN`. Precedent retrieval is wired into the policy engine's
+  confidence computation (§6.3 precedent_alignment factor).
 
 The policy engine (`ridecourt/policy.py`) implements these sections as pure
 functions and returns `{applicable_clauses, outcome, amount, computation, routing,
 routing_reason}` where `computation` shows the arithmetic and `routing` is the
 §6 determination (`ai_final`, `human`, or `escalate_safety`).
 
-Confidence formula (§6.3 interpretation): the engine computes confidence as
+Confidence formula (§6.3): the engine computes confidence as
 `0.30 × evidence_completeness + 0.25 × policy_clarity + 0.25 × precedent_alignment +
-0.20 × party_credibility`, each factor scored 0–1. Fraud flags lower
-party_credibility and raise the routing threshold to 0.95.
+0.20 × party_credibility`, each factor scored 0–1 with a one-line reason:
+
+- **Evidence completeness**: checks that key data fields for the category
+  are present (non-zero, non-default).
+- **Policy clarity**: based on whether the policy section is clear-cut for
+  this case (e.g. surge increased + rider not notified = 0.95).
+- **Precedent alignment**: based on whether a matching precedent was found
+  and its similarity score (≥0.4 similarity → 0.95, match found → 0.80,
+  no match → 0.50).
+- **Party credibility**: based on the winning party's account age, rating,
+  and fraud flags. The fraud flag's effect on routing comes through the
+  §6.3 threshold (raised to 95%), not through this score.
 
 ## 6. Agents
 
@@ -220,6 +236,14 @@ All LLM agents return JSON validated against a schema (pydantic). The LLM layer 
 | Agent | Input | Output |
 |:--|:--|:--|
 | Evidence Collection | dispute, trip | evidence pack: list of `{id: E#, kind, summary, data, source}` built by tools; the LLM only decides which tools to call |
+
+Evidence items must match source data: every number in an evidence item's
+summary or data must come from a raw JSON field or a deterministic
+computation from the source. Authoritative records (trip distances, fare
+totals, scheduled time, app events) are used over reconstructions. Absent
+fields say "not in the data" instead of defaulting. Tools that don't apply
+are omitted (no fare_check for cancelled trips). A no_show_timeline tool
+provides the event timeline for no-show cases.
 | Rider Advocate | dispute, evidence pack, policy | `{position, arguments: [{text, cites}], requested_outcome}` |
 | Driver Advocate | same | same shape |
 | Fraud & Bad-Faith | profiles, history, evidence | `{risk: low/medium/high, signals: [{text, cites}]}` |
@@ -230,8 +254,9 @@ Judge rules: the amount must equal the policy engine's amount; if the Judge disa
 policy engine it must escalate, not override. Every claim must cite evidence IDs (`E#`) and
 policy sections (`§N.M`). §6 routing takes precedence: after the Judge issues a ruling, the
 policy engine's `routing` field (§6.1 monetary, §6.2 category, §6.3 fraud flag) determines
-whether the ruling is final or a recommendation for human review. Confidence below 0.7
-escalates. Fraud flag ≥1 raises the threshold to 0.95 (§6.3).
+whether the ruling is final or a recommendation for human review. Fraud flag ≥1 raises the
+confidence threshold to 0.95 (§6.3). Precedent retrieval runs before the policy engine so
+precedent alignment feeds into the confidence score.
 
 ## 7. API (FastAPI)
 
@@ -258,8 +283,11 @@ escalates. Fraud flag ≥1 raises the threshold to 0.95 (§6.3).
 
 `scripts/evaluate.py` runs every labelled synthetic case and reports:
 - ruling accuracy vs the policy label, per category
+- routing accuracy: engine routing (ai_final/human) matches the label
 - consistency: the same case run 3 times gives the same outcome
 - escalation rate and whether every safety case escalated
+- confidence factor verification: each of the 4 factors (evidence completeness,
+  policy clarity, precedent alignment, party credibility) moves correctly
 - median time to ruling and LLM tokens per case
 Write results to `eval/results-<date>.json` and a table in the README. The demo uses these numbers
 for "Business Value" (for example: minutes instead of 24–72 hours; consistent outcomes).

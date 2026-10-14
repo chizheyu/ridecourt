@@ -188,8 +188,20 @@ class Orchestrator:
         # --- 3. Policy engine (facts + evaluate) -------------------------
         facts = facts_from_evidence_pack(pack)
         t0 = time.monotonic()
+
+        # Retrieve precedents BEFORE evaluate so they feed into confidence.
+        precedent_matches = retrieve_precedents(
+            dispute, self.dataset.precedents, top_k=3,
+        )
+        prec_latency = monotonic_ms(t0)
+
+        has_precedent_match = len(precedent_matches) > 0
+        best_similarity = precedent_matches[0].similarity if precedent_matches else 0.0
+
         policy_result = evaluate(
             dispute, trip, self.dataset.profiles, facts, trip.fare,
+            has_precedent_match=has_precedent_match,
+            precedent_similarity=best_similarity,
         )
         latency = monotonic_ms(t0)
 
@@ -266,13 +278,7 @@ class Orchestrator:
             getattr(policy_result, "routing", "ai_final") == "human"
         )
 
-        # --- 4. Precedent retrieval (PRECEDENT event) -------------------
-        t0 = time.monotonic()
-        precedent_matches = retrieve_precedents(
-            dispute, self.dataset.precedents, top_k=3,
-        )
-        prec_latency = monotonic_ms(t0)
-
+        # --- 4. Precedent event (already retrieved before evaluate) ----
         # Check if any precedent was learned from an override.
         has_override_precedent = any(
             m.source == "override" for m in precedent_matches

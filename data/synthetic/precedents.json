@@ -2,7 +2,7 @@
   {
     "case_id": "DISP-2026-0089",
     "category": "route_deviation",
-    "summary": "Route deviation without notification: driver had traffic justification but failed to notify rider. Partial refund of excess distance fare. 4.0 km excess at S$0.80/km = S$3.20.",
+    "summary": "Route deviation without notification: driver rerouted from Geylang to Orchard via Nicoll Highway due to traffic. Deviation 1.8 km beyond recommended route. Traffic confirmed. Rider not informed. Partial refund of excess distance fare S$3.20. Confidence 91%.",
     "outcome": "refund_partial_excess_distance",
     "amount": 3.2,
     "source": "ryde",
@@ -11,7 +11,7 @@
   {
     "case_id": "DISP-2026-0142",
     "category": "fare_error",
-    "summary": "Surge pricing without rider notification: surge increased from 1.0x to 1.5x, rider not notified. Full refund of surge differential. S$6.40 × 0.5 = S$3.20.",
+    "summary": "Surge pricing without rider notification: upfront quote S$9.50 at 1.0x surge. Surge increased to 1.4x at pickup. Rider not notified. Actual fare S$12.70. Full refund of surge differential S$3.20. Confidence 96%.",
     "outcome": "refund_surge_differential",
     "amount": 3.2,
     "source": "ryde",
@@ -20,7 +20,7 @@
   {
     "case_id": "DISP-2026-0211",
     "category": "no_show_rider",
-    "summary": "No-show cancellation without contact: driver cancelled without chat or call. Cancellation fee voided. S$5.00.",
+    "summary": "No-show cancellation without contact: driver arrived, waited 6 minutes, cancelled as no-show. S$5.00 fee charged. Zero chat messages and zero calls before cancelling. Rider arrived 1 minute after cancellation. Cancellation fee voided. S$5.00. Confidence 98%.",
     "outcome": "cancellation_fee_voided",
     "amount": 5.0,
     "source": "ryde",

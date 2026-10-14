@@ -107,7 +107,7 @@ class ExtractedNumber:
 
 # E1, E12, etc.
 _CITE_E_RE = re.compile(r"\bE(\d+)\b")
-# P-RD-1, P-NS-2, etc. (legacy clause IDs — kept for backward compat)
+# P-RD-1, P-NS-2, etc. (legacy clause IDs — rejected in v2.1; kept for detection only)
 _CITE_P_RE = re.compile(r"\bP-[A-Z]+-\d+\b")
 # §1.3, §2.3, §6.2, etc. (v2.1 section citations)
 _CITE_SECTION_RE = re.compile(r"§\d+(?:\.\d+)?")
@@ -147,7 +147,7 @@ def check(
         List of valid policy clause IDs for this case.  In v2.1, these are
         section citations like ``"§1.3"``, ``"§2.3"`` (from
         ``policy_result.applicable_clauses``).  Legacy ``P-..`` IDs are
-        also accepted for backward compatibility.
+        **rejected** — they are not part of v2.1.
     policy_result
         Optional ``PolicyResult`` — its ``computation`` string and ``amount``
         are also valid number sources (the policy engine is deterministic).
@@ -324,6 +324,9 @@ def _cite_exists(
     valid_claim: bool = False,
     valid_sections: set[str] | None = None,
 ) -> bool:
+    # Legacy P-.. IDs are rejected in v2.1.
+    if _CITE_P_RE.match(cite):
+        return False
     if valid_claim and cite == "CLAIM":
         return True
     if valid_precedent_ids and cite in valid_precedent_ids:

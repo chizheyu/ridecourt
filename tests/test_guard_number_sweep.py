@@ -65,8 +65,8 @@ EXCLUSIONS: set[tuple[str, str, float, str]] = set()
 # claim texts with numbers in every unit to verify the CLAIM citation
 # path works for live (user-filed) disputes.
 
-# Policy clause IDs in system prompts contain numbers (e.g. "P-RD-1",
-# "P-BF-1") but these are IDs, not unit-tagged numbers — the guard's
+# Policy clause IDs in system prompts contain numbers (e.g. "§1.3",
+# "§2.3") but these are IDs, not unit-tagged numbers — the guard's
 # number regex only matches numbers followed by a unit (km, m, min,
 # money, %), so they are not extracted and not a concern.
 

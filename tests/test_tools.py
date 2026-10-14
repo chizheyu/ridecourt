@@ -171,7 +171,8 @@ class TestGpsAnalysis:
         """A trace with a north detour should have actual > optimal and a
         detectable detour segment."""
         trace = _detour_trace(PICKUP, DROPOFF)  # default 0.05 offset → ~15 km
-        trip = _trip(gps_trace=trace)
+        # fare.distance_km=0 → gps_analysis falls back to GPS trace distance
+        trip = _trip(gps_trace=trace, fare=_fare(distance_km=0.0))
         items = gps_analysis(trip)
         data = items[0]["data"]
         # The detour adds significant distance
@@ -485,8 +486,10 @@ class TestBuildEvidencePack:
         kinds = {i.kind for i in pack.items}
         assert "arrival_check" in kinds
         assert "chat_scan" in kinds
-        # fare_check provides the cancellation fee amount for no-show cases
-        assert "fare_check" in kinds
+        # no_show_timeline provides the event timeline for no-show cases
+        assert "no_show_timeline" in kinds
+        # fare_check is not included for no-show (cancelled trips)
+        assert "fare_check" not in kinds
 
 
 # ---------------------------------------------------------------------------
@@ -535,7 +538,8 @@ class TestComputeFactsFromPack:
     def test_compute_facts_feeds_policy_engine(self):
         """The facts from compute_facts should work with evaluate()."""
         trace = _detour_trace(PICKUP, DROPOFF)  # default large detour (~15 km)
-        fare = _fare(total_charged=16.5)
+        # fare.distance_km=0 → gps_analysis uses GPS trace distance
+        fare = _fare(total_charged=16.5, distance_km=0.0)
         trip = _trip(gps_trace=trace, fare=fare)
         chat = _chat()  # no special chat
         facts = compute_facts(trip, chat)

@@ -7,7 +7,9 @@
       "§1.2",
       "§1.3",
       "§1.4"
-    ]
+    ],
+    "routing": "human",
+    "deciding_section": "§6.2"
   },
   {
     "dispute_id": "disp_rd_001",
@@ -17,7 +19,9 @@
       "§1.2",
       "§1.3",
       "§1.4"
-    ]
+    ],
+    "routing": "human",
+    "deciding_section": "§6.2"
   },
   {
     "dispute_id": "disp_rd_002",
@@ -26,7 +30,9 @@
     "applicable_clauses": [
       "§1.3",
       "§1.4"
-    ]
+    ],
+    "routing": "human",
+    "deciding_section": "§6.2"
   },
   {
     "dispute_id": "disp_rd_003",
@@ -34,7 +40,9 @@
     "amount": 0.0,
     "applicable_clauses": [
       "§1.3"
-    ]
+    ],
+    "routing": "ai_final",
+    "deciding_section": "§6.1"
   },
   {
     "dispute_id": "disp_rd_004",
@@ -44,7 +52,9 @@
       "§1.2",
       "§1.3",
       "§1.4"
-    ]
+    ],
+    "routing": "human",
+    "deciding_section": "§6.2"
   },
   {
     "dispute_id": "disp_rd_005",
@@ -53,7 +63,9 @@
     "applicable_clauses": [
       "§1.3",
       "§1.4"
-    ]
+    ],
+    "routing": "human",
+    "deciding_section": "§6.2"
   },
   {
     "dispute_id": "disp_rd_006",
@@ -63,7 +75,9 @@
       "§1.2",
       "§1.3",
       "§1.4"
-    ]
+    ],
+    "routing": "human",
+    "deciding_section": "§6.2"
   },
   {
     "dispute_id": "disp_rd_007",
@@ -71,7 +85,9 @@
     "amount": 0.0,
     "applicable_clauses": [
       "§1.3"
-    ]
+    ],
+    "routing": "ai_final",
+    "deciding_section": "§6.1"
   },
   {
     "dispute_id": "disp_ns_000",
@@ -81,7 +97,9 @@
       "§2.1",
       "§2.2",
       "§2.3"
-    ]
+    ],
+    "routing": "ai_final",
+    "deciding_section": "§6.1"
   },
   {
     "dispute_id": "disp_ns_001",
@@ -89,7 +107,9 @@
     "amount": 0.0,
     "applicable_clauses": [
       "§2.3"
-    ]
+    ],
+    "routing": "ai_final",
+    "deciding_section": "§6.1"
   },
   {
     "dispute_id": "disp_ns_002",
@@ -97,7 +117,9 @@
     "amount": 0.0,
     "applicable_clauses": [
       "§2.3"
-    ]
+    ],
+    "routing": "ai_final",
+    "deciding_section": "§6.1"
   },
   {
     "dispute_id": "disp_ns_003",
@@ -107,7 +129,9 @@
       "§2.1",
       "§2.2",
       "§2.3"
-    ]
+    ],
+    "routing": "ai_final",
+    "deciding_section": "§6.1"
   },
   {
     "dispute_id": "disp_ns_004",
@@ -115,7 +139,9 @@
     "amount": 5.0,
     "applicable_clauses": [
       "§2.4"
-    ]
+    ],
+    "routing": "ai_final",
+    "deciding_section": "§6.1"
   },
   {
     "dispute_id": "disp_ns_005",
@@ -123,7 +149,9 @@
     "amount": 0.0,
     "applicable_clauses": [
       "§2.4"
-    ]
+    ],
+    "routing": "ai_final",
+    "deciding_section": "§6.1"
   },
   {
     "dispute_id": "disp_ns_006",
@@ -133,7 +161,9 @@
       "§2.1",
       "§2.2",
       "§2.3"
-    ]
+    ],
+    "routing": "ai_final",
+    "deciding_section": "§6.1"
   },
   {
     "dispute_id": "disp_ns_007",
@@ -141,7 +171,9 @@
     "amount": 0.0,
     "applicable_clauses": [
       "§2.3"
-    ]
+    ],
+    "routing": "ai_final",
+    "deciding_section": "§6.1"
   },
   {
     "dispute_id": "disp_sg_000",
@@ -152,7 +184,9 @@
       "§3.3",
       "§3.4",
       "§3.5"
-    ]
+    ],
+    "routing": "ai_final",
+    "deciding_section": "§6.1"
   },
   {
     "dispute_id": "disp_sg_001",
@@ -162,7 +196,9 @@
       "§3.1",
       "§3.2",
       "§3.3"
-    ]
+    ],
+    "routing": "ai_final",
+    "deciding_section": "§6.1"
   },
   {
     "dispute_id": "disp_sg_002",
@@ -171,7 +207,9 @@
     "applicable_clauses": [
       "§3.1",
       "§3.3"
-    ]
+    ],
+    "routing": "ai_final",
+    "deciding_section": "§6.1"
   },
   {
     "dispute_id": "disp_sg_003",
@@ -180,7 +218,9 @@
     "applicable_clauses": [
       "§3.1",
       "§3.3"
-    ]
+    ],
+    "routing": "ai_final",
+    "deciding_section": "§6.1"
   },
   {
     "dispute_id": "disp_sg_004",
@@ -191,7 +231,9 @@
       "§3.3",
       "§3.4",
       "§3.5"
-    ]
+    ],
+    "routing": "ai_final",
+    "deciding_section": "§6.1"
   },
   {
     "dispute_id": "disp_sg_005",
@@ -201,7 +243,9 @@
       "§3.1",
       "§3.2",
       "§3.3"
-    ]
+    ],
+    "routing": "ai_final",
+    "deciding_section": "§6.1"
   },
   {
     "dispute_id": "disp_pd_000",
@@ -210,7 +254,9 @@
     "applicable_clauses": [
       "§4.2",
       "§4.3"
-    ]
+    ],
+    "routing": "ai_final",
+    "deciding_section": "§6.1"
   },
   {
     "dispute_id": "disp_pd_001",
@@ -219,7 +265,9 @@
     "applicable_clauses": [
       "§4.2",
       "§4.4"
-    ]
+    ],
+    "routing": "ai_final",
+    "deciding_section": "§6.1"
   },
   {
     "dispute_id": "disp_pd_002",
@@ -227,7 +275,9 @@
     "amount": 0.0,
     "applicable_clauses": [
       "§4.3"
-    ]
+    ],
+    "routing": "human",
+    "deciding_section": "§6.2"
   },
   {
     "dispute_id": "disp_pd_003",
@@ -235,7 +285,9 @@
     "amount": 0.0,
     "applicable_clauses": [
       "§4.4"
-    ]
+    ],
+    "routing": "ai_final",
+    "deciding_section": "§6.1"
   },
   {
     "dispute_id": "disp_pd_004",
@@ -244,7 +296,9 @@
     "applicable_clauses": [
       "§4.2",
       "§4.3"
-    ]
+    ],
+    "routing": "ai_final",
+    "deciding_section": "§6.1"
   },
   {
     "dispute_id": "disp_pd_005",
@@ -253,7 +307,9 @@
     "applicable_clauses": [
       "§4.2",
       "§4.4"
-    ]
+    ],
+    "routing": "ai_final",
+    "deciding_section": "§6.1"
   },
   {
     "dispute_id": "disp_sf_000",
@@ -262,7 +318,9 @@
     "applicable_clauses": [
       "§5.1",
       "§5.2"
-    ]
+    ],
+    "routing": "human",
+    "deciding_section": "§5.1"
   },
   {
     "dispute_id": "disp_sf_001",
@@ -271,7 +329,9 @@
     "applicable_clauses": [
       "§5.1",
       "§5.2"
-    ]
+    ],
+    "routing": "human",
+    "deciding_section": "§5.1"
   },
   {
     "dispute_id": "disp_sf_002",
@@ -280,7 +340,9 @@
     "applicable_clauses": [
       "§5.1",
       "§5.2"
-    ]
+    ],
+    "routing": "human",
+    "deciding_section": "§5.1"
   },
   {
     "dispute_id": "disp_sf_003",
@@ -289,7 +351,9 @@
     "applicable_clauses": [
       "§5.1",
       "§5.2"
-    ]
+    ],
+    "routing": "human",
+    "deciding_section": "§5.1"
   },
   {
     "dispute_id": "disp_rd_008",
@@ -299,7 +363,9 @@
       "§1.2",
       "§1.3",
       "§1.4"
-    ]
+    ],
+    "routing": "human",
+    "deciding_section": "§6.2"
   },
   {
     "dispute_id": "disp_rd_009",
@@ -309,7 +375,9 @@
       "§1.2",
       "§1.3",
       "§1.4"
-    ]
+    ],
+    "routing": "human",
+    "deciding_section": "§6.2"
   },
   {
     "dispute_id": "disp_rd_010",
@@ -318,7 +386,9 @@
     "applicable_clauses": [
       "§1.3",
       "§1.4"
-    ]
+    ],
+    "routing": "human",
+    "deciding_section": "§6.2"
   },
   {
     "dispute_id": "disp_rd_011",
@@ -326,7 +396,9 @@
     "amount": 0.0,
     "applicable_clauses": [
       "§1.3"
-    ]
+    ],
+    "routing": "ai_final",
+    "deciding_section": "§6.1"
   },
   {
     "dispute_id": "disp_rd_012",
@@ -336,7 +408,9 @@
       "§1.2",
       "§1.3",
       "§1.4"
-    ]
+    ],
+    "routing": "human",
+    "deciding_section": "§6.2"
   },
   {
     "dispute_id": "disp_rd_013",
@@ -345,7 +419,9 @@
     "applicable_clauses": [
       "§1.3",
       "§1.4"
-    ]
+    ],
+    "routing": "human",
+    "deciding_section": "§6.2"
   },
   {
     "dispute_id": "disp_ns_008",
@@ -355,7 +431,9 @@
       "§2.1",
       "§2.2",
       "§2.3"
-    ]
+    ],
+    "routing": "ai_final",
+    "deciding_section": "§6.1"
   },
   {
     "dispute_id": "disp_ns_009",
@@ -363,7 +441,9 @@
     "amount": 0.0,
     "applicable_clauses": [
       "§2.3"
-    ]
+    ],
+    "routing": "ai_final",
+    "deciding_section": "§6.1"
   },
   {
     "dispute_id": "disp_ns_010",
@@ -371,7 +451,9 @@
     "amount": 0.0,
     "applicable_clauses": [
       "§2.3"
-    ]
+    ],
+    "routing": "ai_final",
+    "deciding_section": "§6.1"
   },
   {
     "dispute_id": "disp_ns_011",
@@ -381,7 +463,9 @@
       "§2.1",
       "§2.2",
       "§2.3"
-    ]
+    ],
+    "routing": "ai_final",
+    "deciding_section": "§6.1"
   },
   {
     "dispute_id": "disp_sg_006",
@@ -392,7 +476,9 @@
       "§3.3",
       "§3.4",
       "§3.5"
-    ]
+    ],
+    "routing": "ai_final",
+    "deciding_section": "§6.1"
   },
   {
     "dispute_id": "disp_sg_007",
@@ -402,7 +488,9 @@
       "§3.1",
       "§3.2",
       "§3.3"
-    ]
+    ],
+    "routing": "ai_final",
+    "deciding_section": "§6.1"
   },
   {
     "dispute_id": "disp_sg_008",
@@ -411,7 +499,9 @@
     "applicable_clauses": [
       "§3.1",
       "§3.3"
-    ]
+    ],
+    "routing": "ai_final",
+    "deciding_section": "§6.1"
   },
   {
     "dispute_id": "disp_sg_009",
@@ -420,7 +510,9 @@
     "applicable_clauses": [
       "§3.1",
       "§3.3"
-    ]
+    ],
+    "routing": "ai_final",
+    "deciding_section": "§6.1"
   },
   {
     "dispute_id": "disp_pd_006",
@@ -429,7 +521,9 @@
     "applicable_clauses": [
       "§4.2",
       "§4.3"
-    ]
+    ],
+    "routing": "ai_final",
+    "deciding_section": "§6.1"
   },
   {
     "dispute_id": "disp_pd_007",
@@ -438,7 +532,9 @@
     "applicable_clauses": [
       "§4.2",
       "§4.4"
-    ]
+    ],
+    "routing": "ai_final",
+    "deciding_section": "§6.1"
   },
   {
     "dispute_id": "disp_pd_008",
@@ -446,7 +542,9 @@
     "amount": 0.0,
     "applicable_clauses": [
       "§4.3"
-    ]
+    ],
+    "routing": "human",
+    "deciding_section": "§6.2"
   },
   {
     "dispute_id": "disp_pd_009",
@@ -454,7 +552,9 @@
     "amount": 0.0,
     "applicable_clauses": [
       "§4.4"
-    ]
+    ],
+    "routing": "ai_final",
+    "deciding_section": "§6.1"
   },
   {
     "dispute_id": "disp_fa_000",
@@ -465,6 +565,8 @@
       "§3.3",
       "§3.4",
       "§3.5"
-    ]
+    ],
+    "routing": "human",
+    "deciding_section": "§6.3"
   }
 ]

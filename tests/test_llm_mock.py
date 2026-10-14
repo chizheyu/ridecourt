@@ -97,7 +97,7 @@ def _pack() -> EvidencePack:
 
 def _policy_result() -> PolicyResult:
     return PolicyResult(
-        applicable_clauses=["P-RD-1"],
+        applicable_clauses=["§1.3"],
         outcome="refund_route_deviation",
         amount=5.52,
         computation=(
@@ -142,7 +142,7 @@ class TestMockProvider:
             "s", "u", AdvocateOutput, "rider_advocate",
             evidence_pack=pack, policy_result=pr,
         )
-        valid_ids = {"E1", "E2", "P-RD-1"}
+        valid_ids = {"E1", "E2", "§1.3"}
         # Collect all cites from arguments.
         all_cites: list[str] = []
         for arg in result.arguments:

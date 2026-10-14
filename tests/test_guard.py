@@ -104,8 +104,8 @@ def _policy_result() -> PolicyResult:
     )
 
 
-# Valid v2.1 policy IDs (sections) — also accept legacy P- IDs for backward compat
-VALID_POLICY_IDS = ["§1.3", "§2.3", "§3.3", "§4.2", "§5.1", "§6.1", "P-RD-1"]
+# Valid v2.1 policy IDs (sections only) — legacy P- IDs are rejected
+VALID_POLICY_IDS = ["§1.3", "§2.3", "§3.3", "§4.2", "§5.1", "§6.1"]
 
 
 # ---------------------------------------------------------------------------
@@ -181,15 +181,15 @@ class TestGuardPasses:
         problems = check(output, _pack(), VALID_POLICY_IDS, policy_result=_policy_result())
         assert problems == []
 
-    def test_legacy_p_id_still_accepted(self):
-        """Legacy P-RD-1 citations are still accepted (backward compat)."""
+    def test_legacy_p_id_rejected(self):
+        """Legacy P-RD-1 citations are rejected in v2.1."""
         output = AdvocateOutput(
             position="Per P-RD-1 the deviation refund applies.",
             arguments=[Argument(text="Deviation of 3.68 km per E1.", cites=["E1"])],
             requested_outcome="Refund S$3.20.",
         )
         problems = check(output, _pack(), VALID_POLICY_IDS, policy_result=_policy_result())
-        assert problems == []
+        assert any(p.kind == "unknown_cite" and p.cite == "P-RD-1" for p in problems)
 
 
 # ---------------------------------------------------------------------------

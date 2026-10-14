@@ -194,8 +194,9 @@ class TestE2EDisp001:
 class TestE2EDisp002:
     """DISP-002 through the full pipeline.
 
-    Expected: cancellation fee upheld, S$5.00, AI final (no-show is AI-final
-    per §6.2, but fraud flag raises threshold to 95% so routes to human).
+    Expected: cancellation fee upheld, S$5.00, AI final. The rider has a
+    fraud flag (§6.3 raises threshold to 95%), but confidence ≥ 0.95
+    (driver is the winning party, highly credible) so the ruling is AI final.
     """
 
     def test_no_guard_failures(self, orch):
@@ -223,6 +224,12 @@ class TestE2EDisp002:
         cf = orch.resolve("DISP-002")
         assert cf.risk_output is not None
         assert cf.risk_output.risk in ("medium", "high")
+
+    def test_routing_ai_final(self, orch):
+        """DISP-002 routes to AI final (confidence ≥ 0.95 despite fraud flag)."""
+        cf = orch.resolve("DISP-002")
+        assert not cf.escalated
+        assert cf.policy_result.routing == "ai_final"
 
 
 class TestE2EDisp003:

@@ -88,6 +88,7 @@ def _extract_json_blocks(markdown: str) -> list[dict]:
 _CATEGORY_MAP: dict[str, DisputeCategory] = {
     "route_deviation": "route_deviation",
     "no_show_charge": "no_show_rider",  # rider disputing a no-show charge
+    "cancellation_fee": "no_show_rider",  # precedent uses "cancellation_fee"
     "fare_dispute": "fare_error",
     "surge_dispute": "fare_error",
     "property_damage": "property_damage",
@@ -306,7 +307,9 @@ def _map_profile(raw: dict, profile_id: str) -> Profile:
         cancellations_30d=0,
         prior_flags=raw.get("prior_flags", []),
         fraud_flags=int(raw.get("fraud_flags", 0)),
+        fraud_flag_reason=raw.get("fraud_flag_details", ""),
         no_show_cancellations_30d=int(raw.get("no_show_cancellations_30d", 0)),
+        source="ryde",
     )
 
 
@@ -544,30 +547,44 @@ class RydeDatasetAdapter:
             from .data import Label
 
             if dispute.label:
-                # Label already set from case_metadata (DISP-001)
+                # DISP-001: partial refund from case_metadata.
+                # §6.2: excess 4.3 km > 2 km → human review.
+                # Our outcome name; Ryde's original wording in ryde_outcome.
+                dispute.label = {"outcome": "refund_partial_excess_distance", "amount": dispute.label["amount"]}
                 labels[dispute.dispute_id] = Label(
                     dispute_id=dispute.dispute_id,
-                    outcome=dispute.label["outcome"],
+                    outcome="refund_partial_excess_distance",
                     amount=dispute.label["amount"],
-                    applicable_clauses=[],
+                    applicable_clauses=["§1.2", "§1.3", "§1.4"],
+                    routing="human",
+                    deciding_section="§6.2",
+                    ryde_outcome="partial_refund of excess distance fare S$3.44",
                 )
             elif "UPHELD" in markdown.upper() and "CANCELLATION" in markdown.upper():
-                # DISP-002: cancellation charge upheld
+                # DISP-002: cancellation charge upheld.
+                # §6.3: fraud flag present; confidence ≥ 0.95 → AI final.
                 dispute.label = {"outcome": "cancellation_fee_upheld", "amount": 5.0}
                 labels[dispute.dispute_id] = Label(
                     dispute_id=dispute.dispute_id,
                     outcome="cancellation_fee_upheld",
                     amount=5.0,
                     applicable_clauses=["§2.2"],
+                    routing="ai_final",
+                    deciding_section="§6.3",
+                    ryde_outcome="Cancellation charge UPHELD",
                 )
             elif dispute.category == "fare_error" and "surge" in markdown.lower():
-                # DISP-003: surge differential refund
+                # DISP-003: surge differential refund.
+                # §6.1: dispute value S$4.50 < S$10 → AI final.
                 dispute.label = {"outcome": "refund_surge_differential", "amount": 4.50}
                 labels[dispute.dispute_id] = Label(
                     dispute_id=dispute.dispute_id,
                     outcome="refund_surge_differential",
                     amount=4.50,
                     applicable_clauses=["§3.3", "§3.4"],
+                    routing="ai_final",
+                    deciding_section="§6.1",
+                    ryde_outcome="Full refund of surge differential S$4.50",
                 )
 
         return Dataset(
@@ -575,9 +592,84 @@ class RydeDatasetAdapter:
             chats=chats,
             profiles=profiles,
             disputes=disputes,
-            precedents=[],
+            precedents=self._load_precedents(),
             labels=labels,
         )
+
+    def _load_precedents(self) -> list[Precedent]:
+        """Load the three precedents from the Ryde policy v2.1 file (§7)."""
+        policy_path = self.data_dir / "ryde_dispute_policy_v2.1.md"
+        if not policy_path.exists():
+            return []
+        text = policy_path.read_text(encoding="utf-8")
+
+        # Each precedent block is a Markdown table under a "### Precedent" heading.
+        # We parse the table rows to extract case ID, facts, ruling, amount, etc.
+        precedents: list[Precedent] = []
+        # Split on "### Precedent" headings
+        blocks = re.split(r"### Precedent \d+\.\d+:", text)
+        for block in blocks[1:]:  # skip preamble
+            fields: dict[str, str] = {}
+            for line in block.strip().splitlines():
+                line = line.strip()
+                if not line or line.startswith("|---"):
+                    continue
+                m = re.match(r"\|\s*\*\*(.+?)\*\*\s*\|\s*(.+?)\s*\|$", line)
+                if m:
+                    fields[m.group(1).strip().lower()] = m.group(2).strip()
+
+            case_id = fields.get("case id", "")
+            if not case_id:
+                continue
+            disp_type = fields.get("dispute type", "route_deviation")
+            category = _CATEGORY_MAP.get(disp_type, "route_deviation")
+            facts = fields.get("facts", "")
+            ruling = fields.get("ruling", "")
+            amount_str = fields.get("refund amount", "$0")
+            amount = float(amount_str.replace("$", "").replace("S", "").strip())
+
+            # Build summary from facts and ruling (matches the text in the
+            # synthetic precedents.json so retrieval works consistently).
+            summary = self._build_precedent_summary(case_id, facts, ruling, amount)
+            outcome = "refund" if "refund" in ruling.lower() else "voided" if "void" in ruling.lower() else "upheld"
+
+            precedents.append(Precedent(
+                case_id=case_id,
+                category=category,
+                summary=summary,
+                outcome=outcome,
+                amount=amount,
+                source="ryde",
+                reason=ruling,
+            ))
+        return precedents
+
+    @staticmethod
+    def _build_precedent_summary(case_id: str, facts: str, ruling: str, amount: float) -> str:
+        """Build a concise summary for a Ryde precedent (matches precedents.json)."""
+        summaries = {
+            "DISP-2026-0089": (
+                "Route deviation without notification: driver rerouted from "
+                "Geylang to Orchard via Nicoll Highway due to traffic. "
+                "Deviation 1.8 km beyond recommended route. Traffic confirmed. "
+                "Rider not informed. Partial refund of excess distance fare "
+                f"S${amount:.2f}. Confidence 91%."
+            ),
+            "DISP-2026-0142": (
+                "Surge pricing without rider notification: upfront quote "
+                "S$9.50 at 1.0x surge. Surge increased to 1.4x at pickup. "
+                "Rider not notified. Actual fare S$12.70. Full refund of "
+                f"surge differential S${amount:.2f}. Confidence 96%."
+            ),
+            "DISP-2026-0211": (
+                "No-show cancellation without contact: driver arrived, "
+                "waited 6 minutes, cancelled as no-show. S$5.00 fee charged. "
+                "Zero chat messages and zero calls before cancelling. Rider "
+                "arrived 1 minute after cancellation. Cancellation fee voided. "
+                f"S${amount:.2f}. Confidence 98%."
+            ),
+        }
+        return summaries.get(case_id, f"{facts} Ruling: {ruling} S${amount:.2f}.")
 
     def load_case(self, dispute_id: str) -> Dataset | None:
         """Load a single case by dispute ID (e.g. 'DISP-001').
@@ -603,7 +695,7 @@ class RydeDatasetAdapter:
                     chats=[c for c in full.chats.values() if c.trip_id == raw_ticket.get("trip_id")],
                     profiles=full.profiles,
                     disputes=[d for d in full.disputes.values() if d.dispute_id == dispute_id],
-                    precedents=[],
+                    precedents=full.precedents,
                     labels={k: v for k, v in full.labels.items() if k == dispute_id},
                 )
         return None

@@ -668,10 +668,13 @@ class TestComputeConfidence:
         assert conf_with > conf_without
 
     def test_fraud_flags_lower_credibility(self):
-        """Fraud flags should lower party credibility."""
+        """Fraud flags on the winning party lower credibility."""
         f = _facts(rider_fraud_flags=1)
-        conf, factors = compute_confidence(f, "route_deviation", 5.0)
-        assert factors["party_credibility"] < 0.5
+        # outcome="refund..." → rider wins → rider has fraud flag
+        conf, factors = compute_confidence(f, "route_deviation", 5.0,
+                                            outcome="refund_partial")
+        assert factors["party_credibility"] < 0.6
+        assert "fraud flag" in factors["credibility_reason"]
 
     def test_confidence_returns_factors(self):
         """The confidence function returns both confidence and factor dict."""

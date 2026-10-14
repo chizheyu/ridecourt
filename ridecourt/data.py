@@ -173,8 +173,10 @@ class Profile(BaseModel):
     prior_flags: list[str] = Field(default_factory=list)
     # v2.1 §6.3: fraud flags raise the confidence threshold to 95%
     fraud_flags: int = 0
+    fraud_flag_reason: str = ""
     # v2.1 §2.5: 3+ no-show cancellations in 30 days → flag for review
     no_show_cancellations_30d: int = 0
+    source: str = "synthetic"  # "synthetic" or "ryde"
 
 
 DisputeCategory = Literal[
@@ -213,6 +215,9 @@ class Label(BaseModel):
     outcome: str
     amount: float = 0.0
     applicable_clauses: list[str] = Field(default_factory=list)
+    routing: str = ""  # "ai_final" or "human"
+    deciding_section: str = ""  # e.g. "§6.1", "§6.2", "§6.3"
+    ryde_outcome: str = ""  # Ryde's original outcome wording (official cases only)
 
 
 # ---------------------------------------------------------------------------

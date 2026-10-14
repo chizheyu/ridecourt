@@ -30,7 +30,7 @@ from ridecourt.tools import build_evidence_pack, facts_from_evidence_pack
 # All §N.M section IDs mentioned in prompts or fraud signals.
 _SEC_RE = re.compile(r"§\d+(?:\.\d+)?")
 
-# Legacy P-# clause IDs (still valid in guard for backward compat).
+# Legacy P-# clause IDs (rejected in v2.1 — kept for detection only).
 _P_RE = re.compile(r"\bP-[A-Z]+-\d+\b")
 
 
@@ -154,12 +154,12 @@ def test_all_prompt_cited_sections_accepted_by_guard(all_cases):
                         f"VALID_SECTIONS"
                     )
             elif pid.startswith("P-"):
-                # Legacy P- IDs are accepted if in applicable_clauses
-                if pid not in pr.applicable_clauses:
-                    failures.append(
-                        f"{did}: prompt mentions {pid} but it is not in "
-                        f"applicable_clauses={pr.applicable_clauses}"
-                    )
+                # Legacy P- IDs are rejected in v2.1 — if they appear in
+                # prompt text, the guard will flag them as unknown_cite.
+                failures.append(
+                    f"{did}: prompt mentions {pid} — legacy P- IDs are "
+                    f"rejected in v2.1"
+                )
 
     assert not failures, "\n".join(failures)
 

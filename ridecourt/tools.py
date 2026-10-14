@@ -419,13 +419,22 @@ def _detect_unexpected_stops(
 def gps_analysis(trip: Trip) -> list[dict]:
     """Analyze GPS trace vs optimal route.
 
+    Uses the trip record's authoritative distance when available
+    (``trip.fare.distance_km``), falling back to GPS trace distance only
+    when the trip record doesn't provide one.
+
     Returns evidence items (without final IDs) for:
     - actual vs optimal distance and duration
     - deviation percent
     - detour segment (start/end timestamps)
     - unexpected stops
     """
-    actual_km = gps_trace_distance_km(trip.gps_trace)
+    # Prefer the authoritative trip record distance over haversine GPS
+    # trace distance — the trip record is the source of truth.
+    if trip.fare.distance_km and trip.fare.distance_km > 0:
+        actual_km = trip.fare.distance_km
+    else:
+        actual_km = gps_trace_distance_km(trip.gps_trace)
     optimal_km = trip.optimal_route.distance_km
     actual_min = trip.fare.duration_min
     optimal_min = trip.optimal_route.duration_min
@@ -551,12 +560,20 @@ def arrival_check(trip: Trip) -> list[dict]:
     # §2.4: driver no-show = never arrived and never got close to pickup
     driver_no_show = trip.driver_arrived_at is None and min_dist > 150.0
 
-    summary = (
-        f"Driver closest distance to pickup: {min_dist:.0f} m; "
+    # Show scheduled pickup time when available.
+    scheduled = trip.scheduled_pickup_at or ""
+
+    parts: list[str] = [
+        f"Driver closest distance to pickup: {min_dist:.0f} m",
         f"arrival {arrival_ts or 'unknown'} vs ETA "
-        f"{'+' if arrival_vs_eta >= 0 else ''}{arrival_vs_eta:.1f} min; "
-        f"waited {wait_within_150:.1f} min within 150 m."
-    )
+        f"{'+' if arrival_vs_eta >= 0 else ''}{arrival_vs_eta:.1f} min",
+        f"waited {wait_within_150:.1f} min within 150 m",
+    ]
+    if scheduled:
+        parts.append(f"scheduled pickup {scheduled}")
+    if trip.driver_arrived_at:
+        parts.append(f"driver arrived at {trip.driver_arrived_at}")
+    summary = "; ".join(parts) + "."
 
     return [{
         "kind": "arrival_check",
@@ -568,6 +585,8 @@ def arrival_check(trip: Trip) -> list[dict]:
             "wait_minutes_within_150m": round(wait_within_150, 2),
             "wait_minutes_past_eta": round(wait_past, 2),
             "driver_no_show": driver_no_show,
+            "scheduled_pickup_at": scheduled,
+            "driver_arrived_at": trip.driver_arrived_at or "",
         },
         "source": "arrival_check",
     }]
@@ -637,6 +656,11 @@ def chat_scan(chats: ChatLog | None) -> list[dict]:
 
     contacts = count_contact_attempts(chats)
 
+    # Count driver messages and calls separately (for §2.3 no-show).
+    driver_msgs = sum(1 for m in chats.messages if m.sender == "driver" and m.message_type in ("message", ""))
+    driver_calls = sum(1 for m in chats.messages if m.sender == "driver" and m.message_type == "call") + len([c for c in chats.calls if c.sender == "driver"])
+    rider_msgs = sum(1 for m in chats.messages if m.sender == "rider" and m.message_type in ("message", ""))
+
     parts: list[str] = []
     if requested_quotes:
         parts.append(f"{len(requested_quotes)} requested change(s)")
@@ -651,6 +675,7 @@ def chat_scan(chats: ChatLog | None) -> list[dict]:
     if abusive:
         parts.append(f"{len(abusive)} abusive message(s)")
     parts.append(f"{contacts} contact attempt(s)")
+    parts.append(f"driver: {driver_msgs} message(s), {driver_calls} call(s); rider: {rider_msgs} message(s)")
     summary = "Chat scan: " + "; ".join(parts) + "."
 
     return [{
@@ -666,6 +691,9 @@ def chat_scan(chats: ChatLog | None) -> list[dict]:
             "abusive_language": abusive,
             "threatening_language": threatening,
             "contact_attempts": contacts,
+            "driver_chat_messages": driver_msgs,
+            "driver_call_attempts": driver_calls,
+            "rider_chat_messages": rider_msgs,
         },
         "source": "chat_scan",
     }]
@@ -949,6 +977,61 @@ def no_show_contact_analysis(trip: Trip, chat: ChatLog | None) -> list[dict]:
     }]
 
 
+def no_show_timeline(trip: Trip) -> list[dict]:
+    """Build a timeline of no-show events from app events and GPS data.
+
+    Shows: driver arrival, wait timer start, wait timer expiry, cancellation,
+    and the scheduled pickup time.  All values come from the trip record's
+    app events and timestamps — never computed.
+    """
+    events: list[dict] = []
+
+    # Scheduled pickup
+    if trip.scheduled_pickup_at:
+        events.append({
+            "ts": trip.scheduled_pickup_at,
+            "event": "scheduled_pickup",
+            "description": "Scheduled pickup time",
+        })
+
+    # Driver arrival
+    if trip.driver_arrived_at:
+        events.append({
+            "ts": trip.driver_arrived_at,
+            "event": "driver_arrived",
+            "description": "Driver arrived at pickup",
+        })
+
+    # App events (wait timer, cancellation, etc.)
+    for ev in trip.app_events:
+        if ev.event_type in (
+            "wait_timer_started", "wait_timer_expired",
+            "cancellation_fee_applied", "driver_arrived",
+            "rider_notified", "driver_released",
+        ):
+            events.append({
+                "ts": ev.timestamp,
+                "event": ev.event_type,
+                "description": ev.details,
+            })
+
+    # Sort by timestamp
+    events.sort(key=lambda e: e["ts"])
+
+    # Build summary
+    parts: list[str] = []
+    for e in events:
+        parts.append(f"{e['ts']} {e['event']}")
+    summary = "No-show timeline: " + "; ".join(parts) + "." if parts else "No-show timeline: no events."
+
+    return [{
+        "kind": "no_show_timeline",
+        "summary": summary,
+        "data": {"events": events},
+        "source": "no_show_timeline",
+    }]
+
+
 def damage_evidence_check(trip: Trip) -> list[dict]:
     """Check property damage evidence (v2.1 §4.2).
 
@@ -1052,6 +1135,9 @@ def history_profile(
         filed = rider.disputes_filed_90d
         upheld = rider.disputes_upheld_90d
         rate = round(upheld / filed * 100, 1) if filed > 0 else 0.0
+        # Show "not in the data" for absent fields (0 with no source data)
+        ns_str = str(rider.no_show_cancellations_30d) if rider.no_show_cancellations_30d > 0 else "not in the data"
+        fraud_reason = rider.fraud_flag_reason or "not in the data"
         items.append({
             "kind": "history_profile",
             "summary": (
@@ -1059,8 +1145,9 @@ def history_profile(
                 f"{upheld} upheld ({rate:.1f}%), "
                 f"account age {rider.account_age_days}d, "
                 f"rating {rider.rating:.1f}, "
-                f"fraud flags: {rider.fraud_flags}, "
-                f"no-show cancellations (30d): {rider.no_show_cancellations_30d}, "
+                f"fraud flags: {rider.fraud_flags}"
+                + (f" ({fraud_reason})" if rider.fraud_flags > 0 else "")
+                + f", no-show cancellations (30d): {ns_str}, "
                 f"flags: {rider.prior_flags or 'none'}."
             ),
             "data": {
@@ -1074,7 +1161,9 @@ def history_profile(
                 "trips_completed": rider.trips_completed,
                 "prior_flags": rider.prior_flags,
                 "fraud_flags": rider.fraud_flags,
+                "fraud_flag_reason": rider.fraud_flag_reason,
                 "no_show_cancellations_30d": rider.no_show_cancellations_30d,
+                "source": rider.source,
             },
             "source": "history_profile",
         })
@@ -1083,6 +1172,7 @@ def history_profile(
         filed = driver.disputes_filed_90d
         upheld = driver.disputes_upheld_90d
         rate = round(upheld / filed * 100, 1) if filed > 0 else 0.0
+        ns_str = str(driver.no_show_cancellations_30d) if driver.no_show_cancellations_30d > 0 else "not in the data"
         items.append({
             "kind": "history_profile",
             "summary": (
@@ -1091,6 +1181,7 @@ def history_profile(
                 f"account age {driver.account_age_days}d, "
                 f"rating {driver.rating:.1f}, "
                 f"fraud flags: {driver.fraud_flags}, "
+                f"no-show cancellations (30d): {ns_str}, "
                 f"flags: {driver.prior_flags or 'none'}."
             ),
             "data": {
@@ -1104,7 +1195,9 @@ def history_profile(
                 "trips_completed": driver.trips_completed,
                 "prior_flags": driver.prior_flags,
                 "fraud_flags": driver.fraud_flags,
+                "fraud_flag_reason": driver.fraud_flag_reason,
                 "no_show_cancellations_30d": driver.no_show_cancellations_30d,
+                "source": driver.source,
             },
             "source": "history_profile",
         })
@@ -1123,12 +1216,12 @@ _CATEGORY_TOOLS: dict[str, set[str]] = {
         "traffic_analysis", "deviation_point",
     },
     "no_show_driver": {
-        "arrival_check", "chat_scan", "fare_check", "history_profile",
-        "no_show_contact",
+        "arrival_check", "chat_scan", "history_profile",
+        "no_show_contact", "no_show_timeline",
     },
     "no_show_rider": {
-        "arrival_check", "chat_scan", "fare_check", "history_profile",
-        "no_show_contact",
+        "arrival_check", "chat_scan", "history_profile",
+        "no_show_contact", "no_show_timeline",
     },
     "fare_error": {"fare_check", "chat_scan", "history_profile"},
     "safety": {
@@ -1174,6 +1267,8 @@ def build_evidence_pack(
         raw_items.extend(deviation_point_analysis(trip, chat))
     if "no_show_contact" in tool_names:
         raw_items.extend(no_show_contact_analysis(trip, chat))
+    if "no_show_timeline" in tool_names:
+        raw_items.extend(no_show_timeline(trip))
     if "damage_evidence" in tool_names:
         raw_items.extend(damage_evidence_check(trip))
     if "safety_check" in tool_names:
@@ -1287,9 +1382,17 @@ def facts_from_evidence_pack(pack: EvidencePack) -> Facts:
         abusive_language=chat.get("abusive_language", []),
         threatening_language=chat.get("threatening_language", []),
         contact_attempts=chat.get("contact_attempts", 0),
-        # v2.1 §2.3
-        driver_chat_messages=no_show.get("driver_chat_messages", 0),
-        driver_call_attempts=no_show.get("driver_call_attempts", 0),
+        # v2.1 §2.3 — prefer no_show_contact data, fall back to chat_scan
+        driver_chat_messages=(
+            no_show.get("driver_chat_messages")
+            if no_show.get("driver_chat_messages") is not None
+            else chat.get("driver_chat_messages", 0)
+        ),
+        driver_call_attempts=(
+            no_show.get("driver_call_attempts")
+            if no_show.get("driver_call_attempts") is not None
+            else chat.get("driver_call_attempts", 0)
+        ),
         driver_made_contact=no_show.get("driver_made_contact", False),
         min_distance_to_pickup_m=arrival.get("min_distance_to_pickup_m", float("inf")),
         arrival_ts=arrival.get("arrival_ts"),
