@@ -10,7 +10,7 @@ fare and surge, property damage, and safety incidents — under **Ryde Dispute
 Resolution Policy v2.1**: it gathers evidence, builds both sides of the case,
 applies the policy, decides under §6 whether the AI may rule or a person must,
 and issues a ruling with a plain-English explanation, in about half a minute
-instead of 24–72 hours.
+instead of 24–72 hours (median 21.4 s in the evaluation).
 
 **Principle: agents argue, code computes.** Language models gather, argue,
 and explain. Every number in a ruling (distances, minutes, dollars) and the
@@ -38,7 +38,7 @@ live app (listed first in the queue, marked "Ryde sample").
 | Case | Ryde's expected ruling | RideCourt | Routing (§6) |
 |:--|:--|:--|:--|
 | DISP-001 route deviation | Partial refund of the excess distance fare, S$3.44 | Partial refund S$3.44 (§1.3: PIE vehicle fire justified the reroute, but the driver did not tell the rider) | Human sign-off: §6.2 sends route deviations over 2 km to a person; the S$3.44 recommendation is shown for one-click approval |
-| DISP-002 no-show charge | Cancellation fee upheld | Fee upheld S$5.00 (§2.1 free wait expired 6 min after it began; §2.3 driver sent 4 messages and made 1 call) | AI final: the rider's fraud flag raises the bar to 95% (§6.3); confidence 96–100% |
+| DISP-002 no-show charge | Cancellation fee upheld | Fee upheld S$5.00 (§2.1 free wait expired 6 min after it began; §2.3 driver sent 4 messages and made 1 call) | AI final: the rider's fraud flag raises the bar to 95% (§6.3); the computed confidence is 100% |
 | DISP-003 fare dispute | (not stated; §3.3 and precedent 7.2 give a full refund of the surge differential) | Refund S$4.50 = surgeable subtotal S$9.00 × (1.5 − 1.0), booking fee exempt (§3.4–3.5) | AI final: under S$10 (§6.1) |
 
 - **Confidence is computed, not asked for.** §6.3 names four factors; RideCourt
@@ -249,37 +249,62 @@ failures.
 
 ## Evaluation
 
-The evaluation script (`scripts/evaluate.py`) runs every labelled synthetic
-dispute through the full pipeline and reports:
+The evaluation script (`scripts/evaluate.py`) runs Ryde's three sample cases and
+the 51 synthetic cases through the full pipeline and reports:
 
-- **Ruling accuracy** vs the policy label, per category (outcome and amount,
-  amount within S$0.01)
-- **Consistency** — the same case run 3 times gives the same outcome
-- **Escalation rate** and whether every safety case escalated
-- **Median and p90 time to ruling** and **tokens per case**
+- **Ruling accuracy** against the label, per category (outcome and amount,
+  amount within S$0.01). A case that v2.1 sends to a person (§5, §6) is scored
+  by the recommendation the engine prepared for the reviewer.
+- **Routing** — whether the AI ruled or a person was asked, against the label,
+  and every escalation split into "required by policy" and "failure" (guard
+  rejection, model unavailable, the Judge disagreeing).
+- **Consistency** — every run of a case gives the same result.
+- **Median and p90 time to ruling** and **tokens per case**.
 
-Results are written to `eval/results-<date>-<provider>.json`.
+Results are written to `eval/results-<date>-<provider>.json` after every case
+(`--resume` continues an interrupted run).
 
-### Gemini 3.8 Flash results (13 October 2026)
+### Gemini 3.8 Flash results (14 October 2026)
 
 Run with: `LLM_PROVIDER=gemini python scripts/evaluate.py --provider gemini --repeats 2`
-(48 labelled cases, each run twice; full rows, including the guard problems of any escalated run, in `eval/results-2026-10-13-gemini.json`).
+(54 labelled cases, each run twice; every row, including the escalation reason
+of every run, is in `eval/results-2026-10-14-gemini.json`).
 
 | Category | N | Outcome acc. | Amount acc. | Both acc. | Escalation rate | Errored runs | Consistency |
 |:--|:--:|:--:|:--:|:--:|:--:|:--:|:--:|
-| route_deviation | 16 | 100.0% | 100.0% | 100.0% | 0.0% | 0.0% | 100.0% |
-| no_show_driver | 10 | 100.0% | 100.0% | 100.0% | 0.0% | 0.0% | 100.0% |
-| no_show_rider | 10 | 100.0% | 100.0% | 100.0% | 0.0% | 0.0% | 100.0% |
-| fare_error | 6 | 100.0% | 100.0% | 100.0% | 0.0% | 0.0% | 83.3% |
-| safety | 6 | 100.0% | 100.0% | 100.0% | 100.0% | 0.0% | 100.0% |
-| **Overall** | 48 | **100.0%** | **100.0%** | **100.0%** | **12.5%** | **0.0%** | **97.9%** |
+| route_deviation | 15 | 80.0% | 86.7% | 80.0% | 86.7% | 0.0% | 86.7% |
+| no_show_driver | 2 | 100.0% | 100.0% | 100.0% | 0.0% | 0.0% | 100.0% |
+| no_show_rider | 11 | 100.0% | 100.0% | 100.0% | 0.0% | 0.0% | 100.0% |
+| fare_error | 12 | 100.0% | 100.0% | 100.0% | 8.3% | 0.0% | 100.0% |
+| property_damage | 10 | 100.0% | 100.0% | 100.0% | 40.0% | 0.0% | 100.0% |
+| safety | 4 | 100.0% | 100.0% | 100.0% | 100.0% | 0.0% | 100.0% |
+| **Overall** | 54 | **94.4%** | **96.3%** | **94.4%** | **40.7%** | **0** | **96.3%** |
 
-- Every safety case escalated, as the policy requires, and no other case did in its first run.
-- Both runs agreed on 47 of 48 cases. In one run of disp_fa_003, Vertex AI kept returning `429 RESOURCE_EXHAUSTED` through the retries, so the case went to a person as `model_unavailable`; its other run was correct. No run errored.
-- Median time to ruling 26.5 s (p90 85.9 s); median 9,118 tokens per case. The times include waiting while Vertex AI was busy; when it was not, a case took 15 to 20 s.
-- The machine running the evaluation restarted after 36 cases; the other 12 ran with `--resume` on the same code (the evaluation saves after every case).
-- What this measures: the labels come from the same policy clauses the system applies, so the evaluation tests whether the multi-agent pipeline reaches the policy result without inventing numbers or escalating needlessly. It is not an independent human labelling. Reading every escalation of earlier runs found real defects, each fixed in the build log: the rider no-show clause read the minutes past the ETA instead of the minutes waited within 150 m (step 11); the Judge was told to cite the bad-faith clause P-BF-1 but the policy engine never applied it, so every high-risk claimant escalated (step 12); the Judge quoted a precedent's distance, which the guard accepted only from this case's evidence (step 15).
-- An earlier full run on 11 October (before steps 11 to 16) gave 95.8% outcome accuracy; it is kept in `eval/results-2026-10-11-gemini.json`.
+- **Ryde's sample cases: 3 of 3** match the expected outcome, amount and
+  routing (table at the top of this README).
+- **Every run in which the model answered gave the labelled outcome and
+  amount.** The misses are four consecutive route-deviation cases (disp_rd_009
+  to disp_rd_012) during a few minutes when Vertex AI kept returning
+  `429 RESOURCE_EXHAUSTED` through the retries: three cases went to a person as
+  `model_unavailable` in their counted run, and two cases did so in one of their
+  two runs (the consistency misses). No run errored and no guard rejection
+  remained.
+- **Escalations:** the labels send 21 cases to a person (12 route deviations
+  over 2 km including DISP-001, 4 safety incidents, 2 repair claims over S$50,
+  2 riders disputing a damage charge, 1 fraud-flagged case below 95%). In the
+  counted runs 19 of them escalated for that reason and the other 2 hit the
+  model outage above; 1 more case went to a person only because of the outage.
+  Routing matched the label in 53 of 54 cases. v2.1 sends every route deviation over 2 km to a person, which is
+  why most route-deviation cases escalate; the reviewer sees the recommended
+  refund and approves it in one click.
+- Median time to ruling 21.4 s (p90 40.1 s); median 10,780 tokens per case.
+- What this measures: Ryde's three cases are scored against Ryde's own
+  expected answers. The synthetic labels are written from each scenario's
+  intent (expected outcome, amount and routing), not computed by the policy
+  engine, so a disagreement points at either the engine or the label and is
+  investigated; two labels were corrected this way (§4.4).
+- Earlier runs under our own pre-v2.1 policy (48 cases) are kept in
+  `eval/results-2026-10-11-gemini.json` and `eval/results-2026-10-13-gemini.json`.
 
 ### Mock provider results
 
@@ -287,14 +312,15 @@ Run with: `LLM_PROVIDER=mock python scripts/evaluate.py --provider mock --repeat
 
 | Category | N | Outcome acc. | Amount acc. | Both acc. | Escalation rate | Errored runs | Consistency |
 |:--|:--:|:--:|:--:|:--:|:--:|:--:|:--:|
-| route_deviation | 16 | 100.0% | 100.0% | 100.0% | 0.0% | 0.0% | 100.0% |
-| no_show_driver | 10 | 100.0% | 100.0% | 100.0% | 0.0% | 0.0% | 100.0% |
-| no_show_rider | 10 | 100.0% | 100.0% | 100.0% | 0.0% | 0.0% | 100.0% |
-| fare_error | 6 | 100.0% | 100.0% | 100.0% | 0.0% | 0.0% | 100.0% |
-| safety | 6 | 100.0% | 100.0% | 100.0% | 100.0% | 0.0% | 100.0% |
-| **Overall** | 48 | **100.0%** | **100.0%** | **100.0%** | **12.5%** | **0.0%** | **100.0%** |
+| route_deviation | 15 | 100.0% | 100.0% | 100.0% | 80.0% | 0.0% | 100.0% |
+| no_show_driver | 2 | 100.0% | 100.0% | 100.0% | 0.0% | 0.0% | 100.0% |
+| no_show_rider | 11 | 100.0% | 100.0% | 100.0% | 0.0% | 0.0% | 100.0% |
+| fare_error | 12 | 100.0% | 100.0% | 100.0% | 8.3% | 0.0% | 100.0% |
+| property_damage | 10 | 100.0% | 100.0% | 100.0% | 40.0% | 0.0% | 100.0% |
+| safety | 4 | 100.0% | 100.0% | 100.0% | 100.0% | 0.0% | 100.0% |
+| **Overall** | 54 | **100.0%** | **100.0%** | **100.0%** | **38.9%** | **0** | **100.0%** |
 
-The mock provider only checks that the pipeline, the guard and the policy engine fit together; it states numbers only from the evidence items it cites (step 14b).
+The mock provider only checks that the pipeline, the guard and the policy engine fit together; it states numbers only from the evidence items it cites. Real-model runs found what it cannot: a prompt that still asked for the retired `P-..` clause IDs, and fare evidence that left out the upfront quote the agents wanted to cite.
 
 ## How CodeBuddy was used to build it
 
@@ -328,7 +354,7 @@ The project was built spec-first on **CodeBuddy Code** in headless mode, with ot
 | 18b | Evidence faithful to Ryde's data; precedents as v2.1 states them; dispute value; routing labels | `prompts/18b-v2.1-review-findings.md` |
 | 18c | Evidence/source agreement test; §6.3 factors from margins and deciding facts | `prompts/18c-evidence-and-confidence.md` |
 
-`docs/BUILD_LOG.md` lists every session with its duration, turns, result and test count (from 55 tests after step 1 to 337 after step 16), including the three times CodeBuddy credits ran out. The `CODEBUDDY.md` file enforces the project rules across all sessions: agents argue, code computes; Python 3.12, FastAPI and pydantic v2; tests must pass with `LLM_PROVIDER=mock`; English for all code and docs; commit after each task. The raw session transcripts are kept privately and were submitted with the entry as the CodeBuddy conversation history.
+`docs/BUILD_LOG.md` lists every session with its duration, turns, result and test count (from 55 tests after step 1 to 503 after step 18c), including the five times CodeBuddy credits ran out. The `CODEBUDDY.md` file enforces the project rules across all sessions: agents argue, code computes; Python 3.12, FastAPI and pydantic v2; tests must pass with `LLM_PROVIDER=mock`; English for all code and docs; commit after each task. The raw session transcripts are kept privately and were submitted with the entry as the CodeBuddy conversation history.
 
 ## Stretch goals
 
