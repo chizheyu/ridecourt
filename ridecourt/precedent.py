@@ -56,6 +56,11 @@ class PrecedentMatch:
     similarity: float
     reason: str
     source: str = "seed"  # "seed" or "override"
+    deciding_facts: dict = None  # structured facts for alignment scoring
+
+    def __post_init__(self):
+        if self.deciding_facts is None:
+            self.deciding_facts = {}
 
 
 def _term_freq(tokens: list[str]) -> dict[str, float]:
@@ -162,6 +167,7 @@ def retrieve_precedents(
             similarity=round(similarity, 4),
             reason=reason,
             source=source,
+            deciding_facts=getattr(p, "deciding_facts", {}) or {},
         ))
 
     # Sort by similarity descending, take top_k.

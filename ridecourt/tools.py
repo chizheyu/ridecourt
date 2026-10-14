@@ -519,8 +519,8 @@ def gps_analysis(trip: Trip) -> list[dict]:
 
 
 def arrival_check(trip: Trip) -> list[dict]:
-    """Check driver arrival: closest distance to pickup, arrival vs ETA,
-    minutes waited within 150 m."""
+    """Check driver arrival: closest distance to pickup, arrival vs scheduled
+    pickup time (or ETA fallback), minutes waited within 150 m."""
     min_dist = min_distance_to_point_m(
         trip.gps_trace, trip.pickup.lat, trip.pickup.lon
     ) if trip.gps_trace else float("inf")
@@ -534,16 +534,28 @@ def arrival_check(trip: Trip) -> list[dict]:
         )
         arrival_ts = closest_pt.ts
 
-    # ETA = accepted_at + 5 min (expected arrival window).
-    arrival_vs_eta = 0.0
-    if trip.accepted_at and arrival_ts:
-        eta = _parse(trip.accepted_at) + timedelta(minutes=5)
-        arrival_vs_eta = (_parse(arrival_ts) - eta).total_seconds() / 60.0
+    # Arrival vs reference time: prefer the scheduled pickup time when the
+    # trip has one; fall back to accepted_at + 5 min (ETA) otherwise.
+    arrival_vs_ref = 0.0
+    ref_label = "ETA"
+    ref_ts: datetime | None = None
+    if trip.scheduled_pickup_at:
+        ref_ts = _parse(trip.scheduled_pickup_at)
+        ref_label = "scheduled pickup"
+    elif trip.accepted_at:
+        ref_ts = _parse(trip.accepted_at) + timedelta(minutes=5)
+        ref_label = "ETA"
+
+    # Use the driver_arrived_at timestamp if available, else the GPS arrival.
+    arrived_ts_str = trip.driver_arrived_at or arrival_ts
+    if ref_ts and arrived_ts_str:
+        arrival_vs_ref = (
+            _parse(arrived_ts_str) - ref_ts
+        ).total_seconds() / 60.0
 
     # Minutes the driver waited within 150 m of pickup.
     wait_within_150 = 0.0
     if trip.gps_trace and trip.driver_arrived_at:
-        # Count GPS points within 150 m of pickup and sum their time intervals.
         within = [
             p for p in trip.gps_trace
             if haversine_m(p.lat, p.lon, trip.pickup.lat, trip.pickup.lon) <= 150.0
@@ -553,20 +565,19 @@ def arrival_check(trip: Trip) -> list[dict]:
                 _parse(within[-1].ts) - _parse(within[0].ts)
             ).total_seconds() / 60.0
 
-    # Fallback: use the existing wait_minutes_past_eta helper for the
-    # policy engine's no-show logic.
+    # Minutes past the free-wait deadline (later of scheduled pickup and
+    # arrival + 5 min). Used by the policy engine's no-show logic.
     wait_past = wait_minutes_past_eta(trip)
 
     # §2.4: driver no-show = never arrived and never got close to pickup
     driver_no_show = trip.driver_arrived_at is None and min_dist > 150.0
 
-    # Show scheduled pickup time when available.
     scheduled = trip.scheduled_pickup_at or ""
 
     parts: list[str] = [
         f"Driver closest distance to pickup: {min_dist:.0f} m",
-        f"arrival {arrival_ts or 'unknown'} vs ETA "
-        f"{'+' if arrival_vs_eta >= 0 else ''}{arrival_vs_eta:.1f} min",
+        f"arrival {arrived_ts_str or 'unknown'} vs {ref_label} "
+        f"{'+' if arrival_vs_ref >= 0 else ''}{arrival_vs_ref:.1f} min",
         f"waited {wait_within_150:.1f} min within 150 m",
     ]
     if scheduled:
@@ -581,7 +592,7 @@ def arrival_check(trip: Trip) -> list[dict]:
         "data": {
             "min_distance_to_pickup_m": round(min_dist, 2),
             "arrival_ts": arrival_ts,
-            "arrival_vs_eta_min": round(arrival_vs_eta, 2),
+            "arrival_vs_eta_min": round(arrival_vs_ref, 2),
             "wait_minutes_within_150m": round(wait_within_150, 2),
             "wait_minutes_past_eta": round(wait_past, 2),
             "driver_no_show": driver_no_show,
@@ -595,7 +606,13 @@ def arrival_check(trip: Trip) -> list[dict]:
 def chat_scan(chats: ChatLog | None) -> list[dict]:
     """Scan chat for: requested route changes/stops, road closures,
     agreements, disagreements, threatening/abusive language, contact attempts.
-    Quotes the relevant lines."""
+
+    Also extracts ``relevant_messages`` — the actual messages (with time and
+    sender) that matter for the ruling:
+    - route questions and answers before and after the deviation point;
+    - contact messages and calls before cancellation;
+    - any surge or fare messages.
+    """
     if chats is None:
         return [{
             "kind": "chat_scan",
@@ -610,6 +627,7 @@ def chat_scan(chats: ChatLog | None) -> list[dict]:
                 "abusive_language": [],
                 "threatening_language": [],
                 "contact_attempts": 0,
+                "relevant_messages": [],
             },
             "source": "chat_scan",
         }]
@@ -620,39 +638,89 @@ def chat_scan(chats: ChatLog | None) -> list[dict]:
     disagreements: list[str] = []
     abusive: list[str] = []
     threatening: list[str] = []
+    relevant: list[str] = []
+
+    # Patterns for messages that matter for the ruling category.
+    _route_question_patterns = re.compile(
+        r"\b(right way|correct way|usual route|wrong way|"
+        r"going the right|are we going|this doesn.t look|"
+        r"lost|wrong direction)\b",
+        re.IGNORECASE,
+    )
+    _fare_surge_patterns = re.compile(
+        r"\b(fare|price|charge|surge|cost|quote|amount|"
+        r"overcharge|difference|refund|expensive|cheaper)\b",
+        re.IGNORECASE,
+    )
+    _cancel_patterns = re.compile(
+        r"\b(cancel|no.?show|waiting|come down|come out|"
+        r"i.ll have to|i will have to|otherwise)\b",
+        re.IGNORECASE,
+    )
 
     for m in chats.messages:
         text = m.text.strip()
+        quoted = f"[{m.ts}] {m.sender}: \"{text}\""
+
         # Requested change (rider messages only).
         if m.sender == "rider":
             match = _REQUESTED_CHANGE_QUOTE_PATTERNS.search(text)
             if match:
-                requested_quotes.append(f"[{m.ts}] {m.sender}: \"{text}\"")
+                requested_quotes.append(quoted)
+                relevant.append(quoted)
             elif _REQUESTED_CHANGE_PATTERNS.search(text):
-                requested_quotes.append(f"[{m.ts}] {m.sender}: \"{text}\"")
+                requested_quotes.append(quoted)
+                relevant.append(quoted)
 
         # Road closure (any sender).
         closure_match = _ROAD_CLOSURE_QUOTE_PATTERNS.search(text)
         if closure_match:
-            closure_quotes.append(f"[{m.ts}] {m.sender}: \"{text}\"")
+            closure_quotes.append(quoted)
+            relevant.append(quoted)
         elif _ROAD_CLOSURE_PATTERNS.search(text):
-            closure_quotes.append(f"[{m.ts}] {m.sender}: \"{text}\"")
+            closure_quotes.append(quoted)
+            relevant.append(quoted)
+
+        # Route questions (rider) and dismissive answers (driver).
+        if m.sender == "rider" and _route_question_patterns.search(text):
+            relevant.append(quoted)
+        # Driver responses after a route question are relevant.
+        if m.sender == "driver" and _route_question_patterns.search(text):
+            relevant.append(quoted)
+
+        # Contact messages and calls before cancellation.
+        if m.message_type == "call" and m.sender == "driver":
+            relevant.append(quoted)
+        if _cancel_patterns.search(text):
+            relevant.append(quoted)
+
+        # Surge / fare messages.
+        if _fare_surge_patterns.search(text):
+            relevant.append(quoted)
 
         # Agreements.
         if _AGREEMENT_PATTERNS.search(text):
-            agreements.append(f"[{m.ts}] {m.sender}: \"{text}\"")
+            agreements.append(quoted)
 
         # Disagreements.
         if _DISAGREEMENT_PATTERNS.search(text):
-            disagreements.append(f"[{m.ts}] {m.sender}: \"{text}\"")
+            disagreements.append(quoted)
 
         # Threatening language.
         if _THREATENING_PATTERNS.search(text):
-            threatening.append(f"[{m.ts}] {m.sender}: \"{text}\"")
+            threatening.append(quoted)
 
         # Abusive language.
         if _ABUSIVE_PATTERNS.search(text):
-            abusive.append(f"[{m.ts}] {m.sender}: \"{text}\"")
+            abusive.append(quoted)
+
+    # De-duplicate relevant messages while preserving order.
+    seen = set()
+    relevant_deduped: list[str] = []
+    for q in relevant:
+        if q not in seen:
+            seen.add(q)
+            relevant_deduped.append(q)
 
     contacts = count_contact_attempts(chats)
 
@@ -676,6 +744,8 @@ def chat_scan(chats: ChatLog | None) -> list[dict]:
         parts.append(f"{len(abusive)} abusive message(s)")
     parts.append(f"{contacts} contact attempt(s)")
     parts.append(f"driver: {driver_msgs} message(s), {driver_calls} call(s); rider: {rider_msgs} message(s)")
+    if relevant_deduped:
+        parts.append(f"{len(relevant_deduped)} relevant message(s)")
     summary = "Chat scan: " + "; ".join(parts) + "."
 
     return [{
@@ -694,26 +764,27 @@ def chat_scan(chats: ChatLog | None) -> list[dict]:
             "driver_chat_messages": driver_msgs,
             "driver_call_attempts": driver_calls,
             "rider_chat_messages": rider_msgs,
+            "relevant_messages": relevant_deduped,
         },
         "source": "chat_scan",
     }]
 
 
 def fare_check(trip: Trip) -> list[dict]:
-    """Recompute the fare from components and compare with total charged;
-    check promo applied or not.
+    """Check fare consistency and report surge / excess-distance components.
 
-    For v2.1 §3 surge cases, also report the quote-time and trip-start
-    surge multipliers, whether the rider was notified, and the surge
-    differential.
+    Recomputes the fare **only when the source provides base/per_km/per_min
+    rate components**.  When the source lacks those rates (e.g. Ryde's
+    sample files), the tool shows the source's own fare lines instead:
+    upfront quote, actual charged, delta, excess distance fare, and surge
+    breakdown — every number comes from a raw field, never from defaulted
+    rates.
     """
-    recomputed = recompute_fare(trip.fare)
     charged = trip.fare.total_charged
-    diff = round(charged - recomputed, 2)
     promo_applied = bool(trip.fare.promo_code) and trip.fare.discount > 0
     valid_promo = promo_valid_at_booking(trip.fare)
 
-    # v2.1 §3 surge analysis
+    # v2.1 §3 surge analysis — all from source fields
     quote_mult = trip.fare.quote_surge_multiplier
     trip_mult = trip.fare.trip_start_surge_multiplier
     surgeable = trip.fare.surgeable_subtotal
@@ -729,12 +800,42 @@ def fare_check(trip: Trip) -> list[dict]:
     else:
         surge_diff = 0.0
 
-    parts: list[str] = [
-        f"Recomputed fare S${recomputed:.2f} vs charged S${charged:.2f} "
-        f"(diff S${diff:.2f})",
+    # Determine whether we can recompute the fare from source components
+    can_recompute = trip.fare.has_fare_components and trip.fare.distance_km > 0
+
+    if can_recompute:
+        recomputed = recompute_fare(trip.fare)
+        diff = round(charged - recomputed, 2)
+    else:
+        # Source lacks per-km/per-min rates — don't fabricate a recomputation.
+        # Show the source's own fare lines instead.
+        recomputed = 0.0
+        diff = 0.0
+
+    parts: list[str] = []
+    if can_recompute:
+        parts.append(
+            f"Recomputed fare S${recomputed:.2f} vs charged S${charged:.2f} "
+            f"(diff S${diff:.2f})"
+        )
+    else:
+        # Show the source's fare lines
+        if upfront > 0:
+            parts.append(f"Upfront quote S${upfront:.2f}")
+        if charged > 0:
+            parts.append(f"Actual charged S${charged:.2f}")
+        if upfront > 0 and charged > 0:
+            delta = round(charged - upfront, 2)
+            parts.append(f"Delta S${delta:.2f}")
+        if trip.fare.excess_distance_km > 0:
+            parts.append(
+                f"Excess distance {trip.fare.excess_distance_km:.1f} km, "
+                f"excess distance fare S${trip.fare.excess_distance_fare:.2f}"
+            )
+    parts.append(
         f"promo {'applied' if promo_applied else 'not applied'} "
-        f"({'valid' if valid_promo else 'invalid'})",
-    ]
+        f"({'valid' if valid_promo else 'invalid'})"
+    )
     if quote_mult != 1.0 or trip_mult != 1.0:
         parts.append(
             f"surge: quote {quote_mult}x → trip {trip_mult}x "
@@ -762,16 +863,21 @@ def fare_check(trip: Trip) -> list[dict]:
         "surge_differential": surge_diff,
         "excess_distance_km": trip.fare.excess_distance_km,
         "excess_distance_fare": trip.fare.excess_distance_fare,
-        "components": {
-            "base": trip.fare.base,
-            "per_km": trip.fare.per_km,
-            "per_min": trip.fare.per_min,
-            "distance_km": trip.fare.distance_km,
-            "duration_min": trip.fare.duration_min,
-            "surge_multiplier": trip.fare.surge_multiplier,
-            "discount": trip.fare.discount,
-            "booking_fee": trip.fare.booking_fee,
-        },
+        "has_fare_components": can_recompute,
+        "components": (
+            {
+                "base": trip.fare.base,
+                "per_km": trip.fare.per_km,
+                "per_min": trip.fare.per_min,
+                "distance_km": trip.fare.distance_km,
+                "duration_min": trip.fare.duration_min,
+                "surge_multiplier": trip.fare.surge_multiplier,
+                "discount": trip.fare.discount,
+                "booking_fee": trip.fare.booking_fee,
+            }
+            if can_recompute
+            else {}
+        ),
     }
 
     return [{

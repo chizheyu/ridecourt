@@ -60,6 +60,10 @@ class Fare(BaseModel):
     excess_distance_fare: float = 0.0
     # v2.1 §4.3: damage claim amount
     damage_claim_amount: float = 0.0
+    # Whether base/per_km/per_min come from the source data (vs. defaults).
+    # When False, recompute_fare must not be used — the source lacks the
+    # individual rate components.
+    has_fare_components: bool = False
 
 
 # ---------------------------------------------------------------------------
@@ -208,6 +212,9 @@ class Precedent(BaseModel):
     amount: float = 0.0
     source: str = "seed"  # "seed" or "override" (learned from human override)
     reason: str = ""  # reviewer's reason (for override-sourced precedents)
+    # Structured deciding facts used for precedent alignment scoring.
+    # e.g. {"rider_informed": false, "traffic_justified": true, "contact_made": true}
+    deciding_facts: dict = Field(default_factory=dict)
 
 
 class Label(BaseModel):
@@ -403,7 +410,14 @@ def load_dataset(data_dir: Path | str | None = None) -> Dataset:
     If *data_dir* is None, uses the default ``data/synthetic`` location.
     """
     d = Path(data_dir) if data_dir else DATA_DIR
-    trips = [Trip(**t) for t in _load_json(d / "trips.json")]
+    trips_raw = _load_json(d / "trips.json")
+    trips = []
+    for t in trips_raw:
+        fare_raw = t.get("fare", {})
+        if "base" in fare_raw and "per_km" in fare_raw and "per_min" in fare_raw:
+            fare_raw = {**fare_raw, "has_fare_components": True}
+            t = {**t, "fare": fare_raw}
+        trips.append(Trip(**t))
     chats = [ChatLog(**c) for c in _load_json(d / "chats.json")]
     profiles_raw = _load_json(d / "profiles.json")
     profiles = {pid: Profile(**p) for pid, p in profiles_raw.items()}

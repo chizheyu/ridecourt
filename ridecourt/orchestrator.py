@@ -202,6 +202,7 @@ class Orchestrator:
             dispute, trip, self.dataset.profiles, facts, trip.fare,
             has_precedent_match=has_precedent_match,
             precedent_similarity=best_similarity,
+            retrieved_precedents=precedent_matches,
         )
         latency = monotonic_ms(t0)
 

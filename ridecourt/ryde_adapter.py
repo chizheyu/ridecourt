@@ -248,6 +248,9 @@ def _map_fare(raw_trip: dict, raw_fare: dict | None) -> Fare:
     # Per-km rate: from fare_breakdown notes (DISP-001 says $0.80/km)
     # We default to 0.80 as per DISP-001.
     per_km = 0.80
+    # The source data does not provide base/per_km/per_min as separate
+    # rate components — these are defaults, not source values.
+    has_fare_components = False
 
     # Distance and duration
     distance_km = float(raw_trip.get("actual_distance_km", 0.0))
@@ -285,6 +288,7 @@ def _map_fare(raw_trip: dict, raw_fare: dict | None) -> Fare:
         rider_notified_surge=False,  # set from surge_pricing_log below
         excess_distance_km=excess_km,
         excess_distance_fare=excess_fare,
+        has_fare_components=has_fare_components,
     )
 
 
@@ -641,8 +645,35 @@ class RydeDatasetAdapter:
                 amount=amount,
                 source="ryde",
                 reason=ruling,
+                deciding_facts=self._precedent_deciding_facts(case_id, facts),
             ))
         return precedents
+
+    @staticmethod
+    def _precedent_deciding_facts(case_id: str, facts_text: str) -> dict:
+        """Extract structured deciding_facts for the three Ryde precedents."""
+        ft = facts_text.lower()
+        if case_id == "DISP-2026-0089":
+            return {
+                "rider_informed": False,
+                "traffic_justified": True,
+                "deviation_exceeds_tolerance": True,
+            }
+        elif case_id == "DISP-2026-0142":
+            return {
+                "surge_increased": True,
+                "rider_notified_surge": False,
+            }
+        elif case_id == "DISP-2026-0211":
+            return {
+                "driver_made_contact": False,
+                "free_wait_expired": True,
+            }
+        # Fallback: infer from text
+        return {
+            "rider_informed": "not informed" in ft,
+            "traffic_justified": "traffic" in ft and "justif" in ft,
+        }
 
     @staticmethod
     def _build_precedent_summary(case_id: str, facts: str, ruling: str, amount: float) -> str:

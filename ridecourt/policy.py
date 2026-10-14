@@ -447,6 +447,77 @@ def compute_dispute_value(category: str, facts: Facts, policy_amount: float) -> 
     return policy_amount
 
 
+def _numeric_condition_score(v: float, t: float) -> float:
+    """Score for a numeric condition with value v and threshold t.
+
+    Score = min(1.0, 0.6 + 2 × |v − t| / t).
+
+    At the threshold the score is 0.6; the further past the threshold
+    the value is, the closer to 1.0.
+    """
+    if t == 0:
+        return 1.0
+    return min(1.0, 0.6 + 2.0 * abs(v - t) / t)
+
+
+def _case_deciding_facts(facts: Facts, category: str) -> dict:
+    """Extract the structured deciding facts for a case, matching the
+    precedent's deciding_facts schema."""
+    df: dict[str, bool | str] = {}
+    if category == "route_deviation":
+        df["rider_informed"] = bool(facts.rider_informed_deviation)
+        df["traffic_justified"] = bool(facts.traffic_justified)
+        df["deviation_exceeds_tolerance"] = (
+            facts.distance_actual_km - facts.distance_optimal_km > RD_TOLERANCE_KM
+        )
+    elif category in ("no_show_rider", "no_show_driver"):
+        df["driver_made_contact"] = bool(facts.driver_made_contact)
+        df["free_wait_expired"] = bool(facts.free_wait_expired or facts.wait_minutes_past_eta > 0)
+        if category == "no_show_driver":
+            df["driver_no_show"] = bool(facts.driver_no_show)
+    elif category == "fare_error":
+        df["surge_increased"] = bool(facts.surge_increased)
+        df["rider_notified_surge"] = bool(facts.rider_notified_surge)
+    elif category == "property_damage":
+        df["photo_verifiable"] = (
+            facts.photo_source == "in_app_camera"
+            and facts.has_timestamp
+            and facts.submitted_within_24h
+            and facts.linked_to_trip
+        )
+        df["damage_type"] = facts.damage_type or "cleaning"
+    elif category == "safety":
+        df["safety_incident"] = True
+    return df
+
+
+def _facts_match(a: dict, b: dict) -> bool:
+    """Check whether two deciding-facts dicts match on their shared keys."""
+    shared = set(a.keys()) & set(b.keys())
+    if not shared:
+        return False
+    return all(a[k] == b[k] for k in shared)
+
+
+_RIDER_WIN_KEYWORDS = frozenset({"refund", "voided", "credit"})
+_DRIVER_WIN_PREFIXES = ("no_refund", "fee_upheld", "upheld")
+
+
+def _outcome_direction(outcome: str) -> str:
+    """Classify an outcome as favouring 'rider' or 'driver'.
+
+    Rider wins: refund, voided, credit.
+    Driver wins: no_refund, upheld, fee_upheld.
+    """
+    ol = outcome.lower().replace("-", "_")
+    for prefix in _DRIVER_WIN_PREFIXES:
+        if prefix in ol:
+            return "driver"
+    if any(kw in ol for kw in _RIDER_WIN_KEYWORDS):
+        return "rider"
+    return "driver"
+
+
 def compute_confidence(
     facts: Facts,
     category: str,
@@ -454,6 +525,7 @@ def compute_confidence(
     has_precedent_match: bool = False,
     precedent_similarity: float = 0.0,
     outcome: str = "",
+    retrieved_precedents: list | None = None,
 ) -> tuple[float, dict]:
     """§6.3: Confidence = weighted average of 4 factors.
 
@@ -522,7 +594,10 @@ def compute_confidence(
             "trip-start surge multiplier recorded",
         ))
     else:
-        evidence_checks.append((True, "evidence available"))
+        evidence_checks.append((
+            facts.charged_total > 0 or policy_amount > 0,
+            "dispute value or fare recorded",
+        ))
 
     passed = sum(1 for ok, _ in evidence_checks if ok)
     evidence_completeness = passed / max(len(evidence_checks), 1)
@@ -531,90 +606,176 @@ def compute_confidence(
     ) or "all key evidence fields present"
 
     # --- Factor 2: Policy clarity ---
-    # Clear-cut cases (matching all policy conditions exactly) score higher.
+    # Minimum over the conditions the applied rule depends on:
+    # - numeric condition: min(1.0, 0.6 + 2 × |v − t| / t)
+    # - boolean from system record: 1.0
+    # - boolean from free text: 0.9
+    condition_scores: list[tuple[str, float, str]] = []
+
     if category == "route_deviation":
-        if facts.traffic_justified and not facts.rider_informed_deviation:
-            clarity = 0.95
-            clarity_reason = "traffic justified but rider not informed — clear §1.2 breach"
-        elif not facts.traffic_justified and not facts.rider_informed_deviation:
-            clarity = 0.95
-            clarity_reason = "no traffic justification and rider not informed — clear breach"
-        else:
-            clarity = 0.85
-            clarity_reason = "route deviation with partial justification"
+        excess_km = max(0.0, facts.distance_actual_km - facts.distance_optimal_km)
+        condition_scores.append((
+            f"excess_km {excess_km:.2f} vs threshold {RD_TOLERANCE_KM:.1f}",
+            _numeric_condition_score(excess_km, RD_TOLERANCE_KM),
+            "numeric",
+        ))
+        if facts.traffic_justified is not None:
+            source = "system" if facts.traffic_incidents_on_route else "inferred"
+            score = 1.0 if source == "system" else 0.9
+            condition_scores.append((
+                f"traffic_justified={facts.traffic_justified} ({source} record)",
+                score,
+                source,
+            ))
+        # rider_informed is inferred from chat (free text) → 0.9
+        condition_scores.append((
+            f"rider_informed={facts.rider_informed_deviation} (inferred from chat)",
+            0.9,
+            "free_text",
+        ))
     elif category in ("no_show_rider", "no_show_driver"):
-        if facts.driver_chat_messages == 0 and facts.driver_call_attempts == 0:
-            clarity = 0.95
-            clarity_reason = "zero contact attempts — clear §2.3 breach"
-        elif facts.driver_chat_messages >= 1 and facts.driver_call_attempts >= 1:
-            clarity = 0.90
-            clarity_reason = "both contact obligations met — clear §2.3 compliance"
-        else:
-            clarity = 0.80
-            clarity_reason = "partial contact — some obligations met"
+        # Free wait time: numeric condition (wait vs 5-minute threshold)
+        wait = facts.wait_minutes_past_eta
+        condition_scores.append((
+            f"wait {wait:.1f} min vs threshold {NS_FREE_WAIT_MIN:.0f} min",
+            _numeric_condition_score(wait, NS_FREE_WAIT_MIN),
+            "numeric",
+        ))
+        # Contact obligations: boolean from system records (chat log, call log)
+        if category == "no_show_rider":
+            condition_scores.append((
+                f"driver_made_contact={facts.driver_made_contact} "
+                f"(chat + call records)",
+                1.0,
+                "system",
+            ))
     elif category == "fare_error":
-        if facts.surge_increased and not facts.rider_notified_surge:
-            clarity = 0.95
-            clarity_reason = "surge increased and rider not notified — clear §3.3 breach"
-        elif not facts.surge_increased and facts.fare_difference == 0:
-            clarity = 0.90
-            clarity_reason = "no fare difference — clear no-refund"
-        else:
-            clarity = 0.80
-            clarity_reason = "fare dispute with some ambiguity"
+        if facts.surge_increased:
+            # Surge change: numeric (trip_mult - quote_mult vs 0 threshold)
+            delta = facts.trip_start_surge_multiplier - facts.quote_surge_multiplier
+            condition_scores.append((
+                f"surge change {delta:.2f}x vs threshold 0.0",
+                _numeric_condition_score(delta, 0.01),
+                "numeric",
+            ))
+        # Rider notification: boolean from system record (surge log / app event)
+        condition_scores.append((
+            f"rider_notified_surge={facts.rider_notified_surge} (surge log)",
+            1.0,
+            "system",
+        ))
     else:
-        clarity = 0.85
-        clarity_reason = "standard policy application"
+        # Default: no specific conditions to evaluate
+        condition_scores.append(("standard policy application", 1.0, "default"))
+
+    clarity = min(s for _, s, _ in condition_scores) if condition_scores else 1.0
+    clarity_reason = "; ".join(
+        f"{desc} → {s:.2f}" for desc, s, _ in condition_scores
+    )
 
     # --- Factor 3: Precedent alignment ---
-    # Higher when a precedent was found with high similarity or same category.
-    if has_precedent_match and precedent_similarity >= 0.4:
-        precedent_alignment = 0.95
-        precedent_reason = f"strong precedent match (similarity {precedent_similarity:.2f})"
-    elif has_precedent_match:
-        precedent_alignment = 0.80
-        precedent_reason = f"precedent match found (similarity {precedent_similarity:.2f})"
+    # Among the top 3 retrieved precedents in the same category:
+    # - matching deciding_facts + same outcome → agrees
+    # - matching deciding_facts + different outcome → conflict
+    # - different deciding_facts → distinguished (neither helps nor hurts)
+    case_df = _case_deciding_facts(facts, category)
+    precedent_alignment = 0.85  # default: none agree, none conflict
+    precedent_reason_parts: list[str] = []
+
+    if retrieved_precedents:
+        agrees: list[str] = []
+        conflicts: list[str] = []
+        distinguished: list[str] = []
+        for pm in retrieved_precedents[:3]:
+            # Only consider precedents in the same category
+            if pm.category != category:
+                continue
+            prec_df = getattr(pm, "deciding_facts", {}) or {}
+            if not prec_df:
+                # No structured facts → distinguished
+                distinguished.append(pm.case_id)
+                continue
+            if _facts_match(case_df, prec_df):
+                if _outcome_direction(pm.outcome) == _outcome_direction(outcome):
+                    agrees.append(pm.case_id)
+                else:
+                    conflicts.append(pm.case_id)
+            else:
+                distinguished.append(pm.case_id)
+
+        if conflicts:
+            precedent_alignment = 0.5
+        elif agrees:
+            precedent_alignment = 1.0
+        elif distinguished:
+            # All same-category precedents are distinguished:
+            # no agreement, no conflict → neutral (1.0)
+            precedent_alignment = 1.0
+        else:
+            # No same-category precedents retrieved at all
+            precedent_alignment = 0.85
+
+        for cid in agrees:
+            precedent_reason_parts.append(
+                f"{cid} agrees (matching facts, same outcome)"
+            )
+        for cid in conflicts:
+            precedent_reason_parts.append(
+                f"{cid} conflicts (matching facts, different outcome)"
+            )
+        for cid in distinguished:
+            precedent_reason_parts.append(
+                f"{cid} distinguished (different deciding facts)"
+            )
+        if not precedent_reason_parts:
+            precedent_reason_parts.append("no same-category precedents retrieved")
     else:
-        precedent_alignment = 0.50
-        precedent_reason = "no matching precedent found"
+        if has_precedent_match and precedent_similarity >= 0.4:
+            precedent_alignment = 1.0
+            precedent_reason_parts.append(
+                f"strong precedent match (similarity {precedent_similarity:.2f})"
+            )
+        elif has_precedent_match:
+            precedent_alignment = 0.85
+            precedent_reason_parts.append(
+                f"precedent match found (similarity {precedent_similarity:.2f})"
+            )
+        else:
+            precedent_alignment = 0.85
+            precedent_reason_parts.append("no matching precedent found")
+
+    precedent_reason = "; ".join(precedent_reason_parts)
 
     # --- Factor 4: Party credibility ---
-    # Based on the winning party's account age, rating, and fraud flags.
-    # The fraud flag's effect on routing comes through the §6.3 threshold
-    # (raised to 95%), not through this score.
-    # Determine winning party from the outcome name:
-    # - "refund", "voided", "credit" → rider wins
-    # - "upheld", "no_refund", "rejected" → driver wins
+    # 1.0 unless the ruling favours, or rests on the uncorroborated word of,
+    # a party with one of these signals; then 0.6 with the signal named:
+    # - a fraud flag
+    # - a statement contradicted by system records
+    # - three or more upheld disputes of the same type in 90 days
+    # Account age and rating alone never lower it.
     rider_wins = any(kw in outcome for kw in ("refund", "voided", "credit"))
     winning_party = "rider" if rider_wins else "driver"
 
     if winning_party == "rider":
-        age = facts.rider_account_age_days
-        rating = facts.rider_rating
         fraud = facts.rider_fraud_flags
+        upheld = facts.rider_disputes_upheld_90d
         party = "rider"
     else:
-        age = facts.driver_account_age_days
-        rating = facts.driver_rating
         fraud = facts.driver_fraud_flags
+        upheld = facts.driver_disputes_upheld_90d
         party = "driver"
 
+    credibility = 1.0
+    credibility_reason = f"winning party ({party}) has no adverse signal"
+
     if fraud > 0:
-        # Winning party has a fraud flag — credibility reduced
-        credibility = 0.50
+        credibility = 0.6
         credibility_reason = f"winning party ({party}) has fraud flag ({fraud})"
-    elif age > 200 and rating >= 4.5:
-        credibility = 0.95
-        credibility_reason = f"winning party ({party}) established ({age}d, rating {rating:.1f})"
-    elif age > 100 and rating >= 4.0:
-        credibility = 0.85
-        credibility_reason = f"winning party ({party}) established ({age}d, rating {rating:.1f})"
-    elif age > 50:
-        credibility = 0.70
-        credibility_reason = f"winning party ({party}) moderate history ({age}d)"
-    else:
-        credibility = 0.55
-        credibility_reason = f"winning party ({party}) new account ({age}d)"
+    elif upheld >= 3:
+        credibility = 0.6
+        credibility_reason = (
+            f"winning party ({party}) has {upheld} upheld disputes of same type in 90d"
+        )
 
     confidence = (
         W_EVIDENCE * evidence_completeness
@@ -724,6 +885,7 @@ def evaluate(
     *,
     has_precedent_match: bool = False,
     precedent_similarity: float = 0.0,
+    retrieved_precedents: list | None = None,
 ) -> PolicyResult:
     """Apply the relevant v2.1 policy section(s) to a dispute.
 
@@ -821,6 +983,7 @@ def evaluate(
         facts, category, result.amount, has_precedent_match,
         precedent_similarity=precedent_similarity,
         outcome=result.outcome,
+        retrieved_precedents=retrieved_precedents,
     )
 
     routing, routing_reason = section_6_routing(

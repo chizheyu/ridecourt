@@ -661,6 +661,7 @@ class TestComputeConfidence:
         f = _facts()
         conf_with, factors_with = compute_confidence(
             f, "route_deviation", 5.0, has_precedent_match=True,
+            precedent_similarity=0.5,
         )
         conf_without, factors_without = compute_confidence(
             f, "route_deviation", 5.0, has_precedent_match=False,
@@ -673,7 +674,7 @@ class TestComputeConfidence:
         # outcome="refund..." → rider wins → rider has fraud flag
         conf, factors = compute_confidence(f, "route_deviation", 5.0,
                                             outcome="refund_partial")
-        assert factors["party_credibility"] < 0.6
+        assert factors["party_credibility"] == 0.6
         assert "fraud flag" in factors["credibility_reason"]
 
     def test_confidence_returns_factors(self):

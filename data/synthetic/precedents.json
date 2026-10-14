@@ -6,7 +6,12 @@
     "outcome": "refund_partial_excess_distance",
     "amount": 3.2,
     "source": "ryde",
-    "reason": ""
+    "reason": "",
+    "deciding_facts": {
+      "rider_informed": false,
+      "traffic_justified": true,
+      "deviation_exceeds_tolerance": true
+    }
   },
   {
     "case_id": "DISP-2026-0142",
@@ -15,7 +20,11 @@
     "outcome": "refund_surge_differential",
     "amount": 3.2,
     "source": "ryde",
-    "reason": ""
+    "reason": "",
+    "deciding_facts": {
+      "surge_increased": true,
+      "rider_notified_surge": false
+    }
   },
   {
     "case_id": "DISP-2026-0211",
@@ -24,7 +33,11 @@
     "outcome": "cancellation_fee_voided",
     "amount": 5.0,
     "source": "ryde",
-    "reason": ""
+    "reason": "",
+    "deciding_facts": {
+      "driver_made_contact": false,
+      "free_wait_expired": true
+    }
   },
   {
     "case_id": "PC-2025-001",
@@ -33,7 +46,12 @@
     "outcome": "refund_full_excess_distance",
     "amount": 2.4,
     "source": "seed",
-    "reason": ""
+    "reason": "",
+    "deciding_facts": {
+      "rider_informed": false,
+      "traffic_justified": false,
+      "deviation_exceeds_tolerance": true
+    }
   },
   {
     "case_id": "PC-2025-002",
@@ -42,7 +60,12 @@
     "outcome": "no_refund_rider_requested",
     "amount": 0.0,
     "source": "seed",
-    "reason": ""
+    "reason": "",
+    "deciding_facts": {
+      "rider_requested_change": true,
+      "traffic_justified": false,
+      "deviation_exceeds_tolerance": true
+    }
   },
   {
     "case_id": "PC-2025-003",
@@ -51,7 +74,12 @@
     "outcome": "no_refund_justified_informed",
     "amount": 0.0,
     "source": "seed",
-    "reason": ""
+    "reason": "",
+    "deciding_facts": {
+      "rider_informed": true,
+      "traffic_justified": true,
+      "deviation_exceeds_tolerance": true
+    }
   },
   {
     "case_id": "PC-2025-004",
@@ -60,7 +88,11 @@
     "outcome": "driver_no_show_credit",
     "amount": 5.0,
     "source": "seed",
-    "reason": ""
+    "reason": "",
+    "deciding_facts": {
+      "driver_no_show": true,
+      "driver_made_contact": false
+    }
   },
   {
     "case_id": "PC-2025-006",
@@ -69,7 +101,11 @@
     "outcome": "cancellation_fee_upheld",
     "amount": 5.0,
     "source": "seed",
-    "reason": ""
+    "reason": "",
+    "deciding_facts": {
+      "driver_made_contact": true,
+      "free_wait_expired": true
+    }
   },
   {
     "case_id": "PC-2025-008",
@@ -78,7 +114,11 @@
     "outcome": "no_surge_refund_notified",
     "amount": 0.0,
     "source": "seed",
-    "reason": ""
+    "reason": "",
+    "deciding_facts": {
+      "surge_increased": true,
+      "rider_notified_surge": true
+    }
   },
   {
     "case_id": "PC-2025-010",
@@ -87,7 +127,11 @@
     "outcome": "damage_claim_approved",
     "amount": 35.0,
     "source": "seed",
-    "reason": ""
+    "reason": "",
+    "deciding_facts": {
+      "photo_verifiable": true,
+      "damage_type": "cleaning"
+    }
   },
   {
     "case_id": "PC-2025-012",
@@ -96,6 +140,9 @@
     "outcome": "escalate_safety",
     "amount": 0.0,
     "source": "seed",
-    "reason": ""
+    "reason": "",
+    "deciding_facts": {
+      "safety_incident": true
+    }
   }
 ]

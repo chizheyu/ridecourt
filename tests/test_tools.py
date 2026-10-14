@@ -54,6 +54,7 @@ def _fare(**kw) -> Fare:
         distance_km=10.0, duration_min=20.0,
         surge_multiplier=1.0, promo_code="", discount=0.0,
         booking_fee=1.0, cancellation_fee=4.0, total_charged=14.5,
+        has_fare_components=True,
     )
     defaults.update(kw)
     return Fare(**defaults)
@@ -254,8 +255,8 @@ class TestArrivalCheck:
         trace = [
             GPSPoint(ts="2026-01-01T08:09:00", lat=PICKUP.lat, lon=PICKUP.lon, speed_kmh=5.0),
         ]
-        # accepted_at = 08:02, ETA = 08:07, arrival = 08:09 → +2 min
-        trip = _trip(gps_trace=trace)
+        # accepted_at = 08:02, ETA = 08:07, driver_arrived_at = 08:09 → +2 min
+        trip = _trip(gps_trace=trace, driver_arrived_at="2026-01-01T08:09:00")
         items = arrival_check(trip)
         data = items[0]["data"]
         assert abs(data["arrival_vs_eta_min"] - 2.0) < 0.1
