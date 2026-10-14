@@ -245,11 +245,10 @@ def _map_fare(raw_trip: dict, raw_fare: dict | None) -> Fare:
     estimated_fare = float(raw_trip.get("estimated_fare", 0.0))
     actual_fare = float(raw_trip.get("actual_fare", 0.0))
 
-    # Per-km rate: from fare_breakdown notes (DISP-001 says $0.80/km)
-    # We default to 0.80 as per DISP-001.
-    per_km = 0.80
-    # The source data does not provide base/per_km/per_min as separate
-    # rate components — these are defaults, not source values.
+    # The source data does not give base / per-km / per-min rate components,
+    # so none are invented here (``has_fare_components`` stays False and the
+    # rate fields stay 0). The §1.3 refund uses the fare breakdown's own
+    # ``excess_distance_fare`` line.
     has_fare_components = False
 
     # Distance and duration
@@ -272,14 +271,16 @@ def _map_fare(raw_trip: dict, raw_fare: dict | None) -> Fare:
     booking_fee_exempt = comparison.get("booking_fee_surge_exempt", True)
 
     return Fare(
-        base=3.0,
-        per_km=per_km,
-        per_min=0.25,
+        base=0.0,
+        per_km=0.0,
+        per_min=0.0,
         distance_km=distance_km,
         duration_min=duration_min,
         surge_multiplier=trip_surge,
         total_charged=actual_fare,
-        booking_fee=float(actual_fare - surgeable * trip_surge) if surgeable > 0 else 1.0,
+        # booking fee = actual total minus the surged subtotal (DISP-003);
+        # 0 when the source cannot give it
+        booking_fee=round(float(actual_fare - surgeable * trip_surge), 2) if surgeable > 0 else 0.0,
         cancellation_fee=cancellation_fee,
         quote_surge_multiplier=quote_surge,
         trip_start_surge_multiplier=trip_surge,

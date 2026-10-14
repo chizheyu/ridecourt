@@ -71,6 +71,7 @@ VALID_SECTIONS: frozenset[str] = frozenset({
 def section_1_route_deviation(
     facts: Facts,
     per_km_rate: float = 0.80,
+    itemised_excess_fare: float = 0.0,
 ) -> PolicyResult:
     """§1: Route deviation refund.
 
@@ -95,15 +96,24 @@ def section_1_route_deviation(
             ),
         )
 
-    # Compute excess distance fare refund
-    refund = round(excess_km * per_km_rate, 2)
+    # Excess distance fare: the fare system's own line when the trip record
+    # itemises it (Ryde's fare breakdown does), else distance x per-km rate.
+    if itemised_excess_fare > 0:
+        refund = round(itemised_excess_fare, 2)
+        fare_line = (
+            f"refund = excess distance fare itemised in the trip's fare "
+            f"breakdown for {excess_km:.2f} km = S${refund:.2f}"
+        )
+    else:
+        refund = round(excess_km * per_km_rate, 2)
+        fare_line = f"refund = {excess_km:.2f} km × S${per_km_rate:.2f}/km = S${refund:.2f}"
 
     if not facts.traffic_justified:
         # No traffic justification → full refund of excess distance fare
         comp = (
             f"excess_km={excess_km:.2f} > {RD_TOLERANCE_KM:.1f} km; "
             f"no traffic justification on recommended route (§1.4); "
-            f"refund = {excess_km:.2f} km × S${per_km_rate:.2f}/km = S${refund:.2f} "
+            f"{fare_line} "
             f"(full excess distance fare, §1.3). "
             "Tolls, time, surge not refunded."
         )
@@ -133,7 +143,7 @@ def section_1_route_deviation(
     comp = (
         f"excess_km={excess_km:.2f} > {RD_TOLERANCE_KM:.1f} km; "
         f"traffic-justified (§1.4) but rider NOT informed (§1.2) — "
-        f"refund = {excess_km:.2f} km × S${per_km_rate:.2f}/km = S${refund:.2f} "
+        f"{fare_line} "
         f"(partial excess distance fare, §1.3). "
         "Tolls, time, surge not refunded."
     )
@@ -945,7 +955,10 @@ def evaluate(
     # Apply the category-specific section
     if category == "route_deviation":
         per_km = getattr(fare_params, "per_km", 0.80)
-        result = section_1_route_deviation(facts, per_km_rate=per_km)
+        result = section_1_route_deviation(
+            facts, per_km_rate=per_km,
+            itemised_excess_fare=getattr(fare_params, "excess_distance_fare", 0.0) or 0.0,
+        )
     elif category in ("no_show_driver", "no_show_rider"):
         result = section_2_no_show(facts, category)
     elif category == "fare_error":

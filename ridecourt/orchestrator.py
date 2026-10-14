@@ -778,10 +778,16 @@ class Orchestrator:
                 from_agent="judge",
                 content={
                     "reason": reason,
+                    "routing_reason": getattr(policy_result, "routing_reason", ""),
                     "summary": summary,
                     "judge_output": judge_output.model_dump(),
                     "policy_outcome": policy_result.outcome,
-                    "confidence": judge_output.confidence,
+                    "confidence": (
+                        policy_result.confidence
+                        if getattr(policy_result, "confidence", None) is not None
+                        else judge_output.confidence
+                    ),
+                    "judge_confidence": judge_output.confidence,
                 },
                 tokens=judge_meta.tokens,
                 latency_ms=judge_latency,
@@ -817,7 +823,15 @@ class Orchestrator:
             content={
                 "outcome": judge_output.outcome,
                 "amount": judge_output.amount,
-                "confidence": judge_output.confidence,
+                # §6 routing confidence from the policy engine; the Judge's
+                # own figure is kept alongside it
+                "confidence": (
+                    policy_result.confidence
+                    if getattr(policy_result, "confidence", None) is not None
+                    else judge_output.confidence
+                ),
+                "judge_confidence": judge_output.confidence,
+                "routing_reason": getattr(policy_result, "routing_reason", ""),
                 "message_to_rider": judge_output.message_to_rider,
                 "message_to_driver": judge_output.message_to_driver,
                 "precedent_consistency": judge_output.precedent_consistency,

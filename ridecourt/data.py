@@ -448,3 +448,28 @@ class DatasetAdapter:
 
     def load(self) -> Dataset:  # pragma: no cover - interface
         raise NotImplementedError
+
+
+def load_app_dataset(data_dir: Path | str | None = None) -> Dataset:
+    """The dataset the app, the evaluation and pre-resolve use: the synthetic
+    cases plus Ryde's sample cases when ``data/ryde_samples/`` is present.
+
+    Ryde's cases keep their own IDs (``DISP-001`` ...) and are listed in
+    ``ds.sample_ids`` so the queue can show them first.
+    """
+    ds = load_dataset(data_dir)
+    ds.sample_ids = []
+    from .ryde_adapter import RYDE_SAMPLES_DIR, RydeDatasetAdapter
+
+    if not RYDE_SAMPLES_DIR.exists():
+        return ds
+    ryde = RydeDatasetAdapter().load()
+    ds.trips.update(ryde.trips)
+    ds.chats.update(ryde.chats)
+    ds.profiles.update(ryde.profiles)
+    ds.disputes.update(ryde.disputes)
+    ds.labels.update(ryde.labels)
+    known = {p.case_id for p in ds.precedents}
+    ds.precedents.extend(p for p in ryde.precedents if p.case_id not in known)
+    ds.sample_ids = sorted(ryde.disputes)
+    return ds

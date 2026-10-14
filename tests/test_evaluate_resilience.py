@@ -139,16 +139,21 @@ class TestResume:
     def test_resume_skips_done_cases(self, ds, tmp_output):
         """When the output file already has some cases, --resume skips
         them and only runs the remaining cases."""
-        # Pre-write a file with 2 cases done (first 2 by dispute_id order).
+        # Pre-write a file with 2 cases done (first 2 by dispute_id order,
+        # the order run_evaluation uses).
+        from ridecourt.data import load_app_dataset
+        app_ds = load_app_dataset()
+        order = sorted(d for d in app_ds.disputes if app_ds.labels.get(d) is not None)
+        first_two = order[:2]
         existing = evaluate_mod._build_results(
             "mock", "2026-01-01", 1,
             [
-                {"dispute_id": "disp_fa_000", "runs": [], "outcome": "no_refund",
+                {"dispute_id": first_two[0], "runs": [], "outcome": "no_refund",
                  "amount": 0.0, "escalated": False, "consistent": True,
                  "tokens": 10, "wall_ms": 5, "category": "fare_error",
                  "label_outcome": "no_refund", "label_amount": 0.0,
                  "outcome_match": True, "amount_match": True},
-                {"dispute_id": "disp_ns_000", "runs": [], "outcome": "no_refund",
+                {"dispute_id": first_two[1], "runs": [], "outcome": "no_refund",
                  "amount": 0.0, "escalated": False, "consistent": True,
                  "tokens": 10, "wall_ms": 5, "category": "no_show_rider",
                  "label_outcome": "no_refund", "label_amount": 0.0,
@@ -166,10 +171,10 @@ class TestResume:
         # The final results have 3 cases (2 existing + 1 new).
         assert len(results["cases"]) == 3
         # The first 2 are the pre-existing ones.
-        assert results["cases"][0]["dispute_id"] == "disp_fa_000"
-        assert results["cases"][1]["dispute_id"] == "disp_ns_000"
+        assert results["cases"][0]["dispute_id"] == first_two[0]
+        assert results["cases"][1]["dispute_id"] == first_two[1]
         # The 3rd is the new one.
-        assert results["cases"][2]["dispute_id"] == "disp_ns_001"
+        assert results["cases"][2]["dispute_id"] == order[2]
 
 
 # ---------------------------------------------------------------------------

@@ -41,7 +41,7 @@ from typing import Any
 # Ensure the project root is on sys.path when running directly.
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from ridecourt.data import load_dataset
+from ridecourt.data import load_app_dataset
 from ridecourt.orchestrator import CaseFile, Orchestrator
 from ridecourt.serialize import serialize_case_file, serialize_events
 from ridecourt.store import get_store
@@ -115,7 +115,7 @@ def main() -> None:
 
     os.environ["LLM_PROVIDER"] = args.provider
 
-    ds = load_dataset()
+    ds = load_app_dataset()
     orc = Orchestrator(ds)
     store = get_store()
 

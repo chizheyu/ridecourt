@@ -345,8 +345,10 @@ plus interpretations we add:
 17. **Fraud threshold (§6.3)**: v2.1 says "if any party has a fraud flag ≥
     1, the confidence threshold is raised to 95%".  We interpret this as
     the **routing** threshold — the case routes to human unless confidence
-    ≥ 0.95.  The Judge's own confidence is kept for the record but does not
-    route; only the engine's computed confidence routes.
+    ≥ 0.95.  §6 routing uses only the engine's computed confidence.  As a
+    separate safeguard, a Judge that reports its own confidence below 0.7,
+    or reaches a different outcome from the policy engine, also sends the
+    case to a human.
 
 18. **Strictest rule wins (§6)**: when multiple §6 rules apply (e.g. a route
     deviation over S$50 and over 2 km), we take the strictest — the one

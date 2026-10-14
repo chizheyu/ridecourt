@@ -840,3 +840,80 @@ body {
     max-width: 85%;
   }
 }
+
+/* ---- Ryde Policy v2.1: queue groups, routing, §6.3 factors ---- */
+.queue-section {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted, #6b7280);
+  padding: 8px 12px 4px;
+}
+
+.ryde-badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 8px;
+  background: #e0f2fe;
+  color: #075985;
+  vertical-align: middle;
+}
+
+.ruling-banner.ai-final {
+  background: #dcfce7;
+  color: #166534;
+  border: 1px solid #86efac;
+}
+
+.btn-approve {
+  background: var(--success);
+  color: white;
+  border-color: var(--success);
+  margin: 6px 0;
+}
+
+.btn-approve:hover {
+  background: #15803d;
+}
+
+.confidence-factors .factor {
+  padding: 4px 0;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.factor-name {
+  font-weight: 600;
+}
+
+.factor-score {
+  float: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.factor-reason {
+  font-size: 11px;
+  color: var(--text-muted, #6b7280);
+  margin-top: 2px;
+}
+
+.ruling-actions-list {
+  margin: 4px 0 8px 18px;
+  padding: 0;
+  font-size: 12px;
+}
+
+.case-file summary {
+  cursor: pointer;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.case-file div {
+  font-size: 12px;
+  font-weight: normal;
+  text-align: left;
+  margin-top: 4px;
+}

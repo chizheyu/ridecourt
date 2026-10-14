@@ -44,7 +44,7 @@ from fastapi.responses import (
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from .data import Dataset, Dispute, Precedent, load_dataset
+from .data import Dataset, Dispute, Precedent, load_app_dataset
 from .events import Event, EventLog, RUNS_DIR
 from .orchestrator import CaseFile, Orchestrator
 from .serialize import serialize_case_file, serialize_events
@@ -88,7 +88,7 @@ _QUEUE_CACHE_TTL = 5.0  # seconds
 def _ds() -> Dataset:
     global _dataset
     if _dataset is None:
-        _dataset = load_dataset()
+        _dataset = load_app_dataset()
     return _dataset
 
 
@@ -508,6 +508,7 @@ def create_app(store: Store | None = None) -> FastAPI:
                 "amount": round(amount, 2),
                 "pickup": trip.pickup.model_dump() if trip else None,
                 "dropoff": trip.dropoff.model_dump() if trip else None,
+                "ryde_sample": did in getattr(ds, "sample_ids", []),
                 "_sort_amount": amount,
             })
 

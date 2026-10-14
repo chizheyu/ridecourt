@@ -46,7 +46,7 @@ from typing import Any
 # Ensure the project root is on sys.path when running directly.
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from ridecourt.data import load_dataset
+from ridecourt.data import load_app_dataset
 from ridecourt.orchestrator import Orchestrator, CaseFile
 
 
@@ -268,7 +268,7 @@ def run_evaluation(
     """
     os.environ["LLM_PROVIDER"] = provider
 
-    ds = load_dataset()
+    ds = load_app_dataset()
 
     # Only evaluate disputes that have a label.
     labelled = [

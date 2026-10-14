@@ -17,7 +17,8 @@ const CAT_LABELS = {
   route_deviation: "Route Deviation",
   no_show_driver: "No-Show (Driver)",
   no_show_rider: "No-Show (Rider)",
-  fare_error: "Fare Error",
+  fare_error: "Fare / Surge",
+  property_damage: "Property Damage",
   safety: "Safety",
 };
 
@@ -27,12 +28,33 @@ const CAT_PRIORITY_CLASS = {
   no_show_driver: "priority-normal",
   no_show_rider: "priority-normal",
   fare_error: "priority-normal",
+  property_damage: "priority-normal",
 };
 
 // ---- Outcome human labels ----
 // Maps internal outcome codes to human-readable phrases.
 // The raw code is shown underneath in small text so it stays traceable.
 const OUTCOME_LABELS = {
+  // Ryde Dispute Resolution Policy v2.1
+  refund_partial_excess_distance: "Partial refund: excess distance fare (§1.3)",
+  refund_full_excess_distance: "Refund of excess distance fare (§1.3)",
+  no_refund_within_tolerance: "No refund: deviation within 1 km (§1.3)",
+  no_refund_justified_informed: "No refund: rider informed of a justified reroute (§1.3)",
+  cancellation_fee_upheld: "Cancellation fee upheld (§2.2)",
+  cancellation_fee_voided: "Cancellation fee voided (§2.1, §2.3)",
+  driver_no_show_credit: "Driver no-show: fee refunded and S$5 credit (§2.4)",
+  driver_no_show_no_credit: "Driver no-show: fee refunded (§2.4)",
+  no_driver_no_show: "Driver arrived: not a driver no-show (§2.4)",
+  refund_surge_differential: "Refund of surge differential (§3.3)",
+  no_surge_refund_notified: "No refund: rider was notified of the surge (§3.3)",
+  no_surge_refund: "No refund: no unnotified surge increase (§3.3)",
+  damage_claim_approved: "Cleaning fee approved (§4.3)",
+  claim_rejected_insufficient_evidence: "Damage claim rejected: evidence not verifiable (§4.4)",
+  human_review_repair: "Repair claim: human review (§6.2)",
+  human_review_rider_dispute: "Rider disputes damage charge: human review (§4.4)",
+  human_review_uncovered: "Not covered by policy v2.1: human review",
+  escalate_safety: "Safety incident: human review (§5)",
+  // Earlier policy (kept for older stored cases)
   refund_route_deviation: "Refund for route deviation",
   no_deviation: "No route deviation",
   no_refund: "No refund",
@@ -102,7 +124,23 @@ function renderQueue(disputes) {
     return;
   }
 
-  for (const d of disputes) {
+  const samples = disputes.filter((d) => d.ryde_sample);
+  const rest = disputes.filter((d) => !d.ryde_sample);
+  const ordered = samples.concat(rest);
+  if (samples.length) {
+    const h = document.createElement("div");
+    h.className = "queue-section";
+    h.textContent = "Ryde sample cases";
+    container.appendChild(h);
+  }
+
+  for (const d of ordered) {
+    if (samples.length && d === rest[0]) {
+      const h = document.createElement("div");
+      h.className = "queue-section";
+      h.textContent = "Queue (SLA order)";
+      container.appendChild(h);
+    }
     const item = document.createElement("div");
     item.className = "queue-item";
     if (d.dispute_id === currentDisputeId) item.classList.add("active");
@@ -117,7 +155,7 @@ function renderQueue(disputes) {
         <span class="priority-badge ${priorityClass}">${d.category === "safety" ? "SAFETY" : d.priority}</span>
       </div>
       <div class="queue-item-header">
-        <span class="queue-id">${d.dispute_id}</span>
+        <span class="queue-id">${d.dispute_id}${d.ryde_sample ? ' <span class="ryde-badge">Ryde sample</span>' : ""}</span>
         <span class="status-badge ${statusClass}">${d.status}</span>
       </div>
       <div class="queue-claim">${escapeHtml(d.claim_text)}</div>
@@ -398,11 +436,15 @@ function addEventBubble(ev) {
       if (content.message_to_driver) {
         html += `<div class="message-block"><div class="message-label">To Driver</div>${escapeHtml(content.message_to_driver)}</div>`;
       }
-      if (content.reason) {
+      if (content.routing_reason && type === "ESCALATION") {
+        html += `<div>Sent to a human reviewer: ${escapeHtml(content.routing_reason)}</div>`;
+      } else if (content.routing_reason && type === "RULING") {
+        html += `<div>Ruled by the AI (final): ${escapeHtml(content.routing_reason)}</div>`;
+      } else if (content.reason) {
         html += `<div>Reason: ${escapeHtml(content.reason)}</div>`;
       }
       if (content.summary) {
-        html += `<div>${escapeHtml(content.summary)}</div>`;
+        html += `<details class="case-file"><summary>Case file for the reviewer</summary><div>${escapeHtml(content.summary)}</div></details>`;
       }
       // Precedent matches — render each with source label and similarity.
       if (content.matches) {
@@ -431,7 +473,7 @@ function addEventBubble(ev) {
   if (ev.cites && ev.cites.length > 0) {
     html += '<div class="chips">';
     for (const cite of ev.cites) {
-      const isPolicy = cite.startsWith("P-");
+      const isPolicy = !/^E\d+$/.test(cite);  // §x.y, precedent IDs, CLAIM
       const cls = isPolicy ? "chip policy" : "chip";
       html += `<span class="${cls}" data-cite="${escapeHtml(cite)}">${escapeHtml(cite)}</span>`;
     }
@@ -442,7 +484,7 @@ function addEventBubble(ev) {
 
   // Attach click handlers to evidence chips.
   bubble.querySelectorAll(".chip[data-cite]").forEach((chip) => {
-    if (!chip.dataset.cite.startsWith("P-")) {
+    if (/^E\d+$/.test(chip.dataset.cite)) {
       chip.addEventListener("click", () => {
         highlightEvidence(chip.dataset.cite);
       });
@@ -489,20 +531,34 @@ function renderEvidence(data) {
     const fareSection = document.createElement("div");
     fareSection.className = "evidence-section";
     const fare = trip.fare;
+    // Only lines the trip record actually has: rate components when the
+    // source gives them, otherwise the quote, the itemised lines and surge.
+    const money = (v) => `S$${Number(v).toFixed(2)}`;
+    const rows = [];
+    if (fare.base > 0) rows.push(["Base fare", money(fare.base)]);
+    if (fare.per_km > 0) rows.push(["Per km rate", `${money(fare.per_km)}/km`]);
+    if (fare.per_min > 0) rows.push(["Per min rate", `${money(fare.per_min)}/min`]);
+    if (fare.distance_km > 0) rows.push(["Distance", `${fare.distance_km.toFixed(2)} km`]);
+    if (fare.duration_min > 0) rows.push(["Duration", `${fare.duration_min.toFixed(1)} min`]);
+    if (fare.upfront_quote > 0) rows.push(["Upfront quote / estimate", money(fare.upfront_quote)]);
+    if (fare.excess_distance_km > 0) rows.push(["Excess distance", `${fare.excess_distance_km.toFixed(2)} km`]);
+    if (fare.excess_distance_fare > 0) rows.push(["Excess distance fare", money(fare.excess_distance_fare)]);
+    if (fare.quote_surge_multiplier && fare.trip_start_surge_multiplier && fare.quote_surge_multiplier !== fare.trip_start_surge_multiplier) {
+      rows.push(["Surge at quote", `${fare.quote_surge_multiplier.toFixed(1)}×`]);
+      rows.push(["Surge at trip start", `${fare.trip_start_surge_multiplier.toFixed(1)}×`]);
+    } else {
+      rows.push(["Surge multiplier", `${fare.surge_multiplier.toFixed(1)}×`]);
+    }
+    if (fare.surgeable_subtotal > 0) rows.push(["Surgeable subtotal", money(fare.surgeable_subtotal)]);
+    if (fare.promo_code) rows.push(["Promo code", escapeHtml(fare.promo_code)]);
+    if (fare.discount > 0) rows.push(["Discount", `−${money(fare.discount)}`]);
+    if (fare.booking_fee > 0) rows.push(["Booking fee", money(fare.booking_fee)]);
     fareSection.innerHTML = `
       <h4>Fare Breakdown</h4>
       <table class="fare-table">
         <tr><th>Component</th><th>Value</th></tr>
-        <tr><td>Base fare</td><td>S$${fare.base.toFixed(2)}</td></tr>
-        <tr><td>Per km rate</td><td>S$${fare.per_km.toFixed(2)}/km</td></tr>
-        <tr><td>Per min rate</td><td>S$${fare.per_min.toFixed(2)}/min</td></tr>
-        <tr><td>Distance</td><td>${fare.distance_km.toFixed(2)} km</td></tr>
-        <tr><td>Duration</td><td>${fare.duration_min.toFixed(1)} min</td></tr>
-        <tr><td>Surge multiplier</td><td>${fare.surge_multiplier.toFixed(1)}×</td></tr>
-        ${fare.promo_code ? `<tr><td>Promo code</td><td>${escapeHtml(fare.promo_code)}</td></tr>` : ""}
-        ${fare.discount > 0 ? `<tr><td>Discount</td><td>−S$${fare.discount.toFixed(2)}</td></tr>` : ""}
-        <tr><td>Booking fee</td><td>S$${fare.booking_fee.toFixed(2)}</td></tr>
-        <tr class="total"><td>Total charged</td><td>S$${fare.total_charged.toFixed(2)}</td></tr>
+        ${rows.map((r) => `<tr><td>${r[0]}</td><td>${r[1]}</td></tr>`).join("")}
+        <tr class="total"><td>Total charged</td><td>${money(fare.total_charged)}</td></tr>
       </table>
     `;
     container.appendChild(fareSection);
@@ -694,7 +750,8 @@ function renderRuling(data) {
     // Escalation without a ruling (e.g. safety case).
     body.innerHTML = `
       <div class="ruling-row"><span class="label">Status</span><span class="value" style="color:var(--escalate)">Escalated</span></div>
-      <div class="message-block"><div class="message-label">Reason</div>${escapeHtml(data.escalation_reason || "N/A")}</div>
+      <div class="message-block"><div class="message-label">Reason</div>${escapeHtml(routingReason(data))}</div>
+      ${actionsHtml(data.policy_result)}
       <div class="ruling-actions">
         <button class="btn btn-override" onclick="openOverrideModal()">Override</button>
       </div>
@@ -704,28 +761,37 @@ function renderRuling(data) {
 
   const ruling = data.ruling;
   const policy = data.policy_result;
-  const confidencePct = Math.round((ruling.confidence || 0) * 100);
-  const confidenceColor = confidencePct >= 70 ? "var(--success)" : "var(--warning)";
+  // Routing (§6) uses the confidence the policy engine computes from the four
+  // §6.3 factors; the Judge model's own confidence is shown in the details.
+  const engineConf = policy && policy.confidence !== undefined && policy.confidence !== null
+    ? policy.confidence : ruling.confidence;
+  const confidencePct = Math.round((engineConf || 0) * 100);
+  const confidenceColor = confidencePct >= 80 ? "var(--success)" : "var(--warning)";
+  const sentToHuman = data.escalated || (policy && policy.routing === "human");
 
   // --- Summary (always visible, click to toggle) ---
   let summaryHtml = `<div class="ruling-summary">`;
 
-  // Escalation banner (when escalated but a ruling still exists).
-  if (data.escalated) {
-    summaryHtml += `<div class="ruling-banner escalate">Escalated — ${escapeHtml(data.escalation_reason || "N/A")}</div>`;
+  // Routing banner: who decides, and the §6 rule that decided it.
+  if (sentToHuman) {
+    summaryHtml += `<div class="ruling-banner escalate">Sent to a human reviewer: ${escapeHtml(routingReason(data))}</div>`;
+  } else if (policy && policy.routing === "ai_final") {
+    summaryHtml += `<div class="ruling-banner ai-final">Ruled by the AI (final): ${escapeHtml(policy.routing_reason || "")}</div>`;
   }
 
   // Outcome and amount — human words with the code underneath in small text.
-  summaryHtml += `<div class="ruling-row"><span class="label">Outcome</span><span class="value">${escapeHtml(humanOutcome(ruling.outcome))}<span class="outcome-code">${escapeHtml(ruling.outcome)}</span></span></div>`;
+  const outcomeLabel = sentToHuman ? "Recommended" : "Outcome";
+  summaryHtml += `<div class="ruling-row"><span class="label">${outcomeLabel}</span><span class="value">${escapeHtml(humanOutcome(ruling.outcome))}<span class="outcome-code">${escapeHtml(ruling.outcome)}</span></span></div>`;
   summaryHtml += `<div class="ruling-row"><span class="label">Amount</span><span class="value">${formatMoney(ruling.amount)}</span></div>`;
 
   // Confidence bar.
-  summaryHtml += `<div class="ruling-row"><span class="label">Confidence</span><span class="value">${confidencePct}%</span></div>`;
+  summaryHtml += `<div class="ruling-row"><span class="label">Confidence (§6.3)</span><span class="value">${confidencePct}%</span></div>`;
   summaryHtml += `<div class="confidence-bar"><div class="confidence-fill" style="width:${confidencePct}%;background:${confidenceColor}"></div></div>`;
 
-  // Bad-faith marker (P-BF-1).
-  if (ruling.bad_faith_mentioned) {
-    summaryHtml += `<div class="ruling-marker bad-faith">Credibility lowered (P-BF-1)</div>`;
+  // Credibility marker (§6.3 party credibility).
+  const credibility = policy && policy.confidence_factors ? policy.confidence_factors.party_credibility : undefined;
+  if (ruling.bad_faith_mentioned || (credibility !== undefined && credibility < 1)) {
+    summaryHtml += `<div class="ruling-marker bad-faith">Credibility lowered (§6.3)</div>`;
   }
 
   // Precedent consistency.
@@ -759,12 +825,33 @@ function renderRuling(data) {
     detailsHtml += `<div class="computation-string">${escapeHtml(policy.computation)}</div>`;
   }
 
+  // The four §6.3 confidence factors, each with the inputs it read.
+  if (policy && policy.confidence_factors) {
+    const f = policy.confidence_factors;
+    const rows = [
+      ["Evidence completeness", f.evidence_completeness, f.evidence_reason],
+      ["Policy clarity", f.policy_clarity, f.policy_clarity_reason],
+      ["Precedent alignment", f.precedent_alignment, f.precedent_reason],
+      ["Party credibility", f.party_credibility, f.credibility_reason],
+    ].filter((r) => r[1] !== undefined);
+    if (rows.length) {
+      detailsHtml += `<div class="ruling-row"><span class="label">Confidence factors (§6.3)</span></div>`;
+      detailsHtml += `<div class="confidence-factors">${rows.map((r) =>
+        `<div class="factor"><span class="factor-name">${r[0]}</span> <span class="factor-score">${Math.round(r[1] * 100)}%</span><div class="factor-reason">${escapeHtml(r[2] || "")}</div></div>`
+      ).join("")}</div>`;
+      if (ruling.confidence !== undefined && ruling.confidence !== null) {
+        detailsHtml += `<div class="factor-reason">Judge model's own confidence: ${Math.round(ruling.confidence * 100)}% (§6 routing uses the engine's confidence above; a Judge below 70% also sends the case to a human)</div>`;
+      }
+    }
+  }
+  detailsHtml += actionsHtml(policy);
+
   // Cited clauses — render all cites as chips (E# as evidence chips,
   // P-# as policy chips), matching the courtroom's chip styling.
   if (ruling.cites && ruling.cites.length > 0) {
     detailsHtml += `<div class="ruling-row"><span class="label">Citations</span></div>`;
     detailsHtml += `<div class="clauses">${ruling.cites.map((c) => {
-      const isPolicy = c.startsWith("P-");
+      const isPolicy = !/^E\d+$/.test(c);  // §x.y, precedent IDs, CLAIM
       const cls = isPolicy ? "chip policy" : "chip";
       const clickable = !isPolicy ? ` onclick="highlightEvidence('${escapeHtml(c)}')" style="cursor:pointer"` : "";
       return `<span class="${cls}"${clickable}>${escapeHtml(c)}</span>`;
@@ -789,6 +876,10 @@ function renderRuling(data) {
   detailsHtml += `<div class="ruling-actions">`;
   detailsHtml += `<button class="btn btn-escalate" onclick="escalateCase('${escapeHtml(data.dispute.dispute_id)}')">Escalate</button>`;
   detailsHtml += `<button class="btn btn-override" onclick="openOverrideModal()">Override</button>`;
+  if (sentToHuman && policy && policy.outcome) {
+    summaryHtml = summaryHtml.replace(`<span class="ruling-toggle">`,
+      `<button class="btn btn-approve" onclick="event.stopPropagation(); approveRecommended('${escapeHtml(data.dispute.dispute_id)}')">Approve recommended ruling</button><span class="ruling-toggle">`);
+  }
   if (data.status === "ruled" || data.status === "escalated") {
     detailsHtml += `<button class="btn btn-rerun" onclick="rerunCase('${escapeHtml(data.dispute.dispute_id)}')">Run Again</button>`;
   }
@@ -811,6 +902,43 @@ function renderRuling(data) {
         : "Hide details \u22BD";
     }
   });
+}
+
+// Reason a case went to a human: the §6 routing reason when there is one.
+function routingReason(data) {
+  const policy = data.policy_result;
+  if (policy && policy.routing === "human" && policy.routing_reason) return policy.routing_reason;
+  const code = data.escalation_reason || "";
+  if (code === "policy_routing_human" && policy && policy.routing_reason) return policy.routing_reason;
+  return code || "N/A";
+}
+
+// Actions on the ruling (refund, account flag §2.5, interim measure §5.3, ...).
+function actionsHtml(policy) {
+  if (!policy || !policy.actions || policy.actions.length === 0) return "";
+  return `<div class="ruling-row"><span class="label">Actions</span></div><ul class="ruling-actions-list">${policy.actions.map((a) =>
+    `<li>${escapeHtml(a.description || a.action || "")}</li>`).join("")}</ul>`;
+}
+
+// A reviewer approves the engine's recommended ruling as it stands.
+async function approveRecommended(disputeId) {
+  const data = caseDataCache[disputeId];
+  const policy = data && data.policy_result;
+  if (!policy) return;
+  const reason = `Reviewer approved the recommended ruling (${policy.routing_reason || "human review"}).`;
+  try {
+    const res = await fetch(`${API}/disputes/${disputeId}/override`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ outcome: policy.outcome, amount: policy.amount, reason }),
+    });
+    if (res.ok) {
+      await fetchCase(disputeId);
+      loadDisputes();
+    }
+  } catch (err) {
+    console.error("Failed to approve the recommended ruling:", err);
+  }
 }
 
 // ---- Escalate ----
