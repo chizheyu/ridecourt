@@ -478,6 +478,11 @@ def _valid_numbers(
         comp = getattr(policy_result, "computation", "") or ""
         for num in _extract_numbers(comp, ""):
             pairs.append((num.value, num.unit))
+        # The §6 routing reason states the thresholds that decided routing
+        # (e.g. "4.3 km > 2 km", "S$5.00 ≤ S$10"); agents may repeat them.
+        routing_reason = getattr(policy_result, "routing_reason", "") or ""
+        for num in _extract_numbers(routing_reason, ""):
+            pairs.append((num.value, num.unit))
         amount = getattr(policy_result, "amount", None)
         if amount is not None:
             pairs.append((float(amount), "money"))

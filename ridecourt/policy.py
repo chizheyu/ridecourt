@@ -263,7 +263,7 @@ def section_2_no_show(
     fee = NS_CANCELLATION_FEE
     waited = (
         f"cancelled {facts.free_wait_minutes:.1f} min after the free wait began, "
-        f"so the {NS_FREE_WAIT_MIN:.0f}-min free wait had expired (§2.1)"
+        f"so the {NS_FREE_WAIT_MIN:.0f} min free wait had expired (§2.1)"
         if facts.free_wait_minutes is not None
         else f"free wait {NS_FREE_WAIT_MIN:.0f} min (§2.1; cancellation time not in the data)"
     )
