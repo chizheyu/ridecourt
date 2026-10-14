@@ -3,13 +3,15 @@
 # Usage: scripts/cb_task.sh <task-name> <prompt-file>
 # If the session ends with a network error (not "Credits exhausted"), or stops to ask for
 # approval of a plan (CodeBuddy sometimes enters plan mode on its own), it is resumed in the
-# same CodeBuddy session up to two times, each into its own transcript file.
+# same CodeBuddy session up to two times, each into its own transcript file. Every run uses
+# --permission-mode bypassPermissions: in headless mode CodeBuddy could enter plan mode on its own
+# and then could not leave it (step 18b: "plan mode is still active and I can't exit it").
 set -eu
 name="$1"; prompt_file="$2"
 ts=$(date +%Y%m%d-%H%M%S)
 mkdir -p devlog
 out="devlog/${ts}-${name}.jsonl"
-codebuddy -p "$(cat "$prompt_file")" -y --output-format stream-json --verbose \
+codebuddy -p "$(cat "$prompt_file")" -y --permission-mode bypassPermissions --output-format stream-json --verbose \
   > "$out" 2> "devlog/${ts}-${name}.stderr.log" || true
 echo "$out"
 
@@ -29,7 +31,7 @@ if res is None:
     print("- other")
 elif not res.get("is_error"):
     text = (res.get("result") or "")[-600:].lower()
-    asks = any(k in text for k in ("would you like me to proceed", "ready for your review", "shall i proceed", "should i proceed", "do you want me to"))
+    asks = any(k in text for k in ("would you like me to proceed", "ready for your review", "shall i proceed", "should i proceed", "do you want me to", "plan mode", "ready to proceed", "once you approve", "for your review"))
     print(res.get("session_id", "-"), "asks" if asks else "ok")
 else:
     err = " ".join(res.get("errors") or [])
@@ -42,11 +44,11 @@ for attempt in 1 2; do
   set -- $(last_result "$out")
   case "$2" in
     network) sleep 30; msg="The session was cut by a network error before you finished. Check what is already changed (git diff), finish the task, run the whole test suite, commit and summarize." ;;
-    asks) msg="Yes, proceed and implement everything, then run the whole test suite, commit and summarize. This is an unattended run: do not stop to ask for approval again." ;;
+    asks) msg="The plan is approved. Leave plan mode and implement all of it, then run the whole test suite, commit and summarize. This is an unattended run: do not stop to ask for approval again." ;;
     *) break ;;
   esac
   out="devlog/${ts}-${name}-resume${attempt}.jsonl"
   codebuddy -r "$1" -p "$msg" \
-    -y --output-format stream-json --verbose > "$out" 2> "devlog/${ts}-${name}-resume${attempt}.stderr.log" || true
+    -y --permission-mode bypassPermissions --output-format stream-json --verbose > "$out" 2> "devlog/${ts}-${name}-resume${attempt}.stderr.log" || true
   echo "$out"
 done
