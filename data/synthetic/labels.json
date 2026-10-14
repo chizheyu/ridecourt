@@ -1,386 +1,470 @@
 [
   {
     "dispute_id": "disp_rd_000",
-    "outcome": "refund_route_deviation",
-    "amount": 12.89,
+    "outcome": "no_refund_justified_informed",
+    "amount": 0.0,
     "applicable_clauses": [
-      "P-RD-1"
+      "§1.2",
+      "§1.3",
+      "§1.4"
     ]
   },
   {
     "dispute_id": "disp_rd_001",
-    "outcome": "refund_route_deviation",
-    "amount": 9.33,
+    "outcome": "refund_partial_excess_distance",
+    "amount": 4.96,
     "applicable_clauses": [
-      "P-RD-1"
+      "§1.2",
+      "§1.3",
+      "§1.4"
     ]
   },
   {
     "dispute_id": "disp_rd_002",
-    "outcome": "refund_route_deviation",
-    "amount": 9.23,
+    "outcome": "refund_full_excess_distance",
+    "amount": 4.3,
     "applicable_clauses": [
-      "P-RD-1"
+      "§1.3",
+      "§1.4"
     ]
   },
   {
     "dispute_id": "disp_rd_003",
-    "outcome": "refund_route_deviation",
-    "amount": 5.63,
+    "outcome": "no_refund_within_tolerance",
+    "amount": 0.0,
     "applicable_clauses": [
-      "P-RD-1"
+      "§1.3"
     ]
   },
   {
     "dispute_id": "disp_rd_004",
-    "outcome": "refund_route_deviation",
-    "amount": 6.23,
+    "outcome": "refund_partial_excess_distance",
+    "amount": 2.36,
     "applicable_clauses": [
-      "P-RD-1"
+      "§1.2",
+      "§1.3",
+      "§1.4"
     ]
   },
   {
     "dispute_id": "disp_rd_005",
-    "outcome": "refund_route_deviation",
-    "amount": 9.23,
+    "outcome": "refund_full_excess_distance",
+    "amount": 4.25,
     "applicable_clauses": [
-      "P-RD-1"
+      "§1.3",
+      "§1.4"
     ]
   },
   {
     "dispute_id": "disp_rd_006",
-    "outcome": "refund_route_deviation",
-    "amount": 8.37,
+    "outcome": "no_refund_justified_informed",
+    "amount": 0.0,
     "applicable_clauses": [
-      "P-RD-1"
+      "§1.2",
+      "§1.3",
+      "§1.4"
     ]
   },
   {
     "dispute_id": "disp_rd_007",
-    "outcome": "refund_route_deviation",
-    "amount": 11.66,
-    "applicable_clauses": [
-      "P-RD-1"
-    ]
-  },
-  {
-    "dispute_id": "disp_rd_008",
-    "outcome": "no_refund_rider_requested",
+    "outcome": "no_refund_within_tolerance",
     "amount": 0.0,
     "applicable_clauses": [
-      "P-RD-2"
+      "§1.3"
     ]
   },
   {
-    "dispute_id": "disp_rd_009",
-    "outcome": "no_refund_road_closure",
+    "dispute_id": "disp_ns_000",
+    "outcome": "cancellation_fee_upheld",
+    "amount": 5.0,
+    "applicable_clauses": [
+      "§2.1",
+      "§2.2",
+      "§2.3"
+    ]
+  },
+  {
+    "dispute_id": "disp_ns_001",
+    "outcome": "cancellation_fee_voided",
     "amount": 0.0,
     "applicable_clauses": [
-      "P-RD-1"
+      "§2.3"
     ]
   },
   {
-    "dispute_id": "disp_rd_010",
-    "outcome": "no_refund_road_closure",
+    "dispute_id": "disp_ns_002",
+    "outcome": "cancellation_fee_voided",
     "amount": 0.0,
     "applicable_clauses": [
-      "P-RD-1"
+      "§2.3"
     ]
   },
   {
-    "dispute_id": "disp_rd_011",
-    "outcome": "no_refund_road_closure",
+    "dispute_id": "disp_ns_003",
+    "outcome": "cancellation_fee_upheld",
+    "amount": 5.0,
+    "applicable_clauses": [
+      "§2.1",
+      "§2.2",
+      "§2.3"
+    ]
+  },
+  {
+    "dispute_id": "disp_ns_004",
+    "outcome": "driver_no_show_credit",
+    "amount": 5.0,
+    "applicable_clauses": [
+      "§2.4"
+    ]
+  },
+  {
+    "dispute_id": "disp_ns_005",
+    "outcome": "driver_no_show_no_credit",
     "amount": 0.0,
     "applicable_clauses": [
-      "P-RD-1"
+      "§2.4"
     ]
   },
   {
-    "dispute_id": "disp_rd_012",
-    "outcome": "no_refund_road_closure",
+    "dispute_id": "disp_ns_006",
+    "outcome": "cancellation_fee_upheld",
+    "amount": 5.0,
+    "applicable_clauses": [
+      "§2.1",
+      "§2.2",
+      "§2.3"
+    ]
+  },
+  {
+    "dispute_id": "disp_ns_007",
+    "outcome": "cancellation_fee_voided",
     "amount": 0.0,
     "applicable_clauses": [
-      "P-RD-1"
+      "§2.3"
     ]
   },
   {
-    "dispute_id": "disp_rd_013",
-    "outcome": "no_refund_road_closure",
+    "dispute_id": "disp_sg_000",
+    "outcome": "refund_surge_differential",
+    "amount": 5.72,
+    "applicable_clauses": [
+      "§3.2",
+      "§3.3",
+      "§3.4",
+      "§3.5"
+    ]
+  },
+  {
+    "dispute_id": "disp_sg_001",
+    "outcome": "no_surge_refund_notified",
     "amount": 0.0,
     "applicable_clauses": [
-      "P-RD-1"
+      "§3.1",
+      "§3.2",
+      "§3.3"
     ]
   },
   {
-    "dispute_id": "disp_rd_014",
-    "outcome": "no_refund_road_closure",
+    "dispute_id": "disp_sg_002",
+    "outcome": "no_surge_refund",
     "amount": 0.0,
     "applicable_clauses": [
-      "P-RD-1"
+      "§3.1",
+      "§3.3"
     ]
   },
   {
-    "dispute_id": "disp_rd_015",
-    "outcome": "no_refund_road_closure",
+    "dispute_id": "disp_sg_003",
+    "outcome": "no_surge_refund",
     "amount": 0.0,
     "applicable_clauses": [
-      "P-RD-1"
+      "§3.1",
+      "§3.3"
     ]
   },
   {
-    "dispute_id": "disp_ns_d_000",
-    "outcome": "refund_and_credit",
-    "amount": 7.0,
+    "dispute_id": "disp_sg_004",
+    "outcome": "refund_surge_differential",
+    "amount": 3.25,
     "applicable_clauses": [
-      "P-NS-1"
+      "§3.2",
+      "§3.3",
+      "§3.4",
+      "§3.5"
     ]
   },
   {
-    "dispute_id": "disp_ns_d_001",
-    "outcome": "refund_and_credit",
-    "amount": 7.0,
-    "applicable_clauses": [
-      "P-NS-1"
-    ]
-  },
-  {
-    "dispute_id": "disp_ns_d_002",
-    "outcome": "refund_and_credit",
-    "amount": 7.0,
-    "applicable_clauses": [
-      "P-NS-1"
-    ]
-  },
-  {
-    "dispute_id": "disp_ns_d_003",
-    "outcome": "refund_and_credit",
-    "amount": 7.0,
-    "applicable_clauses": [
-      "P-NS-1"
-    ]
-  },
-  {
-    "dispute_id": "disp_ns_d_004",
-    "outcome": "refund_and_credit",
-    "amount": 7.0,
-    "applicable_clauses": [
-      "P-NS-1"
-    ]
-  },
-  {
-    "dispute_id": "disp_ns_d_005",
-    "outcome": "refund_and_credit",
-    "amount": 7.0,
-    "applicable_clauses": [
-      "P-NS-1"
-    ]
-  },
-  {
-    "dispute_id": "disp_ns_d_006",
-    "outcome": "refund_and_credit",
-    "amount": 7.0,
-    "applicable_clauses": [
-      "P-NS-1"
-    ]
-  },
-  {
-    "dispute_id": "disp_ns_d_007",
-    "outcome": "refund_and_credit",
-    "amount": 7.0,
-    "applicable_clauses": [
-      "P-NS-1"
-    ]
-  },
-  {
-    "dispute_id": "disp_ns_d_008",
-    "outcome": "refund_and_credit",
-    "amount": 7.0,
-    "applicable_clauses": [
-      "P-NS-1"
-    ]
-  },
-  {
-    "dispute_id": "disp_ns_d_009",
-    "outcome": "refund_and_credit",
-    "amount": 7.0,
-    "applicable_clauses": [
-      "P-NS-1"
-    ]
-  },
-  {
-    "dispute_id": "disp_ns_r_000",
-    "outcome": "cancellation_fee_stands",
-    "amount": 4.0,
-    "applicable_clauses": [
-      "P-NS-2"
-    ]
-  },
-  {
-    "dispute_id": "disp_ns_r_001",
-    "outcome": "cancellation_fee_stands",
-    "amount": 4.0,
-    "applicable_clauses": [
-      "P-NS-2"
-    ]
-  },
-  {
-    "dispute_id": "disp_ns_r_002",
-    "outcome": "cancellation_fee_stands",
-    "amount": 4.0,
-    "applicable_clauses": [
-      "P-NS-2"
-    ]
-  },
-  {
-    "dispute_id": "disp_ns_r_003",
-    "outcome": "cancellation_fee_stands",
-    "amount": 4.0,
-    "applicable_clauses": [
-      "P-NS-2"
-    ]
-  },
-  {
-    "dispute_id": "disp_ns_r_004",
-    "outcome": "cancellation_fee_stands",
-    "amount": 4.0,
-    "applicable_clauses": [
-      "P-NS-2"
-    ]
-  },
-  {
-    "dispute_id": "disp_ns_r_005",
-    "outcome": "cancellation_fee_stands",
-    "amount": 4.0,
-    "applicable_clauses": [
-      "P-NS-2"
-    ]
-  },
-  {
-    "dispute_id": "disp_ns_r_006",
-    "outcome": "cancellation_fee_invalid",
+    "dispute_id": "disp_sg_005",
+    "outcome": "no_surge_refund_notified",
     "amount": 0.0,
     "applicable_clauses": [
-      "P-NS-2"
+      "§3.1",
+      "§3.2",
+      "§3.3"
     ]
   },
   {
-    "dispute_id": "disp_ns_r_007",
-    "outcome": "cancellation_fee_invalid",
+    "dispute_id": "disp_pd_000",
+    "outcome": "damage_claim_approved",
+    "amount": 35.81,
+    "applicable_clauses": [
+      "§4.2",
+      "§4.3"
+    ]
+  },
+  {
+    "dispute_id": "disp_pd_001",
+    "outcome": "claim_rejected_insufficient_evidence",
     "amount": 0.0,
     "applicable_clauses": [
-      "P-NS-2"
+      "§4.2",
+      "§4.4"
     ]
   },
   {
-    "dispute_id": "disp_ns_r_008",
-    "outcome": "cancellation_fee_invalid",
+    "dispute_id": "disp_pd_002",
+    "outcome": "human_review_repair",
     "amount": 0.0,
     "applicable_clauses": [
-      "P-NS-2"
+      "§4.3"
     ]
   },
   {
-    "dispute_id": "disp_ns_r_009",
-    "outcome": "cancellation_fee_invalid",
+    "dispute_id": "disp_pd_003",
+    "outcome": "human_review_rider_dispute",
     "amount": 0.0,
     "applicable_clauses": [
-      "P-NS-2"
+      "§4.4"
     ]
   },
   {
-    "dispute_id": "disp_fa_000",
-    "outcome": "refund_overcharge",
-    "amount": 2.3,
+    "dispute_id": "disp_pd_004",
+    "outcome": "damage_claim_approved",
+    "amount": 20.46,
     "applicable_clauses": [
-      "P-FA-1"
+      "§4.2",
+      "§4.3"
     ]
   },
   {
-    "dispute_id": "disp_fa_001",
-    "outcome": "refund_overcharge",
-    "amount": 1.73,
-    "applicable_clauses": [
-      "P-FA-1"
-    ]
-  },
-  {
-    "dispute_id": "disp_fa_002",
-    "outcome": "refund_overcharge",
-    "amount": 3.01,
-    "applicable_clauses": [
-      "P-FA-1"
-    ]
-  },
-  {
-    "dispute_id": "disp_fa_003",
-    "outcome": "fare_correct",
+    "dispute_id": "disp_pd_005",
+    "outcome": "claim_rejected_insufficient_evidence",
     "amount": 0.0,
     "applicable_clauses": [
-      "P-FA-1"
-    ]
-  },
-  {
-    "dispute_id": "disp_fa_004",
-    "outcome": "fare_correct",
-    "amount": 0.0,
-    "applicable_clauses": [
-      "P-FA-1"
-    ]
-  },
-  {
-    "dispute_id": "disp_fa_005",
-    "outcome": "fare_correct",
-    "amount": 0.0,
-    "applicable_clauses": [
-      "P-FA-1"
+      "§4.2",
+      "§4.4"
     ]
   },
   {
     "dispute_id": "disp_sf_000",
-    "outcome": "escalate",
+    "outcome": "escalate_safety",
     "amount": 0.0,
     "applicable_clauses": [
-      "P-SF-1"
+      "§5.1",
+      "§5.2"
     ]
   },
   {
     "dispute_id": "disp_sf_001",
-    "outcome": "escalate",
+    "outcome": "escalate_safety",
     "amount": 0.0,
     "applicable_clauses": [
-      "P-SF-1"
+      "§5.1",
+      "§5.2"
     ]
   },
   {
     "dispute_id": "disp_sf_002",
-    "outcome": "escalate",
+    "outcome": "escalate_safety",
     "amount": 0.0,
     "applicable_clauses": [
-      "P-SF-1"
+      "§5.1",
+      "§5.2"
     ]
   },
   {
     "dispute_id": "disp_sf_003",
-    "outcome": "escalate",
+    "outcome": "escalate_safety",
     "amount": 0.0,
     "applicable_clauses": [
-      "P-SF-1"
+      "§5.1",
+      "§5.2"
     ]
   },
   {
-    "dispute_id": "disp_sf_004",
-    "outcome": "escalate",
+    "dispute_id": "disp_rd_008",
+    "outcome": "no_refund_justified_informed",
     "amount": 0.0,
     "applicable_clauses": [
-      "P-SF-1"
+      "§1.2",
+      "§1.3",
+      "§1.4"
     ]
   },
   {
-    "dispute_id": "disp_sf_005",
-    "outcome": "escalate",
+    "dispute_id": "disp_rd_009",
+    "outcome": "refund_partial_excess_distance",
+    "amount": 3.7,
+    "applicable_clauses": [
+      "§1.2",
+      "§1.3",
+      "§1.4"
+    ]
+  },
+  {
+    "dispute_id": "disp_rd_010",
+    "outcome": "refund_full_excess_distance",
+    "amount": 3.52,
+    "applicable_clauses": [
+      "§1.3",
+      "§1.4"
+    ]
+  },
+  {
+    "dispute_id": "disp_rd_011",
+    "outcome": "no_refund_within_tolerance",
     "amount": 0.0,
     "applicable_clauses": [
-      "P-SF-1"
+      "§1.3"
+    ]
+  },
+  {
+    "dispute_id": "disp_rd_012",
+    "outcome": "refund_partial_excess_distance",
+    "amount": 3.38,
+    "applicable_clauses": [
+      "§1.2",
+      "§1.3",
+      "§1.4"
+    ]
+  },
+  {
+    "dispute_id": "disp_rd_013",
+    "outcome": "refund_full_excess_distance",
+    "amount": 3.02,
+    "applicable_clauses": [
+      "§1.3",
+      "§1.4"
+    ]
+  },
+  {
+    "dispute_id": "disp_ns_008",
+    "outcome": "cancellation_fee_upheld",
+    "amount": 5.0,
+    "applicable_clauses": [
+      "§2.1",
+      "§2.2",
+      "§2.3"
+    ]
+  },
+  {
+    "dispute_id": "disp_ns_009",
+    "outcome": "cancellation_fee_voided",
+    "amount": 0.0,
+    "applicable_clauses": [
+      "§2.3"
+    ]
+  },
+  {
+    "dispute_id": "disp_ns_010",
+    "outcome": "cancellation_fee_voided",
+    "amount": 0.0,
+    "applicable_clauses": [
+      "§2.3"
+    ]
+  },
+  {
+    "dispute_id": "disp_ns_011",
+    "outcome": "cancellation_fee_upheld",
+    "amount": 5.0,
+    "applicable_clauses": [
+      "§2.1",
+      "§2.2",
+      "§2.3"
+    ]
+  },
+  {
+    "dispute_id": "disp_sg_006",
+    "outcome": "refund_surge_differential",
+    "amount": 7.24,
+    "applicable_clauses": [
+      "§3.2",
+      "§3.3",
+      "§3.4",
+      "§3.5"
+    ]
+  },
+  {
+    "dispute_id": "disp_sg_007",
+    "outcome": "no_surge_refund_notified",
+    "amount": 0.0,
+    "applicable_clauses": [
+      "§3.1",
+      "§3.2",
+      "§3.3"
+    ]
+  },
+  {
+    "dispute_id": "disp_sg_008",
+    "outcome": "no_surge_refund",
+    "amount": 0.0,
+    "applicable_clauses": [
+      "§3.1",
+      "§3.3"
+    ]
+  },
+  {
+    "dispute_id": "disp_sg_009",
+    "outcome": "no_surge_refund",
+    "amount": 0.0,
+    "applicable_clauses": [
+      "§3.1",
+      "§3.3"
+    ]
+  },
+  {
+    "dispute_id": "disp_pd_006",
+    "outcome": "damage_claim_approved",
+    "amount": 20.67,
+    "applicable_clauses": [
+      "§4.2",
+      "§4.3"
+    ]
+  },
+  {
+    "dispute_id": "disp_pd_007",
+    "outcome": "claim_rejected_insufficient_evidence",
+    "amount": 0.0,
+    "applicable_clauses": [
+      "§4.2",
+      "§4.4"
+    ]
+  },
+  {
+    "dispute_id": "disp_pd_008",
+    "outcome": "human_review_repair",
+    "amount": 0.0,
+    "applicable_clauses": [
+      "§4.3"
+    ]
+  },
+  {
+    "dispute_id": "disp_pd_009",
+    "outcome": "human_review_rider_dispute",
+    "amount": 0.0,
+    "applicable_clauses": [
+      "§4.4"
+    ]
+  },
+  {
+    "dispute_id": "disp_fa_000",
+    "outcome": "refund_surge_differential",
+    "amount": 8.23,
+    "applicable_clauses": [
+      "§3.2",
+      "§3.3",
+      "§3.4",
+      "§3.5"
     ]
   }
 ]

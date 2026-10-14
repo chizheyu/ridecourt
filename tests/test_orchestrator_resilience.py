@@ -73,7 +73,7 @@ class TestRebuttalModelFailure:
             )
 
         with patch.object(Orchestrator, "_rebuttal_guarded", fail_rebuttal):
-            cf = orc.resolve("disp_rd_000")
+            cf = orc.resolve("disp_rd_003")
 
         # Case continues — not escalated.
         assert not cf.escalated
@@ -121,7 +121,7 @@ class TestFraudModelFailure:
             return None, None, assessment, _make_llm_error("fraud_agent")
 
         with patch.object(Orchestrator, "_fraud_guarded", fail_fraud):
-            cf = orc.resolve("disp_rd_000")
+            cf = orc.resolve("disp_rd_003")
 
         # Case continues — not escalated.
         assert not cf.escalated
@@ -166,7 +166,7 @@ class TestAdvocateModelFailure:
             )
 
         with patch.object(Orchestrator, "_advocate_guarded", fail_rider_advocate):
-            cf = orc.resolve("disp_rd_000")
+            cf = orc.resolve("disp_rd_003")
 
         # Case is escalated with model_unavailable.
         assert cf.escalated
@@ -201,7 +201,7 @@ class TestJudgeModelFailure:
             raise _make_llm_error("judge")
 
         with patch.object(Judge, "build", fail_judge):
-            cf = orc.resolve("disp_rd_000")
+            cf = orc.resolve("disp_rd_003")
 
         # Case is escalated with model_unavailable.
         assert cf.escalated

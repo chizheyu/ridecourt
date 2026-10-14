@@ -52,7 +52,7 @@ class TestPrecedentRetrieval:
         assert matches[0].category == "route_deviation"
 
     def test_no_show_matches_no_show_precedents(self, ds):
-        dispute = ds.dispute("disp_ns_d_000")
+        dispute = ds.dispute("disp_ns_004")
         matches = retrieve_precedents(dispute, ds.precedents, top_k=3)
 
         # At least one match should be a no_show_driver precedent.
@@ -89,9 +89,9 @@ class TestPrecedentRetrieval:
     def test_source_field_default_seed(self, ds):
         dispute = ds.dispute("disp_rd_000")
         matches = retrieve_precedents(dispute, ds.precedents, top_k=3)
-        # Seed precedents have source="seed".
+        # Precedents can be seed, override, or ryde-sourced.
         for m in matches:
-            assert m.source in ("seed", "override")
+            assert m.source in ("seed", "override", "ryde")
 
 
 # ---------------------------------------------------------------------------
@@ -141,7 +141,7 @@ class TestOverridePrecedents:
 
         for m in matches:
             assert hasattr(m, "source")
-            assert m.source in ("seed", "override")
+            assert m.source in ("seed", "override", "ryde")
 
 
 # ---------------------------------------------------------------------------

@@ -1,0 +1,26 @@
+# .gcloudignore
+#
+# Cloud Run's `gcloud run deploy --source` uses .gcloudignore when present.
+# Without it, Cloud Run derives the upload list from .gitignore, which
+# would exclude data/ryde_samples/ (the sample dataset shared by Ryde
+# with hackathon participants — git-ignored so we don't redistribute it,
+# but needed on Cloud Run for the live demo).
+#
+# This file keeps everything .gitignore ignores, EXCEPT data/ryde_samples/.
+
+# Re-include .gitignore patterns but exclude data/ryde_samples/ from the
+# ignore list.
+.gcloudignore
+.git
+.gitignore
+
+.venv/
+__pycache__/
+.env
+devlog/
+runs/
+.DS_Store
+eval/results-*-mock.json
+
+# data/ryde_samples/ is git-ignored (not redistributed) but MUST be
+# uploaded to Cloud Run for the live demo.  Do NOT list it here.

@@ -122,10 +122,10 @@ def compute_fraud_signals(
             signals.append(FraudSignal(
                 text=(
                     f"{claimant_id} has {upheld} upheld disputes in 90d "
-                    f"(≥ {RISK_UPHELD_THRESHOLD} threshold, P-BF-1) — "
+                    f"(≥ {RISK_UPHELD_THRESHOLD} threshold, §6.3) — "
                     "credibility lowered."
                 ),
-                cites=[hist_eid, "P-BF-1"],
+                cites=[hist_eid, "§6.3"],
                 feature="repeat_upheld",
             ))
 
@@ -144,16 +144,28 @@ def compute_fraud_signals(
                 feature="high_dispute_rate",
             ))
 
-        # --- Feature 3: prior flags ---
+        # --- Feature 3: prior flags (including fraud flags) ---
         if profile.prior_flags:
             flags_str = ", ".join(profile.prior_flags)
             risk_score += 1
             signals.append(FraudSignal(
                 text=(
-                    f"{claimant_id} has prior flags: {flags_str}."
+                    f"{claimant_id} has excessive_disputes / prior flags: {flags_str}."
                 ),
-                cites=[hist_eid],
+                cites=[hist_eid, "§6.3"],
                 feature="prior_flags",
+            ))
+
+        # --- Feature 3b: fraud flags (§6.3: raises confidence threshold) ---
+        if profile.fraud_flags > 0:
+            risk_score += 2
+            signals.append(FraudSignal(
+                text=(
+                    f"{claimant_id} has {profile.fraud_flags} fraud flag(s) "
+                    f"(§6.3) — confidence threshold raised."
+                ),
+                cites=[hist_eid, "§6.3"],
+                feature="fraud_flags",
             ))
 
     # --- Feature 4: GPS contradicting the claim ---
@@ -176,7 +188,7 @@ def compute_fraud_signals(
                         f"(> {RISK_GPS_CONTRADICTION_M:.0f} m), contradicting "
                         "the driver's no-show claim."
                     ),
-                    cites=[arrival_eid, "P-NS-1"],
+                    cites=[arrival_eid, "§2.4"],
                     feature="gps_contradiction",
                 ))
             elif claimant_party == "rider":

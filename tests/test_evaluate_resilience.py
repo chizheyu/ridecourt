@@ -148,9 +148,9 @@ class TestResume:
                  "tokens": 10, "wall_ms": 5, "category": "fare_error",
                  "label_outcome": "no_refund", "label_amount": 0.0,
                  "outcome_match": True, "amount_match": True},
-                {"dispute_id": "disp_fa_001", "runs": [], "outcome": "no_refund",
+                {"dispute_id": "disp_ns_000", "runs": [], "outcome": "no_refund",
                  "amount": 0.0, "escalated": False, "consistent": True,
-                 "tokens": 10, "wall_ms": 5, "category": "fare_error",
+                 "tokens": 10, "wall_ms": 5, "category": "no_show_rider",
                  "label_outcome": "no_refund", "label_amount": 0.0,
                  "outcome_match": True, "amount_match": True},
             ],
@@ -158,7 +158,7 @@ class TestResume:
         evaluate_mod._write_results(tmp_output, existing)
 
         # Run with --resume and limit=3.  Should skip the first 2 and
-        # only run 1 new case (disp_fa_002).
+        # only run 1 new case (disp_ns_001).
         results = evaluate_mod.run_evaluation(
             "mock", limit=3, repeats=1,
             resume=True, output_path=tmp_output,
@@ -167,9 +167,9 @@ class TestResume:
         assert len(results["cases"]) == 3
         # The first 2 are the pre-existing ones.
         assert results["cases"][0]["dispute_id"] == "disp_fa_000"
-        assert results["cases"][1]["dispute_id"] == "disp_fa_001"
+        assert results["cases"][1]["dispute_id"] == "disp_ns_000"
         # The 3rd is the new one.
-        assert results["cases"][2]["dispute_id"] == "disp_fa_002"
+        assert results["cases"][2]["dispute_id"] == "disp_ns_001"
 
 
 # ---------------------------------------------------------------------------

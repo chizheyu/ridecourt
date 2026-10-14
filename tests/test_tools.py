@@ -545,8 +545,8 @@ class TestComputeFactsFromPack:
             filed_at="2026-01-01T09:00:00",
         )
         result = evaluate(dispute, trip, {}, facts, trip.fare)
-        # Significant deviation → refund_route_deviation
-        assert result.outcome == "refund_route_deviation"
+        # Significant deviation without traffic justification → full refund
+        assert result.outcome == "refund_full_excess_distance"
         assert result.amount > 0.0
 
 

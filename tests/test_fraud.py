@@ -3,12 +3,12 @@
 Covers:
 - Deterministic feature computation (dispute rate, upheld rate, GPS
   contradiction, prior flags)
-- Risk levels for the known bad-faith rider (rider_bf1, high)
+- Risk levels for the known fraud-flagged rider (rider_fraud1, high)
 - Normal rider (low risk)
 - GPS contradiction detection for no-show cases
-- FraudOutput cites evidence IDs and P-BF-1
+- FraudOutput cites evidence IDs and §6.3
 - Orchestrator emits RISK_SIGNAL event
-- Judge mentions bad-faith when risk is high (P-BF-1)
+- Judge mentions bad-faith when risk is high (§6.3)
 
 Run with: LLM_PROVIDER=mock python -m pytest tests/test_fraud.py -q
 """
@@ -47,9 +47,9 @@ def orc(ds):
 
 
 class TestFraudFeatures:
-    def test_bad_faith_rider_is_high_risk(self, ds):
-        """rider_bf1 has 6 upheld disputes in 90d → high risk."""
-        dispute = ds.dispute("disp_fa_005")
+    def test_fraud_flagged_rider_is_high_risk(self, ds):
+        """rider_fraud1 has fraud_flags=1 → high risk (§6.3)."""
+        dispute = ds.dispute("disp_fa_000")
         trip = ds.trip(dispute.trip_id)
         pack = build_evidence_pack(dispute, ds)
         facts = facts_from_evidence_pack(pack)
@@ -64,8 +64,8 @@ class TestFraudFeatures:
 
         assert assessment.risk == "high"
         assert len(assessment.signals) >= 1
-        # At least one signal should cite P-BF-1.
-        bf_signals = [s for s in assessment.signals if "P-BF-1" in s.cites]
+        # At least one signal should cite §6.3.
+        bf_signals = [s for s in assessment.signals if "§6.3" in s.cites]
         assert len(bf_signals) >= 1
 
     def test_normal_rider_is_low_risk(self, ds):
@@ -87,8 +87,8 @@ class TestFraudFeatures:
         assert len(assessment.signals) == 0
 
     def test_prior_flags_signal(self, ds):
-        """rider_bf1 has prior_flags → signal should mention them."""
-        dispute = ds.dispute("disp_fa_005")
+        """rider_fraud1 has prior_flags → signal should mention them."""
+        dispute = ds.dispute("disp_fa_000")
         trip = ds.trip(dispute.trip_id)
         pack = build_evidence_pack(dispute, ds)
         facts = facts_from_evidence_pack(pack)
@@ -109,11 +109,11 @@ class TestFraudFeatures:
         """For no-show-driver cases, if the driver was far from pickup
         while claiming no-show, GPS contradiction should fire.
 
-        Note: disp_ns_d_000 is filed by the rider (not the driver), so
+        Note: disp_ns_004 is filed by the rider (not the driver), so
         GPS actually confirms the rider's claim. The contradiction only
         fires when the driver is the claimant AND the GPS contradicts.
         """
-        dispute = ds.dispute("disp_ns_d_000")
+        dispute = ds.dispute("disp_ns_004")
         trip = ds.trip(dispute.trip_id)
         pack = build_evidence_pack(dispute, ds)
         facts = facts_from_evidence_pack(pack)
@@ -145,8 +145,8 @@ class TestFraudFeatures:
             assert len(gps_signals) == 0  # GPS confirms, not contradicts
 
     def test_signals_cite_evidence_ids(self, ds):
-        """All signal cites should be E# or P-# IDs."""
-        dispute = ds.dispute("disp_fa_005")
+        """All signal cites should be E# or §N.M IDs."""
+        dispute = ds.dispute("disp_fa_000")
         trip = ds.trip(dispute.trip_id)
         pack = build_evidence_pack(dispute, ds)
         facts = facts_from_evidence_pack(pack)
@@ -161,7 +161,7 @@ class TestFraudFeatures:
 
         for s in assessment.signals:
             for cite in s.cites:
-                assert cite.startswith("E") or cite.startswith("P-"), (
+                assert cite.startswith("E") or cite.startswith("§"), (
                     f"Bad cite: {cite}"
                 )
 
@@ -175,7 +175,7 @@ class TestFraudAgent:
     def test_agent_build_returns_output_and_assessment(self, ds):
         """The FraudAgent should return a FraudOutput and the deterministic
         assessment."""
-        dispute = ds.dispute("disp_fa_005")
+        dispute = ds.dispute("disp_fa_000")
         trip = ds.trip(dispute.trip_id)
         pack = build_evidence_pack(dispute, ds)
         facts = facts_from_evidence_pack(pack)
@@ -219,17 +219,17 @@ class TestOrchestratorRiskSignal:
         assert cf.risk_output.risk in ("low", "medium", "high")
         assert cf.risk_assessment is not None
 
-    def test_bad_faith_case_risk_is_high(self, orc, ds):
-        """The disp_fa_005 case (rider_bf1) should have high risk."""
-        cf = orc.resolve("disp_fa_005")
+    def test_fraud_flagged_case_risk_is_high(self, orc):
+        """The disp_fa_000 case (rider_fraud1) should have high risk."""
+        cf = orc.resolve("disp_fa_000")
         assert cf.risk_output is not None
         assert cf.risk_output.risk == "high"
         assert cf.risk_assessment.risk == "high"
 
     def test_judge_mentions_bad_faith_when_high(self, orc):
         """When risk is high, the Judge should set bad_faith_mentioned=True."""
-        cf = orc.resolve("disp_fa_005")
-        # If the case escalated (e.g. fare_error), the ruling may be None.
+        cf = orc.resolve("disp_fa_000")
+        # disp_fa_000 routes to human (fraud flag, §6.3), so ruling may be None.
         # But if it has a ruling, bad_faith_mentioned should be True.
         if cf.ruling is not None:
             assert cf.ruling.bad_faith_mentioned is True

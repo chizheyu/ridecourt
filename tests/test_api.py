@@ -110,7 +110,7 @@ class TestListDisputes:
         data = res.json()
         assert "disputes" in data
         assert "total" in data
-        assert data["total"] >= 48  # synthetic dataset has ~48
+        assert data["total"] >= 48  # synthetic dataset has ~50
 
     def test_list_has_required_fields(self, client):
         res = client.get("/api/disputes")

@@ -1,18 +1,45 @@
 [
   {
+    "case_id": "DISP-2026-0089",
+    "category": "route_deviation",
+    "summary": "Route deviation without notification: driver had traffic justification but failed to notify rider. Partial refund of excess distance fare. 4.0 km excess at S$0.80/km = S$3.20.",
+    "outcome": "refund_partial_excess_distance",
+    "amount": 3.2,
+    "source": "ryde",
+    "reason": ""
+  },
+  {
+    "case_id": "DISP-2026-0142",
+    "category": "fare_error",
+    "summary": "Surge pricing without rider notification: surge increased from 1.0x to 1.5x, rider not notified. Full refund of surge differential. S$6.40 × 0.5 = S$3.20.",
+    "outcome": "refund_surge_differential",
+    "amount": 3.2,
+    "source": "ryde",
+    "reason": ""
+  },
+  {
+    "case_id": "DISP-2026-0211",
+    "category": "no_show_rider",
+    "summary": "No-show cancellation without contact: driver cancelled without chat or call. Cancellation fee voided. S$5.00.",
+    "outcome": "cancellation_fee_voided",
+    "amount": 5.0,
+    "source": "ryde",
+    "reason": ""
+  },
+  {
     "case_id": "PC-2025-001",
     "category": "route_deviation",
-    "summary": "Driver took a 3 km detour without rider consent. Refund S$4.20.",
-    "outcome": "refund",
-    "amount": 4.2,
+    "summary": "Driver took 3 km detour without justification. Full refund S$2.40.",
+    "outcome": "refund_full_excess_distance",
+    "amount": 2.4,
     "source": "seed",
     "reason": ""
   },
   {
     "case_id": "PC-2025-002",
     "category": "route_deviation",
-    "summary": "Rider asked for a stop en route. No refund — P-RD-2.",
-    "outcome": "no_refund",
+    "summary": "Rider requested stop. No refund.",
+    "outcome": "no_refund_rider_requested",
     "amount": 0.0,
     "source": "seed",
     "reason": ""
@@ -20,8 +47,8 @@
   {
     "case_id": "PC-2025-003",
     "category": "route_deviation",
-    "summary": "Road closure on Bukit Timah, driver detoured. No refund.",
-    "outcome": "no_refund",
+    "summary": "Traffic-justified, rider informed. No refund.",
+    "outcome": "no_refund_justified_informed",
     "amount": 0.0,
     "source": "seed",
     "reason": ""
@@ -29,80 +56,44 @@
   {
     "case_id": "PC-2025-004",
     "category": "no_show_driver",
-    "summary": "Driver GPS 400m from pickup. Refund cancellation + S$3 credit.",
-    "outcome": "refund_and_credit",
-    "amount": 7.0,
-    "source": "seed",
-    "reason": ""
-  },
-  {
-    "case_id": "PC-2025-005",
-    "category": "no_show_driver",
-    "summary": "Driver arrived within 150m, waited 6 min. No refund.",
-    "outcome": "no_refund",
-    "amount": 0.0,
+    "summary": "Driver no-show, 0 contact. S$5 credit.",
+    "outcome": "driver_no_show_credit",
+    "amount": 5.0,
     "source": "seed",
     "reason": ""
   },
   {
     "case_id": "PC-2025-006",
     "category": "no_show_rider",
-    "summary": "Driver waited 7 min, called rider. Cancellation fee stands.",
-    "outcome": "cancellation_fee_stands",
-    "amount": 4.0,
-    "source": "seed",
-    "reason": ""
-  },
-  {
-    "case_id": "PC-2025-007",
-    "category": "no_show_rider",
-    "summary": "Driver waited only 2 min. Cancellation fee refunded.",
-    "outcome": "refund",
-    "amount": 4.0,
+    "summary": "Both contacts met. Fee S$5 upheld.",
+    "outcome": "cancellation_fee_upheld",
+    "amount": 5.0,
     "source": "seed",
     "reason": ""
   },
   {
     "case_id": "PC-2025-008",
     "category": "fare_error",
-    "summary": "Charged S$12.50 vs recomputed S$9.80. Refund S$2.70.",
-    "outcome": "refund_overcharge",
-    "amount": 2.7,
-    "source": "seed",
-    "reason": ""
-  },
-  {
-    "case_id": "PC-2025-009",
-    "category": "fare_error",
-    "summary": "Promo code expired at booking. Discount removed.",
-    "outcome": "refund_overcharge",
-    "amount": 5.0,
+    "summary": "Surge increased, rider notified. No refund.",
+    "outcome": "no_surge_refund_notified",
+    "amount": 0.0,
     "source": "seed",
     "reason": ""
   },
   {
     "case_id": "PC-2025-010",
-    "category": "fare_error",
-    "summary": "Fare correct within S$0.50 tolerance. No refund.",
-    "outcome": "no_refund",
-    "amount": 0.0,
-    "source": "seed",
-    "reason": ""
-  },
-  {
-    "case_id": "PC-2025-011",
-    "category": "safety",
-    "summary": "Rider felt threatened. Escalated to human reviewer.",
-    "outcome": "escalate",
-    "amount": 0.0,
+    "category": "property_damage",
+    "summary": "Verifiable cleaning claim S$35. Approved.",
+    "outcome": "damage_claim_approved",
+    "amount": 35.0,
     "source": "seed",
     "reason": ""
   },
   {
     "case_id": "PC-2025-012",
-    "category": "route_deviation",
-    "summary": "Deviation 12% under threshold. No refund.",
-    "outcome": "no_refund",
+    "category": "safety",
+    "summary": "Safety incident. Escalated to human.",
+    "outcome": "escalate_safety",
     "amount": 0.0,
     "source": "seed",
     "reason": ""

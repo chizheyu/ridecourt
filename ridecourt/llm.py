@@ -680,7 +680,7 @@ def _mock_payload(
     if not eids:
         eids = ["E1", "E2"]
     if not pids:
-        pids = ["P-RD-1"]
+        pids = ["§1.3"]
 
     # Gather a pool of cite IDs.
     cite_pool = eids + pids
@@ -990,11 +990,11 @@ def _mock_str_field(
             f"Based on {cite_str}, the computed amount is S${amt:.2f}. "
             "The policy engine determines the refund."
         ]
-        # If bad-faith signals are present, mention them (P-BF-1).
+        # If bad-faith signals are present, mention them (§6.3).
         assessment = context.get("assessment")
         if assessment is not None and getattr(assessment, "risk", "low") == "high":
             parts.append(
-                " Bad-faith signals noted: high upheld dispute rate (P-BF-1) "
+                " Bad-faith signals noted: high upheld dispute rate (§6.3) "
                 "lowers claimant credibility."
             )
         # If precedents were provided, mention consistency.

@@ -29,35 +29,35 @@ class TestDatasetLoads:
 
     def test_trips_count(self):
         ds = load_dataset()
-        assert len(ds.trips) == 48
+        assert len(ds.trips) == 51
 
     def test_chats_count(self):
         ds = load_dataset()
-        assert len(ds.chats) == 48
+        assert len(ds.chats) == 51
 
     def test_disputes_count(self):
         ds = load_dataset()
-        assert len(ds.disputes) == 48
+        assert len(ds.disputes) == 51
 
     def test_precedents_count(self):
         ds = load_dataset()
-        assert len(ds.precedents) == 12
+        assert len(ds.precedents) == 11
 
     def test_labels_count(self):
         ds = load_dataset()
-        assert len(ds.labels) == 48
+        assert len(ds.labels) == 51
 
 
 class TestCategoryCounts:
     def test_route_deviation_count(self):
         ds = load_dataset()
         rd = [d for d in ds.disputes.values() if d.category == "route_deviation"]
-        assert len(rd) == 16
+        assert len(rd) == 14
 
     def test_no_show_driver_count(self):
         ds = load_dataset()
         nsd = [d for d in ds.disputes.values() if d.category == "no_show_driver"]
-        assert len(nsd) == 10
+        assert len(nsd) == 2
 
     def test_no_show_rider_count(self):
         ds = load_dataset()
@@ -67,12 +67,17 @@ class TestCategoryCounts:
     def test_fare_error_count(self):
         ds = load_dataset()
         fe = [d for d in ds.disputes.values() if d.category == "fare_error"]
-        assert len(fe) == 6
+        assert len(fe) == 11  # 10 surge + 1 fraud-flagged
 
     def test_safety_count(self):
         ds = load_dataset()
         sf = [d for d in ds.disputes.values() if d.category == "safety"]
-        assert len(sf) == 6
+        assert len(sf) == 4
+
+    def test_property_damage_count(self):
+        ds = load_dataset()
+        pd = [d for d in ds.disputes.values() if d.category == "property_damage"]
+        assert len(pd) == 10
 
 
 class TestLabels:
@@ -89,7 +94,7 @@ class TestLabels:
         for did, dispute in ds.disputes.items():
             if dispute.category == "safety":
                 label = ds.label(did)
-                assert label.outcome == "escalate", (
+                assert label.outcome == "escalate_safety", (
                     f"Safety case {did} should escalate, got {label.outcome}"
                 )
                 assert label.amount == 0.0
@@ -113,19 +118,29 @@ class TestLabels:
                 f"policy amount {result.amount}"
             )
 
+    def test_labels_cite_v2_sections(self):
+        """Every label's applicable_clauses should use v2.1 §N.M format."""
+        ds = load_dataset()
+        for did, dispute in ds.disputes.items():
+            label = ds.label(did)
+            for clause in label.applicable_clauses:
+                assert clause.startswith("§"), (
+                    f"{did}: clause {clause} doesn't start with §"
+                )
+
 
 class TestProfiles:
-    def test_bad_faith_rider_exists(self):
+    def test_fraud_flagged_rider_exists(self):
         ds = load_dataset()
-        assert "rider_bf1" in ds.profiles
-        p = ds.profiles["rider_bf1"]
-        assert p.disputes_upheld_90d >= 3
+        assert "rider_fraud1" in ds.profiles
+        p = ds.profiles["rider_fraud1"]
+        assert p.fraud_flags >= 1
 
-    def test_bad_faith_driver_exists(self):
+    def test_repeat_no_show_rider_exists(self):
         ds = load_dataset()
-        assert "driver_bf1" in ds.profiles
-        p = ds.profiles["driver_bf1"]
-        assert "gps_anomaly" in p.prior_flags
+        assert "rider_repeat_ns" in ds.profiles
+        p = ds.profiles["rider_repeat_ns"]
+        assert p.no_show_cancellations_30d >= 3
 
     def test_upheld_never_exceeds_filed(self):
         """Invariant: disputes_upheld_90d <= disputes_filed_90d for every

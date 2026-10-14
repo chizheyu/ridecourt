@@ -47,8 +47,60 @@ class Fare(BaseModel):
     promo_code: str = ""
     discount: float = 0.0  # absolute discount
     booking_fee: float = 1.0
-    cancellation_fee: float = 4.0
+    cancellation_fee: float = 5.0  # v2.1 §2.2: S$5.00
     total_charged: float = 0.0
+    # v2.1 §3: surge pricing at quote and trip-start time
+    quote_surge_multiplier: float = 1.0
+    trip_start_surge_multiplier: float = 1.0
+    surgeable_subtotal: float = 0.0  # excludes booking fee
+    upfront_quote: float = 0.0
+    rider_notified_surge: bool = False
+    # v2.1 §1.3: excess distance fare components
+    excess_distance_km: float = 0.0
+    excess_distance_fare: float = 0.0
+    # v2.1 §4.3: damage claim amount
+    damage_claim_amount: float = 0.0
+
+
+# ---------------------------------------------------------------------------
+# v2.1-specific data models
+# ---------------------------------------------------------------------------
+
+
+class TrafficIncident(BaseModel):
+    """A single traffic condition entry (v2.1 §1.4)."""
+
+    incident_id: str = ""
+    road: str = ""
+    direction: str = ""
+    stretch: str = ""
+    incident_type: str = ""  # vehicle_fire, heavy_congestion, traffic_flow
+    severity: str = "low"  # low, moderate, high
+    timestamp: str = ""
+    clear_time: str | None = None
+    description: str = ""
+    on_recommended_route: bool = False  # whether incident is on the recommended route
+
+
+class DamageEvidence(BaseModel):
+    """Property damage evidence (v2.1 §4.2)."""
+
+    photo_source: str = ""  # "in_app_camera" | "external_upload"
+    has_timestamp: bool = False
+    submitted_within_24h: bool = False
+    linked_to_trip: bool = False
+    damage_type: str = ""  # "cleaning" | "repair"
+    claim_amount: float = 0.0
+    has_certified_quote: bool = False
+    quote_within_7_days: bool = False
+
+
+class AppEvent(BaseModel):
+    """A single app event from the app events log."""
+
+    timestamp: str
+    event_type: str
+    details: str = ""
 
 
 # ---------------------------------------------------------------------------
@@ -75,16 +127,26 @@ class Trip(BaseModel):
     driver_arrived_at: Optional[str] = None
     trip_started_at: Optional[str] = None
     trip_ended_at: Optional[str] = None
+    scheduled_pickup_at: Optional[str] = None  # v2.1 §2.1
     status: TripStatus = "completed"
     gps_trace: list[GPSPoint] = Field(default_factory=list)
     optimal_route: OptimalRoute = Field(default_factory=OptimalRoute)
     fare: Fare = Field(default_factory=Fare)
+    # v2.1 §1.4: traffic conditions for route deviation analysis
+    traffic_conditions: list[TrafficIncident] = Field(default_factory=list)
+    # v2.1 §4: property damage evidence
+    damage_evidence: Optional[DamageEvidence] = None
+    # v2.1: app events log
+    app_events: list[AppEvent] = Field(default_factory=list)
 
 
 class ChatMessage(BaseModel):
     ts: str
     sender: Literal["rider", "driver", "system"]
     text: str
+    # v2.1 second chat shape: type field ("message" | "call" | "system")
+    message_type: str = "message"  # "message" | "call" | "system"
+    message_id: str = ""  # MSG-001 style ID from Ryde format
 
 
 class CallAttempt(BaseModel):
@@ -109,6 +171,10 @@ class Profile(BaseModel):
     disputes_upheld_90d: int = 0
     cancellations_30d: int = 0
     prior_flags: list[str] = Field(default_factory=list)
+    # v2.1 §6.3: fraud flags raise the confidence threshold to 95%
+    fraud_flags: int = 0
+    # v2.1 §2.5: 3+ no-show cancellations in 30 days → flag for review
+    no_show_cancellations_30d: int = 0
 
 
 DisputeCategory = Literal[
@@ -117,6 +183,8 @@ DisputeCategory = Literal[
     "no_show_rider",
     "fare_error",
     "safety",
+    "property_damage",
+    "promo_code",
 ]
 
 
@@ -178,6 +246,7 @@ class EvidencePack(BaseModel):
 
 
 class Facts(BaseModel):
+    # Route deviation (§1)
     distance_actual_km: float = 0.0
     distance_optimal_km: float = 0.0
     duration_actual_min: float = 0.0
@@ -185,38 +254,77 @@ class Facts(BaseModel):
     extra_min: float = 0.0  # duration_actual - duration_optimal
     deviation_pct: float = 0.0
     detour_segment: dict | None = None  # {start_ts, end_ts}
-    unexpected_stops: list[dict] = Field(default_factory=list)  # {start_ts, end_ts, duration_min}
+    unexpected_stops: list[dict] = Field(default_factory=list)
     rider_requested_change: bool = False
     rider_requested_change_quotes: list[str] = Field(default_factory=list)
     road_closure: bool = False
     road_closure_quotes: list[str] = Field(default_factory=list)
+    # v2.1 §1.2: rider informed of deviation before/at deviation point
+    rider_informed_deviation: bool = False
+    deviation_point_ts: str | None = None  # first GPS point off recommended route
+    # v2.1 §1.4: traffic justification (moderate or high severity on recommended route)
+    traffic_justified: bool = False
+    traffic_incidents_on_route: list[dict] = Field(default_factory=list)
     agreements: list[str] = Field(default_factory=list)
     disagreements: list[str] = Field(default_factory=list)
     abusive_language: list[str] = Field(default_factory=list)
     threatening_language: list[str] = Field(default_factory=list)
+    # No-show (§2)
     contact_attempts: int = 0
+    driver_chat_messages: int = 0  # v2.1 §2.3: at least 1 chat message
+    driver_call_attempts: int = 0  # v2.1 §2.3: at least 1 call
     min_distance_to_pickup_m: float = float("inf")
     arrival_ts: str | None = None
     arrival_vs_eta_min: float = 0.0  # negative = early, positive = late
     wait_minutes_within_150m: float = 0.0
-    wait_minutes_past_eta: float = 0.0  # kept for policy engine no-show clauses
+    wait_minutes_past_eta: float = 0.0
+    # v2.1 §2.1: free wait from later of scheduled pickup and arrival
+    free_wait_expired: bool = False
+    driver_no_show: bool = False  # §2.4: driver not at pickup by scheduled+5
+    driver_made_contact: bool = False  # §2.3: both chat AND call
+    rider_no_show_cancellations_30d: int = 0  # §2.5
+    # Fare/surge (§3)
     recomputed_fare: float = 0.0
     charged_total: float = 0.0
     fare_difference: float = 0.0  # charged - recomputed
     promo_applied: bool = False
     promo_valid_at_booking: bool = True
+    # v2.1 §3: surge pricing
+    quote_surge_multiplier: float = 1.0
+    trip_start_surge_multiplier: float = 1.0
+    surgeable_subtotal: float = 0.0
+    upfront_quote: float = 0.0
+    rider_notified_surge: bool = False
+    surge_increased: bool = False
+    surge_decreased: bool = False
+    surge_differential: float = 0.0
+    # v2.1 §4: property damage
+    damage_claim_amount: float = 0.0
+    damage_type: str = ""  # "cleaning" | "repair"
+    photo_source: str = ""  # "in_app_camera" | "external_upload"
+    has_timestamp: bool = False
+    submitted_within_24h: bool = False
+    linked_to_trip: bool = False
+    has_certified_quote: bool = False
+    quote_within_7_days: bool = False
+    # v2.1 §5: safety indicators
+    safety_indicators_in_chat: bool = False
+    safety_indicators_in_claim: bool = False
+    # Profiles
     rider_disputes_filed_90d: int = 0
     rider_disputes_upheld_90d: int = 0
     rider_upheld_rate: float = 0.0
     rider_account_age_days: int = 0
     rider_rating: float = 0.0
     rider_prior_flags: list[str] = Field(default_factory=list)
+    rider_fraud_flags: int = 0
     driver_disputes_filed_90d: int = 0
     driver_disputes_upheld_90d: int = 0
     driver_upheld_rate: float = 0.0
     driver_account_age_days: int = 0
     driver_rating: float = 0.0
     driver_prior_flags: list[str] = Field(default_factory=list)
+    driver_fraud_flags: int = 0
 
 
 # ---------------------------------------------------------------------------
@@ -229,6 +337,13 @@ class PolicyResult(BaseModel):
     outcome: str = "no_refund"
     amount: float = 0.0
     computation: str = ""
+    # v2.1 §6: routing and confidence
+    routing: str = "ai_final"  # "ai_final" | "human"
+    routing_reason: str = ""  # e.g. "§6.2: deviation 4.3 km > 2 km"
+    confidence: float = 0.0
+    confidence_factors: dict = Field(default_factory=dict)
+    dispute_value: float = 0.0
+    actions: list[dict] = Field(default_factory=list)  # e.g. flag account, suspend account
 
 
 # ---------------------------------------------------------------------------

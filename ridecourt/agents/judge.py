@@ -1,14 +1,17 @@
 """Judge agent — receives both advocate cases, the policy engine result,
 risk signals and precedents (when present), and issues a ruling.
 
-Judge rules (per SPEC section 6):
+Judge rules (per SPEC section 6 + v2.1 §6):
 
 1. The **amount** must equal the policy engine's amount; the Judge never
    invents numbers.
 2. The **outcome** comes from the policy engine. If the Judge disagrees
    with the policy engine, it escalates instead of overriding.
-3. **Confidence below 0.7** escalates to a human reviewer.
+3. **§6 routing**: if the policy engine says routing=human, the case
+   escalates regardless of the Judge's confidence.
 4. **Safety category** always escalates with a neutral case summary.
+5. If risk signals are provided and the risk is 'high', the Judge must
+   mention bad-faith signals (§6.3).
 
 Output schema::
 
@@ -44,12 +47,13 @@ class JudgeOutput(BaseModel):
     message_to_driver: str
     # Stretch: precedent consistency — "consistent" | "inconsistent" | "no_precedents"
     precedent_consistency: str = ""
-    # Stretch: bad-faith mentioned — the Judge must mention high-risk signals (P-BF-1)
+    # Stretch: bad-faith mentioned — the Judge must mention high-risk signals (§6.3)
     bad_faith_mentioned: bool = False
 
 
 # ---------------------------------------------------------------------------
-# Confidence threshold
+# Confidence threshold (kept for backward compat — v2.1 routing is by
+# policy_result.routing, but low Judge confidence still escalates)
 # ---------------------------------------------------------------------------
 
 CONFIDENCE_THRESHOLD = 0.7
@@ -73,20 +77,23 @@ def _system_prompt() -> str:
         "you need a value, cite the evidence item that already states it.\n"
         "2. The outcome comes from the policy engine. If you disagree with "
         "the policy engine, you must escalate — never override.\n"
-        "3. Confidence below 0.7 means escalate.\n"
+        "3. If the policy engine says routing=human (§6), the case escalates "
+        "regardless of your confidence.\n"
         "4. Safety incidents always escalate with a neutral case summary.\n"
         "5. If risk signals are provided and the risk is 'high', you MUST "
-        "mention the bad-faith signals explicitly in your reasoning (P-BF-1) "
+        "mention the bad-faith signals explicitly in your reasoning (§6.3) "
         "and set bad_faith_mentioned=true.\n"
         "6. If precedents are provided, you MUST say whether your ruling is "
         "consistent with them (precedent_consistency: 'consistent' or "
         "'inconsistent'; 'no_precedents' if none provided).\n"
-        "7. The dispute's claim text has citation ID \"CLAIM\". You may "
+        "7. Cite v2.1 policy sections as §1.3, §2.3, §6.2, etc. Cite "
+        "precedents as DISP-YYYY-NNNN or PC-YYYY-NNN. Cite evidence as E#.\n"
+        "8. The dispute's claim text has citation ID \"CLAIM\". You may "
         "quote a number from the claim only in a sentence that cites CLAIM "
         "and attributes it to the claimant. Do not state a claim number as "
         "a fact of the case without citing CLAIM.\n\n"
         "Your messages to the rider and driver must be in plain English, "
-        "polite, and specific (cite the clause and the key fact).\n\n"
+        "polite, and specific (cite the section and the key fact).\n\n"
         "Return JSON matching the provided schema."
     )
 
@@ -148,7 +155,7 @@ def _user_prompt(
         if risk_level == "high":
             lines.append(
                 "  NOTE: risk is HIGH — you must mention bad-faith signals "
-                "in reasoning and set bad_faith_mentioned=true (P-BF-1)."
+                "in reasoning and set bad_faith_mentioned=true (§6.3)."
             )
         lines.append("")
 
@@ -268,16 +275,18 @@ def should_escalate(
 ) -> bool:
     """Determine whether the Judge's output should escalate.
 
-    Escalates when:
-    - Safety category (always).
-    - Confidence < 0.7.
+    v2.1 §6 routing takes precedence: if the policy engine says
+    routing=human, the case escalates regardless of the Judge's
+    confidence.
+
+    Also escalates when:
+    - Safety category (always, §5).
+    - Confidence < 0.7 (Judge's own confidence, secondary signal).
     - Judge's outcome differs from the policy engine's outcome.
-    - An advocate's requested_outcome explicitly conflicts with the policy
-      engine AND the Judge's confidence is also low (combined signal).
-      The standalone advocate-requested check is too noisy with mock advocates
-      that always say "refund" / "no refund", so we only flag it as a
-      secondary signal alongside low confidence or outcome mismatch.
     """
+    # v2.1 §6: policy engine routing takes precedence
+    if getattr(policy_result, "routing", "ai_final") == "human":
+        return True
     if category == "safety":
         return True
     if judge_output.confidence < CONFIDENCE_THRESHOLD:

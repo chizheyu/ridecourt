@@ -107,10 +107,14 @@ class ExtractedNumber:
 
 # E1, E12, etc.
 _CITE_E_RE = re.compile(r"\bE(\d+)\b")
-# P-RD-1, P-NS-2, etc.
+# P-RD-1, P-NS-2, etc. (legacy clause IDs — kept for backward compat)
 _CITE_P_RE = re.compile(r"\bP-[A-Z]+-\d+\b")
-# PC-2025-004, PC-2026-001, etc. (precedent IDs)
+# §1.3, §2.3, §6.2, etc. (v2.1 section citations)
+_CITE_SECTION_RE = re.compile(r"§\d+(?:\.\d+)?")
+# PC-2025-004, PC-2026-001, etc. (seed precedent IDs)
 _CITE_PC_RE = re.compile(r"\bPC-\d{4}-\d{3}\b")
+# DISP-2026-0089, DISP-2026-0142, etc. (Ryde precedent IDs)
+_CITE_DISP_RE = re.compile(r"\bDISP-\d{4}-\d{4}\b")
 # CLAIM — the dispute's claim text, treated as an attributable source.
 _CITE_CLAIM_RE = re.compile(r"\bCLAIM\b")
 
@@ -140,11 +144,14 @@ def check(
     evidence_pack
         ``EvidencePack`` with items ``E1..En``.
     policy_ids
-        List of valid policy clause IDs for this case (e.g.
-        ``["P-RD-1", "P-NS-2"]``).
+        List of valid policy clause IDs for this case.  In v2.1, these are
+        section citations like ``"§1.3"``, ``"§2.3"`` (from
+        ``policy_result.applicable_clauses``).  Legacy ``P-..`` IDs are
+        also accepted for backward compatibility.
     policy_result
         Optional ``PolicyResult`` — its ``computation`` string and ``amount``
         are also valid number sources (the policy engine is deterministic).
+        Its ``applicable_clauses`` are added to the valid citation set.
     agent_role
         ``"advocate"`` (default) — numbers must appear in **cited** evidence
         items (the advocate cited E3, so only E3's data is valid).
@@ -152,18 +159,14 @@ def check(
         may come from **any** evidence item.  Citations must still exist.
     precedents
         Optional list of precedent objects (each with ``case_id`` and
-        ``summary``).  Precedent IDs (``PC-YYYY-NNN``) are valid citations,
-        and numbers from a precedent's summary are accepted **only** in a
-        text block that cites that precedent's ID.
+        ``summary``).  Precedent IDs (``PC-YYYY-NNN`` or ``DISP-YYYY-NNNN``)
+        are valid citations, and numbers from a precedent's summary are
+        accepted **only** in a text block that cites that precedent's ID.
     claim_text
         The dispute's free-text claim written by the claimant.  It is
         treated as an attributable source with citation ID ``CLAIM``:
         numbers that appear in the claim text are accepted **only** in a
-        text block that cites ``CLAIM``.  This lets an advocate quote the
-        claimant's own numbers ("the rider says … S$10 …", citing
-        ``CLAIM``) without the guard treating them as unverified case
-        facts.  A claim number stated as a fact of the case without
-        citing ``CLAIM`` is still rejected.
+        text block that cites ``CLAIM``.
     """
     problems: list[Problem] = []
 
@@ -173,6 +176,12 @@ def check(
     if policy_result is not None:
         for c in getattr(policy_result, "applicable_clauses", []) or []:
             valid_pids.add(c)
+
+    # Build the set of valid v2.1 section citations.  All sections in
+    # ``VALID_SECTIONS`` (from policy.py) are always valid citations,
+    # plus any specific sections cited in the policy result.
+    from .policy import VALID_SECTIONS
+    valid_section_cites = set(VALID_SECTIONS)
 
     # Build a map of precedent_id -> extracted (value, unit) pairs.
     # Numbers come from both the summary text and the amount field.
@@ -213,12 +222,12 @@ def check(
         for cite in _find_cites(text):
             if not _cite_exists(
                 cite, valid_eids, valid_pids, valid_precedent_ids,
-                valid_claim=valid_claim,
+                valid_claim=valid_claim, valid_sections=valid_section_cites,
             ):
                 problems.append(
                     Problem(
                         kind="unknown_cite",
-                        detail=f"Citation {cite} not found in evidence pack, policy clauses, or precedents.",
+                        detail=f"Citation {cite} not found in evidence pack, policy clauses, precedents, or v2.1 sections.",
                         cite=cite,
                         field=field_name,
                     )
@@ -227,12 +236,12 @@ def check(
         for cite in cites:
             if not _cite_exists(
                 cite, valid_eids, valid_pids, valid_precedent_ids,
-                valid_claim=valid_claim,
+                valid_claim=valid_claim, valid_sections=valid_section_cites,
             ):
                 problems.append(
                     Problem(
                         kind="unknown_cite",
-                        detail=f"Citation {cite} not found in evidence pack, policy clauses, or precedents.",
+                        detail=f"Citation {cite} not found in evidence pack, policy clauses, precedents, or v2.1 sections.",
                         cite=cite,
                         field=field_name,
                     )
@@ -313,10 +322,14 @@ def _cite_exists(
     valid_pids: set[str],
     valid_precedent_ids: set[str] | None = None,
     valid_claim: bool = False,
+    valid_sections: set[str] | None = None,
 ) -> bool:
     if valid_claim and cite == "CLAIM":
         return True
     if valid_precedent_ids and cite in valid_precedent_ids:
+        return True
+    # v2.1 section citations (§1.3, §2.3, etc.)
+    if valid_sections and cite in valid_sections:
         return True
     return cite in valid_eids or cite in valid_pids
 
@@ -401,14 +414,18 @@ def _find_cites(text: str) -> list[str]:
     cites = []
     cites.extend(m.group(0) for m in _CITE_E_RE.finditer(text))
     cites.extend(m.group(0) for m in _CITE_P_RE.finditer(text))
+    cites.extend(m.group(0) for m in _CITE_SECTION_RE.finditer(text))
     cites.extend(m.group(0) for m in _CITE_PC_RE.finditer(text))
+    cites.extend(m.group(0) for m in _CITE_DISP_RE.finditer(text))
     cites.extend(m.group(0) for m in _CITE_CLAIM_RE.finditer(text))
     return cites
 
 
 def _find_precedent_cites(text: str) -> list[str]:
-    """Find precedent IDs (PC-YYYY-NNN) cited in *text*."""
-    return [m.group(0) for m in _CITE_PC_RE.finditer(text)]
+    """Find precedent IDs (PC-YYYY-NNN or DISP-YYYY-NNNN) cited in *text*."""
+    cites = [m.group(0) for m in _CITE_PC_RE.finditer(text)]
+    cites.extend(m.group(0) for m in _CITE_DISP_RE.finditer(text))
+    return cites
 
 
 def _find_claim_cite(text: str) -> list[str]:

@@ -215,15 +215,21 @@ class Orchestrator:
         )
 
         # --- Safety short-circuit ----------------------------------------
-        # Safety cases skip the advocates and go straight to escalation.
-        if dispute.category == "safety":
+        # v2.1 §5: safety cases (or safety indicators detected in any
+        # category) skip the advocates and go straight to escalation.
+        safety_indicators = (
+            getattr(facts, "safety_indicators_in_claim", False)
+            or getattr(facts, "safety_indicators_in_chat", False)
+        )
+        if dispute.category == "safety" or safety_indicators:
+            reason = "safety_category"
             summary = neutral_case_summary(
                 dispute.claim_text, pack, policy_result,
-                reason="safety_category",
+                reason=reason,
             )
             esc = Escalation(
                 case_id=dispute.dispute_id,
-                reason="safety_category",
+                reason=reason,
                 summary=summary,
                 severity="high",
             )
@@ -232,7 +238,7 @@ class Orchestrator:
                 "ESCALATION",
                 from_agent="judge",
                 content={
-                    "reason": "safety_category",
+                    "reason": reason,
                     "summary": summary,
                 },
             )
@@ -242,13 +248,23 @@ class Orchestrator:
                 evidence_pack=pack,
                 policy_result=policy_result,
                 escalated=True,
-                escalation_reason="safety_category",
+                escalation_reason=reason,
                 escalation=esc,
                 events=log,
                 total_tokens=budget.spent,
                 total_latency_ms=log.total_latency_ms(),
             )
             return cf
+
+        # --- v2.1 §6 policy routing short-circuit -------------------------
+        # If the policy engine routes to human for a non-safety reason
+        # (e.g. route deviation > 2 km, dispute value > S$50, fraud flag,
+        # not covered by v2.1), we still run the advocates so the human
+        # reviewer has the full case file, but we mark the case as
+        # escalated with the policy engine's reason.
+        policy_routes_human = (
+            getattr(policy_result, "routing", "ai_final") == "human"
+        )
 
         # --- 4. Precedent retrieval (PRECEDENT event) -------------------
         t0 = time.monotonic()
@@ -1011,6 +1027,12 @@ class Orchestrator:
         rider_case: AdvocateOutput | None = None,
         driver_case: AdvocateOutput | None = None,
     ) -> str:
+        # v2.1 §6 routing takes precedence
+        if getattr(policy_result, "routing", "ai_final") == "human":
+            routing_reason = getattr(policy_result, "routing_reason", "")
+            if routing_reason:
+                return "policy_routing_human"
+            return "policy_routing_human"
         if category == "safety":
             return "safety_category"
         if judge_output.confidence < CONFIDENCE_THRESHOLD:

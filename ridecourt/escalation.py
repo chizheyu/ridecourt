@@ -1,12 +1,18 @@
 """Escalation protocol — formal escalation records and an in-memory queue.
 
-Per SPEC section 3 + stretch goals:
+Per SPEC section 3 + v2.1 §6 routing:
 
 Triggers:
-- Confidence below ``CONFIDENCE_THRESHOLD`` (0.7)
+- §6.1: dispute value > S$50 → always human
+- §6.1: dispute value S$10–S$50 with confidence < 80% → human
+- §6.2: safety incident → always human (§5)
+- §6.2: route deviation > 2 km → human
+- §6.2: repair damage claim → human
+- §6.3: fraud flag ≥ 1 and confidence < 95% → human
+- Not covered by v2.1 → human
 - Guard failure after one retry
 - Agent disagreement with the policy engine (outcome mismatch)
-- Safety category (always)
+- Model unavailable
 
 Each escalation creates a record with a neutral case summary for a human
 reviewer. The queue is visible via ``GET /api/escalations``.
@@ -28,6 +34,9 @@ EscalationReason = Literal[
     "agent_policy_disagreement",
     "model_unavailable",
     "system_error",
+    "policy_routing_human",
+    "safety_indicators_detected",
+    "not_covered_by_policy",
     "unknown",
 ]
 

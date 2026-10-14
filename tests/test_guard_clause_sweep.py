@@ -1,12 +1,11 @@
-"""Sweep test — every policy clause ID that any agent prompt tells an agent
+"""Sweep test — every policy section ID that any agent prompt tells an agent
 to cite, or that a deterministic fraud signal cites, must be accepted by the
 guard in exactly the cases where that instruction applies.
 
-Runs over all 48 synthetic cases.
+Runs over all synthetic cases.
 
-Defect 1: P-BF-1 is promised in the Judge prompt and cited by the Fraud
-agent's deterministic signals, but policy.evaluate() never calls clause_bf_1,
-so P-BF-1 is never in applicable_clauses and the guard rejects it.
+v2.1: policy clauses are §N.M section IDs (§1.3, §2.3, §6.3, etc.).
+Fraud signals cite §6.3. Agent prompts reference §N.M sections.
 """
 
 import os
@@ -25,22 +24,26 @@ from ridecourt.agents.judge import _system_prompt as judge_system
 from ridecourt.agents.judge import _user_prompt as judge_user
 from ridecourt.data import load_dataset
 from ridecourt.fraud import compute_fraud_signals
-from ridecourt.policy import evaluate
+from ridecourt.policy import VALID_SECTIONS, evaluate
 from ridecourt.tools import build_evidence_pack, facts_from_evidence_pack
 
-# All P-# clause IDs mentioned in prompts or fraud signals.
+# All §N.M section IDs mentioned in prompts or fraud signals.
+_SEC_RE = re.compile(r"§\d+(?:\.\d+)?")
+
+# Legacy P-# clause IDs (still valid in guard for backward compat).
 _P_RE = re.compile(r"\bP-[A-Z]+-\d+\b")
 
 
 def _all_prompt_text(disp, pack, pr, rider_case=None, driver_case=None,
                      risk=None, assessment=None, precedents=None):
-    """Collect all P-# IDs mentioned in agent prompt text for one case."""
+    """Collect all §N.M and P-# IDs mentioned in agent prompt text for one case."""
     pids: set[str] = set()
     claim_text = disp.claim_text
 
     # Advocate prompts (both sides).
     for side in ("rider", "driver"):
         for text in (adv_system(side), adv_user(side, claim_text, pack, pr)):
+            pids.update(_SEC_RE.findall(text))
             pids.update(_P_RE.findall(text))
 
     # Judge prompts.
@@ -50,11 +53,13 @@ def _all_prompt_text(disp, pack, pr, rider_case=None, driver_case=None,
             judge_user(claim_text, pack, rider_case, driver_case, pr,
                        risk=risk, precedents=precedents),
         ):
+            pids.update(_SEC_RE.findall(text))
             pids.update(_P_RE.findall(text))
 
     # Fraud prompts.
     if assessment is not None:
         for text in (fraud_system(), fraud_user(claim_text, pack, assessment)):
+            pids.update(_SEC_RE.findall(text))
             pids.update(_P_RE.findall(text))
 
     return pids
@@ -91,98 +96,90 @@ def all_cases():
     return cases
 
 
-def test_p_bf_1_in_applicable_clauses_for_flagged_claimant(all_cases):
-    """When the claimant is flagged for bad faith (high risk with P-BF-1
-    signal), P-BF-1 must be in the policy result's applicable_clauses.
+def test_fraud_signal_cites_accepted_by_guard(all_cases):
+    """Every §N.M or P-# ID that a fraud signal cites must be in the valid
+    set (VALID_SECTIONS ∪ applicable_clauses ∪ fraud-signal cites).
 
-    This fails on the current code because evaluate() never calls
-    clause_bf_1.
+    v2.1: fraud signals cite §6.3, which is in VALID_SECTIONS, so the
+    guard should always accept it.
     """
-    ds = load_dataset()
-    found_flagged = False
-    for did, (disp, trip, pack, facts, pr, assessment, cid, cp) in all_cases.items():
-        # Check if P-BF-1 is cited in any fraud signal.
-        bf_signals = [
-            s for s in assessment.signals if "P-BF-1" in s.cites
-        ]
-        if not bf_signals:
-            continue
-        found_flagged = True
-        assert "P-BF-1" in pr.applicable_clauses, (
-            f"{did}: P-BF-1 is cited by fraud signals but not in "
-            f"applicable_clauses={pr.applicable_clauses}. The guard "
-            "would reject every Judge text that cites P-BF-1."
-        )
-    assert found_flagged, "Expected at least one bad-faith-flagged case"
-
-
-def test_all_prompt_cited_pids_accepted_by_guard(all_cases):
-    """Every P-# ID that any agent prompt tells an agent to cite, or that a
-    deterministic fraud signal cites, must be in the set of valid policy IDs
-    (applicable_clauses ∪ fraud-signal-cited P-# IDs) for that case.
-
-    The guard accepts policy_ids passed by the orchestrator, which are
-    policy_result.applicable_clauses. So every P-# in prompts or fraud
-    signals must be in applicable_clauses when the instruction applies.
-
-    This test fails on the current code for P-BF-1 on disp_fa_005.
-    """
-    ds = load_dataset()
     failures = []
     for did, (disp, trip, pack, facts, pr, assessment, cid, cp) in all_cases.items():
-        # Collect all P-# IDs from fraud signal cites.
-        fraud_pids: set[str] = set()
+        # Collect all cites from fraud signal cites.
+        fraud_cites: set[str] = set()
         for s in assessment.signals:
             for c in s.cites:
-                if _P_RE.fullmatch(c):
-                    fraud_pids.add(c)
+                fraud_cites.add(c)
 
-        # Collect P-# IDs from prompts (system + user for all agents).
-        prompt_pids = _all_prompt_text(
+        # Every cite must be either in VALID_SECTIONS, in applicable_clauses,
+        # or an E# that exists in the evidence pack.
+        valid_sections = set(VALID_SECTIONS)
+        applicable = set(pr.applicable_clauses)
+        eids = {item.id for item in pack.items}
+
+        for cite in fraud_cites:
+            if cite.startswith("E"):
+                if cite not in eids:
+                    failures.append(
+                        f"{did}: fraud signal cites {cite} but it is not in "
+                        f"the evidence pack"
+                    )
+            elif cite in valid_sections or cite in applicable:
+                pass  # valid
+            else:
+                failures.append(
+                    f"{did}: fraud signal cites {cite} but it is not in "
+                    f"VALID_SECTIONS or applicable_clauses={pr.applicable_clauses}"
+                )
+
+    assert not failures, "\n".join(failures)
+
+
+def test_all_prompt_cited_sections_accepted_by_guard(all_cases):
+    """Every §N.M ID that any agent prompt mentions must be in
+    VALID_SECTIONS (which the guard always accepts)."""
+    failures = []
+    for did, (disp, trip, pack, facts, pr, assessment, cid, cp) in all_cases.items():
+        prompt_ids = _all_prompt_text(
             disp, pack, pr, assessment=assessment,
         )
 
-        # The guard's valid_pids = applicable_clauses (from orchestrator).
-        valid_pids: set[str] = set(pr.applicable_clauses)
+        valid_sections = set(VALID_SECTIONS)
 
-        # Every P-# that fraud signals cite must be accepted.
-        for pid in fraud_pids:
-            if pid not in valid_pids:
-                failures.append(
-                    f"{did}: fraud signal cites {pid} but it is not in "
-                    f"applicable_clauses={pr.applicable_clauses}"
-                )
-
-        # Every P-# that the Judge prompt tells it to cite (when risk is high)
-        # must be accepted.
-        if assessment.risk == "high":
-            for pid in prompt_pids:
-                if pid not in valid_pids:
+        for pid in prompt_ids:
+            if pid.startswith("§"):
+                if pid not in valid_sections:
                     failures.append(
-                        f"{did}: prompt tells agent to cite {pid} but it is "
-                        f"not in applicable_clauses={pr.applicable_clauses}"
+                        f"{did}: prompt mentions {pid} but it is not in "
+                        f"VALID_SECTIONS"
+                    )
+            elif pid.startswith("P-"):
+                # Legacy P- IDs are accepted if in applicable_clauses
+                if pid not in pr.applicable_clauses:
+                    failures.append(
+                        f"{did}: prompt mentions {pid} but it is not in "
+                        f"applicable_clauses={pr.applicable_clauses}"
                     )
 
     assert not failures, "\n".join(failures)
 
 
-def test_p_bf_1_outcome_and_amount_unchanged(all_cases):
-    """When P-BF-1 is applied, the outcome and amount must NOT change —
-    P-BF-1 only lowers credibility (the Judge must say so).
+def test_fraud_flag_does_not_change_outcome(all_cases):
+    """When §6.3 applies (fraud flag), the outcome and amount must NOT
+    change — §6.3 only affects routing (raises confidence threshold).
     """
-    ds = load_dataset()
-    from ridecourt.policy import evaluate as eval_fn
-
     for did, (disp, trip, pack, facts, pr, assessment, cid, cp) in all_cases.items():
         if disp.category == "safety":
             continue
-        if "P-BF-1" not in pr.applicable_clauses:
+        # Check if there are fraud flag actions
+        fraud_actions = [
+            a for a in pr.actions if a.get("action") == "fraud_flag_notice"
+        ]
+        if not fraud_actions:
             continue
-        # Recompute without P-BF-1 to compare: build a modified dispute
-        # with a non-flagged claimant is hard, so instead verify the
-        # outcome is a standard category outcome (not bad_faith_flagged).
+        # The outcome should be a standard category outcome
         assert pr.outcome != "bad_faith_flagged", (
-            f"{did}: P-BF-1 must not change the outcome to "
-            "bad_faith_flagged — it only lowers credibility."
+            f"{did}: §6.3 must not change the outcome to bad_faith_flagged — "
+            "it only raises the confidence threshold for routing."
         )
         assert pr.amount >= 0.0

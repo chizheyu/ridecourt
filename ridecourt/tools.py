@@ -548,6 +548,9 @@ def arrival_check(trip: Trip) -> list[dict]:
     # policy engine's no-show logic.
     wait_past = wait_minutes_past_eta(trip)
 
+    # §2.4: driver no-show = never arrived and never got close to pickup
+    driver_no_show = trip.driver_arrived_at is None and min_dist > 150.0
+
     summary = (
         f"Driver closest distance to pickup: {min_dist:.0f} m; "
         f"arrival {arrival_ts or 'unknown'} vs ETA "
@@ -564,6 +567,7 @@ def arrival_check(trip: Trip) -> list[dict]:
             "arrival_vs_eta_min": round(arrival_vs_eta, 2),
             "wait_minutes_within_150m": round(wait_within_150, 2),
             "wait_minutes_past_eta": round(wait_past, 2),
+            "driver_no_show": driver_no_show,
         },
         "source": "arrival_check",
     }]
@@ -669,42 +673,368 @@ def chat_scan(chats: ChatLog | None) -> list[dict]:
 
 def fare_check(trip: Trip) -> list[dict]:
     """Recompute the fare from components and compare with total charged;
-    check promo applied or not."""
+    check promo applied or not.
+
+    For v2.1 §3 surge cases, also report the quote-time and trip-start
+    surge multipliers, whether the rider was notified, and the surge
+    differential.
+    """
     recomputed = recompute_fare(trip.fare)
     charged = trip.fare.total_charged
     diff = round(charged - recomputed, 2)
     promo_applied = bool(trip.fare.promo_code) and trip.fare.discount > 0
     valid_promo = promo_valid_at_booking(trip.fare)
 
-    summary = (
+    # v2.1 §3 surge analysis
+    quote_mult = trip.fare.quote_surge_multiplier
+    trip_mult = trip.fare.trip_start_surge_multiplier
+    surgeable = trip.fare.surgeable_subtotal
+    upfront = trip.fare.upfront_quote
+    notified = trip.fare.rider_notified_surge
+    surge_increased = trip_mult > quote_mult
+    surge_decreased = trip_mult < quote_mult
+    # Surge differential = surgeable_subtotal × (trip_mult − quote_mult)
+    if surgeable > 0 and surge_increased:
+        surge_diff = round(surgeable * (trip_mult - quote_mult), 2)
+    elif surgeable > 0 and surge_decreased:
+        surge_diff = round(surgeable * (quote_mult - trip_mult), 2)
+    else:
+        surge_diff = 0.0
+
+    parts: list[str] = [
         f"Recomputed fare S${recomputed:.2f} vs charged S${charged:.2f} "
-        f"(diff S${diff:.2f}); promo "
-        f"{'applied' if promo_applied else 'not applied'} "
-        f"({'valid' if valid_promo else 'invalid'})."
-    )
+        f"(diff S${diff:.2f})",
+        f"promo {'applied' if promo_applied else 'not applied'} "
+        f"({'valid' if valid_promo else 'invalid'})",
+    ]
+    if quote_mult != 1.0 or trip_mult != 1.0:
+        parts.append(
+            f"surge: quote {quote_mult}x → trip {trip_mult}x "
+            f"({'increased' if surge_increased else 'decreased' if surge_decreased else 'unchanged'}), "
+            f"rider {'notified' if notified else 'not notified'}, "
+            f"surgeable subtotal S${surgeable:.2f}, "
+            f"differential S${surge_diff:.2f}"
+        )
+    summary = "; ".join(parts) + "."
+
+    data: dict = {
+        "recomputed_fare": recomputed,
+        "charged_total": charged,
+        "fare_difference": diff,
+        "promo_code": trip.fare.promo_code,
+        "promo_applied": promo_applied,
+        "promo_valid_at_booking": valid_promo,
+        "quote_surge_multiplier": quote_mult,
+        "trip_start_surge_multiplier": trip_mult,
+        "surgeable_subtotal": surgeable,
+        "upfront_quote": upfront,
+        "rider_notified_surge": notified,
+        "surge_increased": surge_increased,
+        "surge_decreased": surge_decreased,
+        "surge_differential": surge_diff,
+        "excess_distance_km": trip.fare.excess_distance_km,
+        "excess_distance_fare": trip.fare.excess_distance_fare,
+        "components": {
+            "base": trip.fare.base,
+            "per_km": trip.fare.per_km,
+            "per_min": trip.fare.per_min,
+            "distance_km": trip.fare.distance_km,
+            "duration_min": trip.fare.duration_min,
+            "surge_multiplier": trip.fare.surge_multiplier,
+            "discount": trip.fare.discount,
+            "booking_fee": trip.fare.booking_fee,
+        },
+    }
 
     return [{
         "kind": "fare_check",
         "summary": summary,
-        "data": {
-            "recomputed_fare": recomputed,
-            "charged_total": charged,
-            "fare_difference": diff,
-            "promo_code": trip.fare.promo_code,
-            "promo_applied": promo_applied,
-            "promo_valid_at_booking": valid_promo,
-            "components": {
-                "base": trip.fare.base,
-                "per_km": trip.fare.per_km,
-                "per_min": trip.fare.per_min,
-                "distance_km": trip.fare.distance_km,
-                "duration_min": trip.fare.duration_min,
-                "surge_multiplier": trip.fare.surge_multiplier,
-                "discount": trip.fare.discount,
-                "booking_fee": trip.fare.booking_fee,
-            },
-        },
+        "data": data,
         "source": "fare_check",
+    }]
+
+
+def traffic_analysis(trip: Trip) -> list[dict]:
+    """Analyze traffic conditions for route deviation justification (v2.1 §1.4).
+
+    A deviation is justified when a traffic incident of moderate or high
+    severity was active on the recommended route during the trip.
+    """
+    incidents = trip.traffic_conditions
+    if not incidents:
+        return [{
+            "kind": "traffic_analysis",
+            "summary": "No traffic condition data available.",
+            "data": {
+                "traffic_justified": False,
+                "traffic_incidents_on_route": [],
+            },
+            "source": "traffic_analysis",
+        }]
+
+    trip_start = _parse(trip.trip_started_at) if trip.trip_started_at else None
+    trip_end = _parse(trip.trip_ended_at) if trip.trip_ended_at else None
+
+    on_route_justifying: list[dict] = []
+    for inc in incidents:
+        # Check if incident is on the recommended route and moderate/high severity
+        is_on_route = inc.on_recommended_route
+        is_severe = inc.severity in ("moderate", "high")
+        # Check if incident was active during the trip
+        inc_ts = _parse(inc.timestamp) if inc.timestamp else None
+        active_during = True
+        if inc_ts and trip_start:
+            # Incident must have started at or before trip end
+            if trip_end and inc_ts > trip_end:
+                active_during = False
+        if is_on_route and is_severe and active_during:
+            on_route_justifying.append({
+                "incident_id": inc.incident_id,
+                "road": inc.road,
+                "severity": inc.severity,
+                "incident_type": inc.incident_type,
+                "timestamp": inc.timestamp,
+                "description": inc.description,
+            })
+
+    justified = len(on_route_justifying) > 0
+    if on_route_justifying:
+        inc_desc = "; ".join(
+            f"{i['incident_type']} ({i['severity']}) on {i['road']}"
+            for i in on_route_justifying
+        )
+        summary = (
+            f"Traffic justification found: {inc_desc}. "
+            f"Deviation is justified per §1.4."
+        )
+    else:
+        severities = [i.severity for i in incidents]
+        summary = (
+            f"No justifying traffic incident on recommended route. "
+            f"Traffic conditions: {len(incidents)} incident(s), "
+            f"severities: {severities}."
+        )
+
+    return [{
+        "kind": "traffic_analysis",
+        "summary": summary,
+        "data": {
+            "traffic_justified": justified,
+            "traffic_incidents_on_route": on_route_justifying,
+        },
+        "source": "traffic_analysis",
+    }]
+
+
+def deviation_point_analysis(trip: Trip, chat: ChatLog | None) -> list[dict]:
+    """Find the first GPS point off the recommended route (v2.1 §1.2).
+
+    The rider counts as informed only if the driver gave the route change
+    and a reason in chat or by call before or at the deviation point.
+    """
+    if not trip.gps_trace or not trip.optimal_route.points:
+        return [{
+            "kind": "deviation_point",
+            "summary": "No GPS trace or optimal route to analyze.",
+            "data": {
+                "deviation_point_ts": None,
+                "rider_informed_deviation": False,
+            },
+            "source": "deviation_point",
+        }]
+
+    # Find the first GPS point that is significantly off the recommended route.
+    # Use a threshold of 200m from any optimal route waypoint.
+    off_threshold_m = 200.0
+    deviation_ts: str | None = None
+    for gp in trip.gps_trace:
+        min_dist_to_route = min(
+            haversine_m(gp.lat, gp.lon, wp.lat, wp.lon)
+            for wp in trip.optimal_route.points
+        )
+        if min_dist_to_route > off_threshold_m:
+            deviation_ts = gp.ts
+            break
+
+    # Check if the rider was informed before or at the deviation point.
+    informed = False
+    if deviation_ts and chat:
+        for msg in chat.messages:
+            if msg.sender != "driver":
+                continue
+            # Must be before or at the deviation point
+            if msg.ts <= deviation_ts:
+                # Must contain a route-change reason (traffic, road, closure, etc.)
+                if _ROAD_CLOSURE_PATTERNS.search(msg.text) or _ROUTE_CHANGE_REASON_RE.search(msg.text):
+                    informed = True
+                    break
+
+    # Also check call attempts (from chat messages with type "call")
+    if not informed and deviation_ts and chat:
+        for msg in chat.messages:
+            if msg.sender == "driver" and msg.message_type == "call" and msg.ts <= deviation_ts:
+                informed = True
+                break
+
+    # Rider-requested change also counts as informed
+    if not informed and chat:
+        informed = any(
+            m.sender == "rider" and _REQUESTED_CHANGE_PATTERNS.search(m.text)
+            for m in chat.messages
+        )
+
+    summary = (
+        f"Deviation point: {deviation_ts or 'none'}. "
+        f"Rider informed: {'yes' if informed else 'no'}."
+    )
+
+    return [{
+        "kind": "deviation_point",
+        "summary": summary,
+        "data": {
+            "deviation_point_ts": deviation_ts,
+            "rider_informed_deviation": informed,
+        },
+        "source": "deviation_point",
+    }]
+
+
+# Pattern for a driver giving a reason for a route change.
+_ROUTE_CHANGE_REASON_RE = re.compile(
+    r"\b(traffic|jam|congestion|accident|road closure|closed|divert|"
+    r"detour|alternate route|taking another|reroute|blocked|fire)\b",
+    re.IGNORECASE,
+)
+
+
+def no_show_contact_analysis(trip: Trip, chat: ChatLog | None) -> list[dict]:
+    """Analyze no-show contact obligations (v2.1 §2.3).
+
+    The driver must make at least 1 in-app chat message AND at least 1 call
+    before cancelling.  System messages do not count.
+    """
+    driver_chat = 0
+    driver_calls = 0
+    if chat:
+        for msg in chat.messages:
+            if msg.sender != "driver":
+                continue
+            if msg.message_type == "call":
+                driver_calls += 1
+            elif msg.message_type == "message" or msg.message_type == "":
+                driver_chat += 1
+        # Also count CallAttempt objects
+        driver_calls += len([
+            c for c in chat.calls
+            if c.sender == "driver"
+        ])
+
+    both_contacts = driver_chat >= 1 and driver_calls >= 1
+
+    summary = (
+        f"Driver contact: {driver_chat} chat message(s), "
+        f"{driver_calls} call(s). "
+        f"Both obligations met: {'yes' if both_contacts else 'no'} (§2.3)."
+    )
+
+    return [{
+        "kind": "no_show_contact",
+        "summary": summary,
+        "data": {
+            "driver_chat_messages": driver_chat,
+            "driver_call_attempts": driver_calls,
+            "driver_made_contact": both_contacts,
+        },
+        "source": "no_show_contact",
+    }]
+
+
+def damage_evidence_check(trip: Trip) -> list[dict]:
+    """Check property damage evidence (v2.1 §4.2).
+
+    Verifiable photo evidence: in-app camera, automatic timestamp,
+    submitted within 24 hours, linked to trip.
+    """
+    de = trip.damage_evidence
+    if de is None:
+        return [{
+            "kind": "damage_evidence",
+            "summary": "No damage evidence data available.",
+            "data": {
+                "photo_source": "",
+                "has_timestamp": False,
+                "submitted_within_24h": False,
+                "linked_to_trip": False,
+                "verifiable": False,
+            },
+            "source": "damage_evidence",
+        }]
+
+    verifiable = (
+        de.photo_source == "in_app_camera"
+        and de.has_timestamp
+        and de.submitted_within_24h
+        and de.linked_to_trip
+    )
+
+    summary = (
+        f"Damage evidence: source={de.photo_source}, "
+        f"timestamp={'yes' if de.has_timestamp else 'no'}, "
+        f"within 24h={'yes' if de.submitted_within_24h else 'no'}, "
+        f"linked to trip={'yes' if de.linked_to_trip else 'no'}. "
+        f"Verifiable: {'yes' if verifiable else 'no'} (§4.2)."
+    )
+
+    return [{
+        "kind": "damage_evidence",
+        "summary": summary,
+        "data": {
+            "photo_source": de.photo_source,
+            "has_timestamp": de.has_timestamp,
+            "submitted_within_24h": de.submitted_within_24h,
+            "linked_to_trip": de.linked_to_trip,
+            "verifiable": verifiable,
+            "damage_type": de.damage_type,
+            "claim_amount": de.claim_amount,
+            "has_certified_quote": de.has_certified_quote,
+            "quote_within_7_days": de.quote_within_7_days,
+        },
+        "source": "damage_evidence",
+    }]
+
+
+def safety_indicator_check(
+    claim_text: str, chat: ChatLog | None
+) -> list[dict]:
+    """Check for safety indicators in claim text and chat (v2.1 §5.2).
+
+    Safety indicators in the claim text or the chat escalate the case
+    whatever category it was filed under.
+    """
+    in_claim = bool(_SAFETY_PATTERNS.search(claim_text)) if claim_text else False
+    in_chat = False
+    if chat:
+        in_chat = any(
+            _SAFETY_PATTERNS.search(m.text) for m in chat.messages
+        )
+
+    found = in_claim or in_chat
+
+    summary = (
+        f"Safety indicators: {'found' if found else 'none'} "
+        f"(claim: {'yes' if in_claim else 'no'}, "
+        f"chat: {'yes' if in_chat else 'no'})."
+    )
+
+    return [{
+        "kind": "safety_check",
+        "summary": summary,
+        "data": {
+            "safety_indicators_in_claim": in_claim,
+            "safety_indicators_in_chat": in_chat,
+            "safety_escalate": found,
+        },
+        "source": "safety_check",
     }]
 
 
@@ -729,6 +1059,8 @@ def history_profile(
                 f"{upheld} upheld ({rate:.1f}%), "
                 f"account age {rider.account_age_days}d, "
                 f"rating {rider.rating:.1f}, "
+                f"fraud flags: {rider.fraud_flags}, "
+                f"no-show cancellations (30d): {rider.no_show_cancellations_30d}, "
                 f"flags: {rider.prior_flags or 'none'}."
             ),
             "data": {
@@ -741,6 +1073,8 @@ def history_profile(
                 "rating": rider.rating,
                 "trips_completed": rider.trips_completed,
                 "prior_flags": rider.prior_flags,
+                "fraud_flags": rider.fraud_flags,
+                "no_show_cancellations_30d": rider.no_show_cancellations_30d,
             },
             "source": "history_profile",
         })
@@ -756,6 +1090,7 @@ def history_profile(
                 f"{upheld} upheld ({rate:.1f}%), "
                 f"account age {driver.account_age_days}d, "
                 f"rating {driver.rating:.1f}, "
+                f"fraud flags: {driver.fraud_flags}, "
                 f"flags: {driver.prior_flags or 'none'}."
             ),
             "data": {
@@ -768,6 +1103,8 @@ def history_profile(
                 "rating": driver.rating,
                 "trips_completed": driver.trips_completed,
                 "prior_flags": driver.prior_flags,
+                "fraud_flags": driver.fraud_flags,
+                "no_show_cancellations_30d": driver.no_show_cancellations_30d,
             },
             "source": "history_profile",
         })
@@ -781,11 +1118,27 @@ def history_profile(
 
 # Which tools to run for each dispute category.
 _CATEGORY_TOOLS: dict[str, set[str]] = {
-    "route_deviation": {"gps_analysis", "chat_scan", "fare_check", "history_profile"},
-    "no_show_driver": {"arrival_check", "chat_scan", "fare_check", "history_profile"},
-    "no_show_rider": {"arrival_check", "chat_scan", "fare_check", "history_profile"},
+    "route_deviation": {
+        "gps_analysis", "chat_scan", "fare_check", "history_profile",
+        "traffic_analysis", "deviation_point",
+    },
+    "no_show_driver": {
+        "arrival_check", "chat_scan", "fare_check", "history_profile",
+        "no_show_contact",
+    },
+    "no_show_rider": {
+        "arrival_check", "chat_scan", "fare_check", "history_profile",
+        "no_show_contact",
+    },
     "fare_error": {"fare_check", "chat_scan", "history_profile"},
-    "safety": {"chat_scan", "gps_analysis", "arrival_check", "fare_check", "history_profile"},
+    "safety": {
+        "chat_scan", "gps_analysis", "arrival_check", "fare_check",
+        "history_profile", "safety_check",
+    },
+    "property_damage": {
+        "damage_evidence", "fare_check", "chat_scan", "history_profile",
+    },
+    "promo_code": {"fare_check", "chat_scan", "history_profile"},
 }
 
 
@@ -815,6 +1168,16 @@ def build_evidence_pack(
         raw_items.extend(
             history_profile(dataset.profiles, trip.rider_id, trip.driver_id)
         )
+    if "traffic_analysis" in tool_names:
+        raw_items.extend(traffic_analysis(trip))
+    if "deviation_point" in tool_names:
+        raw_items.extend(deviation_point_analysis(trip, chat))
+    if "no_show_contact" in tool_names:
+        raw_items.extend(no_show_contact_analysis(trip, chat))
+    if "damage_evidence" in tool_names:
+        raw_items.extend(damage_evidence_check(trip))
+    if "safety_check" in tool_names:
+        raw_items.extend(safety_indicator_check(dispute.claim_text, chat))
 
     # Assign stable IDs E1, E2, ...
     evidence_items: list[EvidenceItem] = []
@@ -876,6 +1239,11 @@ def facts_from_evidence_pack(pack: EvidencePack) -> Facts:
     arrival = _pack_data(pack, "arrival_check")
     chat = _pack_data(pack, "chat_scan")
     fare = _pack_data(pack, "fare_check")
+    traffic = _pack_data(pack, "traffic_analysis")
+    dev_point = _pack_data(pack, "deviation_point")
+    no_show = _pack_data(pack, "no_show_contact")
+    damage = _pack_data(pack, "damage_evidence")
+    safety = _pack_data(pack, "safety_check")
 
     # Extract rider/driver history items properly.
     rider_hist: dict | None = None
@@ -886,8 +1254,18 @@ def facts_from_evidence_pack(pack: EvidencePack) -> Facts:
         elif item.data.get("party") == "driver":
             driver_hist = item.data
 
+    # When fare-provided excess_distance_km is available and positive,
+    # it is authoritative (from Ryde's fare breakdown). Use it to override
+    # the GPS-computed distance values so the policy engine sees the
+    # correct excess.
+    fare_excess_km = fare.get("excess_distance_km", 0.0)
+    if fare_excess_km and fare_excess_km > 0:
+        actual_km = gps.get("distance_optimal_km", 0.0) + fare_excess_km
+    else:
+        actual_km = gps.get("distance_actual_km", 0.0)
+
     facts = Facts(
-        distance_actual_km=gps.get("distance_actual_km", 0.0),
+        distance_actual_km=actual_km,
         distance_optimal_km=gps.get("distance_optimal_km", 0.0),
         duration_actual_min=gps.get("duration_actual_min", 0.0),
         duration_optimal_min=gps.get("duration_optimal_min", 0.0),
@@ -899,21 +1277,52 @@ def facts_from_evidence_pack(pack: EvidencePack) -> Facts:
         rider_requested_change_quotes=chat.get("rider_requested_change_quotes", []),
         road_closure=chat.get("road_closure", False),
         road_closure_quotes=chat.get("road_closure_quotes", []),
+        # v2.1 §1.2/§1.4
+        rider_informed_deviation=dev_point.get("rider_informed_deviation", False),
+        deviation_point_ts=dev_point.get("deviation_point_ts"),
+        traffic_justified=traffic.get("traffic_justified", False),
+        traffic_incidents_on_route=traffic.get("traffic_incidents_on_route", []),
         agreements=chat.get("agreements", []),
         disagreements=chat.get("disagreements", []),
         abusive_language=chat.get("abusive_language", []),
         threatening_language=chat.get("threatening_language", []),
         contact_attempts=chat.get("contact_attempts", 0),
+        # v2.1 §2.3
+        driver_chat_messages=no_show.get("driver_chat_messages", 0),
+        driver_call_attempts=no_show.get("driver_call_attempts", 0),
+        driver_made_contact=no_show.get("driver_made_contact", False),
         min_distance_to_pickup_m=arrival.get("min_distance_to_pickup_m", float("inf")),
         arrival_ts=arrival.get("arrival_ts"),
         arrival_vs_eta_min=arrival.get("arrival_vs_eta_min", 0.0),
         wait_minutes_within_150m=arrival.get("wait_minutes_within_150m", 0.0),
         wait_minutes_past_eta=arrival.get("wait_minutes_past_eta", 0.0),
+        driver_no_show=arrival.get("driver_no_show", False),
         recomputed_fare=fare.get("recomputed_fare", 0.0),
         charged_total=fare.get("charged_total", 0.0),
         fare_difference=fare.get("fare_difference", 0.0),
         promo_applied=fare.get("promo_applied", False),
         promo_valid_at_booking=fare.get("promo_valid_at_booking", True),
+        # v2.1 §3
+        quote_surge_multiplier=fare.get("quote_surge_multiplier", 1.0),
+        trip_start_surge_multiplier=fare.get("trip_start_surge_multiplier", 1.0),
+        surgeable_subtotal=fare.get("surgeable_subtotal", 0.0),
+        upfront_quote=fare.get("upfront_quote", 0.0),
+        rider_notified_surge=fare.get("rider_notified_surge", False),
+        surge_increased=fare.get("surge_increased", False),
+        surge_decreased=fare.get("surge_decreased", False),
+        surge_differential=fare.get("surge_differential", 0.0),
+        # v2.1 §4
+        damage_claim_amount=damage.get("claim_amount", 0.0),
+        damage_type=damage.get("damage_type", ""),
+        photo_source=damage.get("photo_source", ""),
+        has_timestamp=damage.get("has_timestamp", False),
+        submitted_within_24h=damage.get("submitted_within_24h", False),
+        linked_to_trip=damage.get("linked_to_trip", False),
+        has_certified_quote=damage.get("has_certified_quote", False),
+        quote_within_7_days=damage.get("quote_within_7_days", False),
+        # v2.1 §5
+        safety_indicators_in_chat=safety.get("safety_indicators_in_chat", False),
+        safety_indicators_in_claim=safety.get("safety_indicators_in_claim", False),
     )
 
     if rider_hist:
@@ -923,6 +1332,8 @@ def facts_from_evidence_pack(pack: EvidencePack) -> Facts:
         facts.rider_account_age_days = rider_hist.get("account_age_days", 0)
         facts.rider_rating = rider_hist.get("rating", 0.0)
         facts.rider_prior_flags = rider_hist.get("prior_flags", [])
+        facts.rider_fraud_flags = rider_hist.get("fraud_flags", 0)
+        facts.rider_no_show_cancellations_30d = rider_hist.get("no_show_cancellations_30d", 0)
 
     if driver_hist:
         facts.driver_disputes_filed_90d = driver_hist.get("disputes_filed_90d", 0)
@@ -931,6 +1342,7 @@ def facts_from_evidence_pack(pack: EvidencePack) -> Facts:
         facts.driver_account_age_days = driver_hist.get("account_age_days", 0)
         facts.driver_rating = driver_hist.get("rating", 0.0)
         facts.driver_prior_flags = driver_hist.get("prior_flags", [])
+        facts.driver_fraud_flags = driver_hist.get("fraud_flags", 0)
 
     return facts
 
@@ -955,6 +1367,12 @@ def compute_facts(trip: Trip, chat: ChatLog | None) -> Facts:
     raw_items.extend(arrival_check(trip))
     raw_items.extend(chat_scan(chat))
     raw_items.extend(fare_check(trip))
+    # v2.1 tools
+    raw_items.extend(traffic_analysis(trip))
+    raw_items.extend(deviation_point_analysis(trip, chat))
+    raw_items.extend(no_show_contact_analysis(trip, chat))
+    raw_items.extend(damage_evidence_check(trip))
+    raw_items.extend(safety_indicator_check("test claim", chat))
 
     pack = EvidencePack(
         items=[
