@@ -130,7 +130,8 @@ class TestPolicyClarity:
 
     def test_no_show_zero_contact_high_clarity(self):
         """No-show with zero contact: system-record boolean → 1.0."""
-        f = _facts(driver_chat_messages=0, driver_call_attempts=0, driver_made_contact=False)
+        f = _facts(driver_chat_messages=0, driver_call_attempts=0, driver_made_contact=False,
+                   free_wait_minutes=8.0)
         conf, factors = compute_confidence(f, "no_show_rider", 0.0, outcome="voided")
         assert factors["policy_clarity"] == pytest.approx(1.0, abs=0.02)
 
@@ -150,11 +151,11 @@ class TestPolicyClarity:
     def test_shrinking_wait_margin_lowers_clarity(self):
         """Shrinking the wait margin (closer to threshold) lowers clarity."""
         # Wait far past threshold → numeric score closer to 1.0
-        f_far = _facts(wait_minutes_past_eta=10.0, driver_made_contact=True)
+        f_far = _facts(free_wait_minutes=10.0, driver_made_contact=True)
         _, factors_far = compute_confidence(f_far, "no_show_rider", 5.0, outcome="upheld")
 
         # Wait barely past threshold → numeric score = 0.6
-        f_close = _facts(wait_minutes_past_eta=5.1, driver_made_contact=True)
+        f_close = _facts(free_wait_minutes=5.1, driver_made_contact=True)
         _, factors_close = compute_confidence(f_close, "no_show_rider", 5.0, outcome="upheld")
 
         assert factors_far["policy_clarity"] > factors_close["policy_clarity"]
@@ -216,7 +217,7 @@ class TestPrecedentAlignment:
         assert "conflicts" in factors["precedent_reason"]
 
     def test_distinguished_different_facts(self):
-        """A precedent with different deciding facts → distinguished → 1.0
+        """A precedent with different deciding facts → distinguished → 0.85
         (neutral: no agreement, no conflict)."""
         f = _facts()
         prec = PrecedentMatch(
@@ -238,17 +239,18 @@ class TestPrecedentAlignment:
             outcome="refund_partial",
             retrieved_precedents=[prec],
         )
-        assert factors["precedent_alignment"] == pytest.approx(1.0, abs=0.02)
+        assert factors["precedent_alignment"] == pytest.approx(0.85, abs=0.02)
         assert "distinguished" in factors["precedent_reason"]
 
     def test_no_retrieved_precedents_fallback(self):
-        """When no retrieved_precedents provided, fallback to similarity-based."""
+        """Without the retrieved precedents, similarity alone says nothing about
+        what the precedent decided, so alignment stays neutral."""
         f = _facts()
         conf, factors = compute_confidence(f, "route_deviation", 3.44,
                                            has_precedent_match=True,
                                            precedent_similarity=0.5,
                                            outcome="refund_partial")
-        assert factors["precedent_alignment"] == pytest.approx(1.0, abs=0.02)
+        assert factors["precedent_alignment"] == pytest.approx(0.85, abs=0.02)
 
     def test_no_match_no_retrieved_fallback(self):
         """No retrieved_precedents and no match → 0.85."""
@@ -366,9 +368,12 @@ class TestOfficialCasesConfidence:
         assert "winning party" in f["credibility_reason"]
 
     def test_disp002_confidence_value(self, ds):
-        """DISP-002 confidence = 1.0 (within 0.02)."""
+        """DISP-002: every fact present, clear margins, credible winning party;
+        its only same-category precedent (DISP-2026-0211) is distinguished, so
+        alignment is neutral: 0.30 + 0.25 + 0.25 x 0.85 + 0.20 = 0.9625."""
         pr = self._evaluate(ds, "DISP-002")
-        assert pr.confidence == pytest.approx(1.0, abs=0.02)
+        assert pr.confidence == pytest.approx(0.9625, abs=0.02)
+        assert pr.confidence >= 0.95
 
     def test_disp002_routing_ai_final(self, ds):
         """DISP-002 AI final despite fraud flag."""

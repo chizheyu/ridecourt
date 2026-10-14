@@ -132,6 +132,7 @@ class Trip(BaseModel):
     trip_started_at: Optional[str] = None
     trip_ended_at: Optional[str] = None
     scheduled_pickup_at: Optional[str] = None  # v2.1 §2.1
+    cancelled_at: Optional[str] = None  # when the trip was cancelled (no-show)
     status: TripStatus = "completed"
     gps_trace: list[GPSPoint] = Field(default_factory=list)
     optimal_route: OptimalRoute = Field(default_factory=OptimalRoute)
@@ -292,6 +293,9 @@ class Facts(BaseModel):
     wait_minutes_past_eta: float = 0.0
     # v2.1 §2.1: free wait from later of scheduled pickup and arrival
     free_wait_expired: bool = False
+    # minutes from the start of the free wait to the cancellation; None when
+    # the data has no cancellation time
+    free_wait_minutes: Optional[float] = None
     driver_no_show: bool = False  # §2.4: driver not at pickup by scheduled+5
     driver_made_contact: bool = False  # §2.3: both chat AND call
     rider_no_show_cancellations_30d: int = 0  # §2.5

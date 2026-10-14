@@ -656,8 +656,9 @@ class TestComputeConfidence:
         total = W_EVIDENCE + W_CLARITY + W_PRECEDENT + W_CREDIBILITY
         assert abs(total - 1.0) < 0.001
 
-    def test_confidence_with_precedent(self):
-        """Having a precedent match should increase confidence."""
+    def test_similarity_alone_does_not_raise_confidence(self):
+        """A similar precedent whose outcome was not compared does not raise
+        confidence; only an agreeing precedent does (test_confidence_factors)."""
         f = _facts()
         conf_with, factors_with = compute_confidence(
             f, "route_deviation", 5.0, has_precedent_match=True,
@@ -666,7 +667,7 @@ class TestComputeConfidence:
         conf_without, factors_without = compute_confidence(
             f, "route_deviation", 5.0, has_precedent_match=False,
         )
-        assert conf_with > conf_without
+        assert conf_with == conf_without
 
     def test_fraud_flags_lower_credibility(self):
         """Fraud flags on the winning party lower credibility."""

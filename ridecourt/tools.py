@@ -569,8 +569,31 @@ def arrival_check(trip: Trip) -> list[dict]:
     # arrival + 5 min). Used by the policy engine's no-show logic.
     wait_past = wait_minutes_past_eta(trip)
 
-    # §2.4: driver no-show = never arrived and never got close to pickup
-    driver_no_show = trip.driver_arrived_at is None and min_dist > 150.0
+    # §2.4: driver no-show = not at the pickup by the scheduled time + 5 min
+    # (never came within 150 m, or arrived more than 5 min after the
+    # scheduled pickup time).
+    late_arrival = bool(
+        trip.driver_arrived_at and trip.scheduled_pickup_at
+        and (_parse(trip.driver_arrived_at) - _parse(trip.scheduled_pickup_at)).total_seconds() / 60.0 > 5.0
+    )
+    driver_no_show = (trip.driver_arrived_at is None and min_dist > 150.0) or late_arrival
+
+    # §2.1: the free wait runs from the later of the scheduled pickup time and
+    # the driver's arrival to the cancellation.
+    cancel_ts = trip.cancelled_at or (
+        trip.trip_ended_at
+        if trip.status in ("no_show_rider", "no_show_driver", "cancelled_by_driver")
+        else None
+    )
+    free_wait_start: datetime | None = None
+    if trip.driver_arrived_at:
+        starts = [_parse(trip.driver_arrived_at)]
+        if trip.scheduled_pickup_at:
+            starts.append(_parse(trip.scheduled_pickup_at))
+        free_wait_start = max(starts)
+    free_wait_minutes: float | None = None
+    if free_wait_start is not None and cancel_ts:
+        free_wait_minutes = (_parse(cancel_ts) - free_wait_start).total_seconds() / 60.0
 
     scheduled = trip.scheduled_pickup_at or ""
 
@@ -584,6 +607,14 @@ def arrival_check(trip: Trip) -> list[dict]:
         parts.append(f"scheduled pickup {scheduled}")
     if trip.driver_arrived_at:
         parts.append(f"driver arrived at {trip.driver_arrived_at}")
+    if free_wait_minutes is not None and free_wait_start is not None:
+        parts.append(
+            f"free wait counted from {free_wait_start.isoformat()} (later of "
+            f"scheduled pickup and arrival); cancelled at {cancel_ts}, "
+            f"{free_wait_minutes:.1f} min later"
+        )
+    elif trip.driver_arrived_at:
+        parts.append("cancellation time: not in the data")
     summary = "; ".join(parts) + "."
 
     return [{
@@ -596,6 +627,8 @@ def arrival_check(trip: Trip) -> list[dict]:
             "wait_minutes_within_150m": round(wait_within_150, 2),
             "wait_minutes_past_eta": round(wait_past, 2),
             "driver_no_show": driver_no_show,
+            "free_wait_minutes": round(free_wait_minutes, 2) if free_wait_minutes is not None else None,
+            "cancelled_at": cancel_ts or "",
             "scheduled_pickup_at": scheduled,
             "driver_arrived_at": trip.driver_arrived_at or "",
         },
@@ -1121,7 +1154,9 @@ def no_show_timeline(trip: Trip) -> list[dict]:
                 "description": ev.details,
             })
 
-    # Sort by timestamp
+    # Sort by timestamp; the arrival may be both a trip field and an app event
+    seen: set[tuple[str, str]] = set()
+    events = [e for e in events if not ((e["ts"], e["event"]) in seen or seen.add((e["ts"], e["event"])))]
     events.sort(key=lambda e: e["ts"])
 
     # Build summary
@@ -1506,6 +1541,11 @@ def facts_from_evidence_pack(pack: EvidencePack) -> Facts:
         wait_minutes_within_150m=arrival.get("wait_minutes_within_150m", 0.0),
         wait_minutes_past_eta=arrival.get("wait_minutes_past_eta", 0.0),
         driver_no_show=arrival.get("driver_no_show", False),
+        free_wait_minutes=arrival.get("free_wait_minutes"),
+        free_wait_expired=(
+            arrival.get("free_wait_minutes") is not None
+            and arrival.get("free_wait_minutes") >= 5.0
+        ),
         recomputed_fare=fare.get("recomputed_fare", 0.0),
         charged_total=fare.get("charged_total", 0.0),
         fare_difference=fare.get("fare_difference", 0.0),

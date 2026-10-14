@@ -217,6 +217,21 @@ def section_2_no_show(
             actions=actions,
         )
 
+    # §2.1: the driver may cancel as a rider no-show only after the free wait
+    if facts.free_wait_minutes is not None and facts.free_wait_minutes < NS_FREE_WAIT_MIN:
+        comp = (
+            f"Driver cancelled {facts.free_wait_minutes:.1f} min into the free wait "
+            f"(§2.1 requires {NS_FREE_WAIT_MIN:.0f} min from the later of the "
+            f"scheduled pickup and arrival). Cancellation fee voided."
+        )
+        return PolicyResult(
+            applicable_clauses=["§2.1"],
+            outcome="cancellation_fee_voided",
+            amount=0.0,
+            computation=comp,
+            actions=actions,
+        )
+
     # §2.3: rider no-show — check driver's contact obligations
     if not facts.driver_made_contact:
         # Driver failed both-contact obligation → fee voided
@@ -236,8 +251,14 @@ def section_2_no_show(
 
     # §2.2: cancellation fee stands
     fee = NS_CANCELLATION_FEE
+    waited = (
+        f"cancelled {facts.free_wait_minutes:.1f} min after the free wait began, "
+        f"so the {NS_FREE_WAIT_MIN:.0f}-min free wait had expired (§2.1)"
+        if facts.free_wait_minutes is not None
+        else f"free wait {NS_FREE_WAIT_MIN:.0f} min (§2.1; cancellation time not in the data)"
+    )
     comp = (
-        f"Free wait {NS_FREE_WAIT_MIN:.0f} min expired (§2.1); "
+        f"{waited}; "
         f"driver made contact: {facts.driver_chat_messages} chat + "
         f"{facts.driver_call_attempts} call (§2.3 met); "
         f"cancellation fee S${fee:.2f} upheld (§2.2)."
@@ -634,13 +655,25 @@ def compute_confidence(
             "free_text",
         ))
     elif category in ("no_show_rider", "no_show_driver"):
-        # Free wait time: numeric condition (wait vs 5-minute threshold)
-        wait = facts.wait_minutes_past_eta
-        condition_scores.append((
-            f"wait {wait:.1f} min vs threshold {NS_FREE_WAIT_MIN:.0f} min",
-            _numeric_condition_score(wait, NS_FREE_WAIT_MIN),
-            "numeric",
-        ))
+        # Free wait (§2.1): minutes from the start of the free wait to the
+        # cancellation, against the 5-minute threshold.
+        if category == "no_show_rider" and facts.free_wait_minutes is not None:
+            wait = facts.free_wait_minutes
+            condition_scores.append((
+                f"free wait {wait:.1f} min vs threshold {NS_FREE_WAIT_MIN:.0f} min",
+                _numeric_condition_score(wait, NS_FREE_WAIT_MIN),
+                "numeric",
+            ))
+        elif category == "no_show_rider":
+            condition_scores.append((
+                "cancellation time not in the data", 0.8, "missing",
+            ))
+        if category == "no_show_driver":
+            condition_scores.append((
+                f"driver_no_show={facts.driver_no_show} (GPS and arrival records)",
+                1.0,
+                "system",
+            ))
         # Contact obligations: boolean from system records (chat log, call log)
         if category == "no_show_rider":
             condition_scores.append((
@@ -709,8 +742,8 @@ def compute_confidence(
             precedent_alignment = 1.0
         elif distinguished:
             # All same-category precedents are distinguished:
-            # no agreement, no conflict → neutral (1.0)
-            precedent_alignment = 1.0
+            # no agreement, no conflict → neutral
+            precedent_alignment = 0.85
         else:
             # No same-category precedents retrieved at all
             precedent_alignment = 0.85
@@ -730,15 +763,13 @@ def compute_confidence(
         if not precedent_reason_parts:
             precedent_reason_parts.append("no same-category precedents retrieved")
     else:
-        if has_precedent_match and precedent_similarity >= 0.4:
-            precedent_alignment = 1.0
-            precedent_reason_parts.append(
-                f"strong precedent match (similarity {precedent_similarity:.2f})"
-            )
-        elif has_precedent_match:
+        if has_precedent_match:
+            # Similarity alone says nothing about what the precedent decided,
+            # so without the retrieved precedents this stays neutral.
             precedent_alignment = 0.85
             precedent_reason_parts.append(
-                f"precedent match found (similarity {precedent_similarity:.2f})"
+                f"similar precedent found (similarity {precedent_similarity:.2f}); "
+                "its outcome was not compared"
             )
         else:
             precedent_alignment = 0.85

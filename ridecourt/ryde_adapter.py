@@ -427,6 +427,7 @@ def _map_trip(
         trip_started_at=raw_trip.get("start_time"),
         trip_ended_at=raw_trip.get("end_time"),
         scheduled_pickup_at=raw_trip.get("scheduled_time"),
+        cancelled_at=raw_trip.get("cancellation_time"),
         status="cancelled_by_driver" if raw_trip.get("cancellation_reason") else "completed",
         gps_trace=_map_gps(raw_gps),
         optimal_route=_map_optimal_route(raw_optimal or {}),
