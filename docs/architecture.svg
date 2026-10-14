@@ -40,10 +40,10 @@
     <text x="14" y="90" font-size="11" fill="#fff" font-weight="600">profiles.json</text>
     <text x="14" y="108" font-size="11" fill="#fff" font-weight="600">disputes.json</text>
     <text x="14" y="126" font-size="11" fill="#fff" font-weight="600">precedents.json</text>
-    <text x="14" y="144" font-size="11" fill="#fff" font-weight="600">policy.md</text>
+    <text x="14" y="144" font-size="11" fill="#fff" font-weight="600">policy.md (Ryde v2.1)</text>
     <text x="14" y="172" font-size="10" fill="#fff" opacity="0.7">data/synthetic/</text>
-    <text x="14" y="189" font-size="10" fill="#fff" opacity="0.7">Adapters for real</text>
-    <text x="14" y="206" font-size="10" fill="#fff" opacity="0.7">organiser dataset</text>
+    <text x="14" y="189" font-size="10" fill="#fff" opacity="0.7">+ Ryde sample cases</text>
+    <text x="14" y="206" font-size="10" fill="#fff" opacity="0.7">(ryde_adapter.py)</text>
   </g>
 
   <!-- Deterministic tools -->
@@ -85,7 +85,7 @@
     <line x1="10" y1="34" x2="150" y2="34" stroke="#fff" stroke-width="0.5" opacity="0.4"/>
     <text x="14" y="54" font-size="11" fill="#fff">Validates every</text>
     <text x="14" y="70" font-size="11" fill="#fff">agent output:</text>
-    <text x="14" y="88" font-size="11" fill="#fff">• citation IDs (E#, P-)</text>
+    <text x="14" y="88" font-size="11" fill="#fff">• citation IDs (E#, §x.y)</text>
     <text x="14" y="104" font-size="11" fill="#fff">• numbers in pack</text>
   </g>
 
@@ -109,12 +109,12 @@
     <!-- Rider -->
     <rect x="12" y="42" width="216" height="58" rx="6" fill="#6366f1" stroke="#4f46e5" stroke-width="1"/>
     <text x="120" y="60" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">Rider Advocate</text>
-    <text x="120" y="76" text-anchor="middle" font-size="10" fill="#e0e7ff">cites E# + P-#  -&gt;  position + rebuttal</text>
+    <text x="120" y="76" text-anchor="middle" font-size="10" fill="#e0e7ff">cites E# + §x.y  -&gt;  position + rebuttal</text>
 
     <!-- Driver -->
     <rect x="12" y="108" width="216" height="58" rx="6" fill="#6366f1" stroke="#4f46e5" stroke-width="1"/>
     <text x="120" y="126" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">Driver Advocate</text>
-    <text x="120" y="142" text-anchor="middle" font-size="10" fill="#e0e7ff">cites E# + P-#  -&gt;  position + rebuttal</text>
+    <text x="120" y="142" text-anchor="middle" font-size="10" fill="#e0e7ff">cites E# + §x.y  -&gt;  position + rebuttal</text>
 
     <!-- Fraud -->
     <rect x="12" y="174" width="216" height="58" rx="6" fill="#6366f1" stroke="#4f46e5" stroke-width="1"/>
@@ -156,9 +156,9 @@
     <rect width="200" height="110" rx="8" fill="#059669" stroke="#047857" stroke-width="1.5" opacity="0.85"/>
     <text x="100" y="24" text-anchor="middle" font-size="13" font-weight="700" fill="#fff">Policy Engine</text>
     <line x1="10" y1="34" x2="190" y2="34" stroke="#fff" stroke-width="0.5" opacity="0.4"/>
-    <text x="14" y="54" font-size="11" fill="#fff">ridecourt/policy.py</text>
-    <text x="14" y="72" font-size="11" fill="#fff">-&gt; outcome, amount,</text>
-    <text x="14" y="88" font-size="11" fill="#fff">  computation string</text>
+    <text x="14" y="54" font-size="11" fill="#fff">Ryde Policy v2.1 §1-§5</text>
+    <text x="14" y="72" font-size="11" fill="#fff">-&gt; outcome, amount, arithmetic</text>
+    <text x="14" y="88" font-size="11" fill="#fff">§6 routing: value + §6.3 confidence</text>
     <text x="14" y="103" font-size="10" fill="#fff" opacity="0.7">pure functions, no LLM</text>
   </g>
 
@@ -170,7 +170,7 @@
     <text x="14" y="56" font-size="11" fill="#fff">Weighs both cases + risk + precedents</text>
     <text x="14" y="74" font-size="11" fill="#fff">Applies policy engine result (code)</text>
     <text x="14" y="92" font-size="11" fill="#fff">Amount must match policy engine</text>
-    <text x="14" y="110" font-size="11" fill="#fff">Confidence &lt; 0.7  -&gt;  escalate</text>
+    <text x="14" y="110" font-size="11" fill="#fff">Disagrees or unsure  -&gt;  escalate</text>
     <text x="14" y="124" font-size="10" fill="#e0e7ff" font-style="italic">writes the ruling</text>
   </g>
 
@@ -180,9 +180,9 @@
     <text x="85" y="26" text-anchor="middle" font-size="13" font-weight="700" fill="#fff">Escalation Queue</text>
     <line x1="10" y1="36" x2="160" y2="36" stroke="#fff" stroke-width="0.5" opacity="0.4"/>
     <text x="14" y="56" font-size="11" fill="#fff">• Safety (always)</text>
-    <text x="14" y="74" font-size="11" fill="#fff">• Low confidence</text>
+    <text x="14" y="74" font-size="11" fill="#fff">• §6 routing (v2.1)</text>
     <text x="14" y="92" font-size="11" fill="#fff">• Guard failure</text>
-    <text x="14" y="110" font-size="11" fill="#fff">• Policy mismatch</text>
+    <text x="14" y="110" font-size="11" fill="#fff">• Model unavailable</text>
   </g>
 
   <!-- Human reviewer + feedback -->

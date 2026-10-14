@@ -846,20 +846,23 @@ def fare_check(trip: Trip) -> list[dict]:
         diff = 0.0
 
     parts: list[str] = []
+    # The source's own fare lines come first: a fare dispute is about the
+    # upfront quote against the amount charged, so the agents must be able to
+    # cite both (real-Gemini advocates quoted the upfront quote, which was
+    # only in the trip data, and the guard rejected it).
+    if upfront > 0:
+        parts.append(f"Upfront quote S${upfront:.2f}")
+    if charged > 0:
+        parts.append(f"Actual charged S${charged:.2f}")
+    if upfront > 0 and charged > 0:
+        delta = round(charged - upfront, 2)
+        parts.append(f"Delta S${delta:.2f}")
     if can_recompute:
         parts.append(
             f"Recomputed fare S${recomputed:.2f} vs charged S${charged:.2f} "
             f"(diff S${diff:.2f})"
         )
     else:
-        # Show the source's fare lines
-        if upfront > 0:
-            parts.append(f"Upfront quote S${upfront:.2f}")
-        if charged > 0:
-            parts.append(f"Actual charged S${charged:.2f}")
-        if upfront > 0 and charged > 0:
-            delta = round(charged - upfront, 2)
-            parts.append(f"Delta S${delta:.2f}")
         if trip.fare.excess_distance_km > 0:
             parts.append(
                 f"Excess distance {trip.fare.excess_distance_km:.1f} km, "

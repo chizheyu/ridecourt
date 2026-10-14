@@ -286,8 +286,8 @@
     "applicable_clauses": [
       "§4.4"
     ],
-    "routing": "ai_final",
-    "deciding_section": "§6.1"
+    "routing": "human",
+    "deciding_section": "§4.4"
   },
   {
     "dispute_id": "disp_pd_004",
@@ -553,8 +553,8 @@
     "applicable_clauses": [
       "§4.4"
     ],
-    "routing": "ai_final",
-    "deciding_section": "§6.1"
+    "routing": "human",
+    "deciding_section": "§4.4"
   },
   {
     "dispute_id": "disp_fa_000",

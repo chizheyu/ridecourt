@@ -1036,6 +1036,12 @@ def evaluate(
         has_precedent_match=has_precedent_match,
     )
 
+    # §4.4: a rider disputing a damage charge always goes to human review,
+    # whatever its value (the engine still prepares the case file).
+    if result.outcome == "human_review_rider_dispute":
+        routing = "human"
+        routing_reason = "§4.4: the rider disputes the damage charge — human review"
+
     result.routing = routing
     result.routing_reason = routing_reason
     result.confidence = confidence
